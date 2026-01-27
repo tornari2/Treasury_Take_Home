@@ -2,6 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 
 interface LabelImage {
   id: number;
@@ -107,35 +112,35 @@ export default function ReviewPage() {
     }
   };
 
-  const getFieldStatusColor = (result: any) => {
-    if (!result) return 'bg-gray-100';
+  const getFieldStatusVariant = (
+    result: any
+  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    if (!result) return 'outline';
     switch (result.type) {
       case 'match':
-        return 'bg-green-100 border-green-300';
+        return 'default';
       case 'soft_mismatch':
-        return 'bg-yellow-100 border-yellow-300';
+        return 'secondary';
       case 'hard_mismatch':
-        return 'bg-red-100 border-red-300';
       case 'not_found':
-        return 'bg-red-100 border-red-300';
+        return 'destructive';
       default:
-        return 'bg-gray-100';
+        return 'outline';
     }
   };
 
   const getFieldStatusIcon = (result: any) => {
-    if (!result) return '❓';
+    if (!result) return null;
     switch (result.type) {
       case 'match':
-        return '✅';
+        return <CheckCircle2 className="h-5 w-5 text-green-600" />;
       case 'soft_mismatch':
-        return '⚠️';
+        return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
       case 'hard_mismatch':
-        return '❌';
       case 'not_found':
-        return '❌';
+        return <XCircle className="h-5 w-5 text-red-600" />;
       default:
-        return '❓';
+        return null;
     }
   };
 
@@ -163,20 +168,17 @@ export default function ReviewPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="text-blue-600 hover:text-blue-800 mb-4"
-          >
+          <Button variant="ghost" onClick={() => router.push('/dashboard')} className="mb-4">
             ← Back to Dashboard
-          </button>
+          </Button>
           <h1 className="text-3xl font-bold text-gray-900">Review Application #{application.id}</h1>
           <p className="text-gray-600 mt-2">{application.applicant_name}</p>
         </div>
 
         {verifying && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-blue-800">Verifying application with AI...</p>
-          </div>
+          <Alert className="mb-4">
+            <AlertDescription>Verifying application with AI...</AlertDescription>
+          </Alert>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -186,17 +188,13 @@ export default function ReviewPage() {
 
             <div className="mb-4 flex gap-2">
               {application.label_images.map((img) => (
-                <button
+                <Button
                   key={img.id}
                   onClick={() => setSelectedImageType(img.image_type)}
-                  className={`px-4 py-2 rounded ${
-                    selectedImageType === img.image_type
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}
+                  variant={selectedImageType === img.image_type ? 'default' : 'outline'}
                 >
                   {img.image_type}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -209,20 +207,22 @@ export default function ReviewPage() {
                       ? `${(currentImage.confidence_score * 100).toFixed(1)}%`
                       : 'N/A'}
                   </span>
-                  <div className="flex gap-2">
-                    <button
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setImageZoom(Math.max(0.5, imageZoom - 0.1))}
-                      className="px-2 py-1 bg-gray-200 rounded"
                     >
                       -
-                    </button>
-                    <span className="text-sm">{Math.round(imageZoom * 100)}%</span>
-                    <button
+                    </Button>
+                    <span className="text-sm w-12 text-center">{Math.round(imageZoom * 100)}%</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setImageZoom(Math.min(2, imageZoom + 0.1))}
-                      className="px-2 py-1 bg-gray-200 rounded"
                     >
                       +
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="overflow-auto border rounded">
@@ -244,18 +244,21 @@ export default function ReviewPage() {
             <h2 className="text-xl font-semibold mb-4">Verification Results</h2>
 
             {Object.keys(verificationResult).length === 0 ? (
-              <div className="text-gray-500">
+              <div className="text-muted-foreground">
                 No verification results yet. Click &quot;Verify&quot; to process.
               </div>
             ) : (
               <div className="space-y-3">
                 {Object.entries(verificationResult).map(([fieldName, result]: [string, any]) => (
-                  <div
+                  <Alert
                     key={fieldName}
-                    className={`p-3 border-2 rounded ${getFieldStatusColor(result)}`}
+                    variant={
+                      getFieldStatusVariant(result) === 'destructive' ? 'destructive' : 'default'
+                    }
+                    className="border-2"
                   >
                     <div className="flex items-start gap-2">
-                      <span className="text-xl">{getFieldStatusIcon(result)}</span>
+                      {getFieldStatusIcon(result)}
                       <div className="flex-1">
                         <div className="font-semibold capitalize">
                           {fieldName.replace(/_/g, ' ')}
@@ -271,46 +274,51 @@ export default function ReviewPage() {
                           </div>
                         )}
                         {result.type === 'not_found' && (
-                          <div className="text-sm text-red-600 mt-1">Field not found on label</div>
+                          <div className="text-sm text-destructive mt-1">
+                            Field not found on label
+                          </div>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Alert>
                 ))}
               </div>
             )}
 
             <div className="mt-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
-                <textarea
+              <div className="space-y-2">
+                <Label htmlFor="review-notes">Review Notes</Label>
+                <Textarea
+                  id="review-notes"
                   value={reviewNotes}
                   onChange={(e) => setReviewNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   rows={3}
                   placeholder="Add notes about this review..."
                 />
               </div>
 
               <div className="flex gap-3">
-                <button
+                <Button
                   onClick={() => handleStatusUpdate('approved')}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  className="flex-1"
+                  variant="default"
                 >
                   Approve
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => handleStatusUpdate('rejected')}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                  className="flex-1"
+                  variant="destructive"
                 >
                   Reject
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => handleStatusUpdate('needs_review')}
-                  className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                  className="flex-1"
+                  variant="secondary"
                 >
                   Flag for Review
-                </button>
+                </Button>
               </div>
             </div>
           </div>

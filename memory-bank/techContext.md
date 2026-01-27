@@ -16,12 +16,15 @@ _Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and con
 
 ### Frontend
 
-| Technology    | Purpose                            |
-| ------------- | ---------------------------------- |
-| React 18.3.1  | UI library                         |
-| Tailwind CSS  | Utility-first styling              |
-| React Context | State management (auth, selection) |
-| Next.js Image | Optimized image rendering          |
+| Technology    | Purpose                                 |
+| ------------- | --------------------------------------- |
+| React 18.3.1  | UI library                              |
+| Tailwind CSS  | Utility-first styling                   |
+| shadcn/ui     | Component library (Radix UI + Tailwind) |
+| Radix UI      | Accessible component primitives         |
+| Lucide React  | Icon library                            |
+| React Context | State management (auth, selection)      |
+| Next.js Image | Optimized image rendering               |
 
 ### Backend
 
@@ -183,7 +186,16 @@ npx tsx scripts/create-test-user.ts # Create test user
   "bcryptjs": "^3.0.3",
   "uuid": "^13.0.0",
   "cookie": "^1.1.1",
-  "tailwindcss": "^3.4.7"
+  "tailwindcss": "^3.4.7",
+  "tailwindcss-animate": "^1.0.7",
+  "class-variance-authority": "^0.7.0",
+  "clsx": "^2.1.1",
+  "tailwind-merge": "^2.5.4",
+  "lucide-react": "^0.469.0",
+  "@radix-ui/react-slot": "^1.1.0",
+  "@radix-ui/react-label": "^2.1.0",
+  "@radix-ui/react-select": "^2.1.2",
+  "@radix-ui/react-checkbox": "^1.1.2"
 }
 ```
 
@@ -300,6 +312,33 @@ NODE_ENV=production
 - `idx_audit_logs_application` - Application history
 - `idx_audit_logs_timestamp` - Time-based queries
 
+## UI Component Library
+
+### shadcn/ui Integration
+
+The project uses **shadcn/ui** as the primary component library, providing:
+
+- **Accessible Components:** Built on Radix UI primitives with full ARIA support
+- **Consistent Design System:** Unified styling with Tailwind CSS
+- **Copy-Paste Architecture:** Components live in codebase for full customization
+- **TypeScript Support:** Fully typed components with IntelliSense support
+
+### Installed Components
+
+- **Button** - Multiple variants (default, destructive, outline, ghost, link, secondary)
+- **Input** - Form input fields with consistent styling
+- **Select** - Accessible dropdown menus
+- **Table** - Data tables with proper semantic structure
+- **Badge** - Status indicators and labels
+- **Alert** - Notification and feedback messages
+- **Textarea** - Multi-line text input
+- **Checkbox** - Accessible checkbox inputs
+- **Label** - Form labels with proper associations
+
+### Component Location
+
+All shadcn/ui components are located in `components/ui/` directory and can be customized as needed.
+
 ---
 
-_Last Updated: January 27, 2025 (Implementation complete, testing and code quality tools added). Update when dependencies, tools, or constraints change._
+_Last Updated: January 27, 2025 (shadcn/ui integration complete). Update when dependencies, tools, or constraints change._

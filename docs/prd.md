@@ -3,9 +3,9 @@
 ## AI-Powered Alcohol Label Verification System
 
 **Prepared for:** TTB Compliance Division  
-**Document Version:** 2.0  
+**Document Version:** 2.1  
 **Date:** January 2025  
-**Status:** Final
+**Status:** Final (Updated January 27, 2025 - shadcn/ui integration)
 
 ---
 
@@ -467,6 +467,21 @@ The system exposes a RESTful API with OpenAPI/Swagger documentation auto-generat
 - **Immediate Feedback:** Progress indicators, sub-5-second results
 - **Keyboard Accessibility:** Power users can navigate without mouse
 
+### 7.1.1 Component Library
+
+The UI is built using **shadcn/ui**, a component library that provides:
+
+- **Accessible Components:** Built on Radix UI primitives with full ARIA support and keyboard navigation
+- **Consistent Design System:** Unified styling with Tailwind CSS theme variables
+- **Type Safety:** Fully typed components with TypeScript
+- **Customizable:** Components live in codebase (`components/ui/`) for full control
+
+**Key Components Used:**
+
+- Button, Input, Select, Table, Badge, Alert, Textarea, Checkbox, Label
+- Lucide React icons for visual feedback
+- Responsive design with mobile-first approach
+
 ### 7.2 Screen Inventory
 
 #### Screen 1: Login
@@ -575,6 +590,8 @@ The system follows a simplified full-stack architecture deployed as a single ser
 | Layer      | Technology                   | Deployment                  | Notes                                     |
 | ---------- | ---------------------------- | --------------------------- | ----------------------------------------- |
 | Frontend   | Next.js (React) + TypeScript | Railway                     | Server-side rendering + static generation |
+| UI Library | shadcn/ui + Radix UI         | Railway                     | Accessible component library              |
+| Styling    | Tailwind CSS                 | Railway                     | Utility-first CSS framework               |
 | Backend    | Next.js API Routes           | Railway                     | RESTful API in same codebase              |
 | Database   | SQLite (better-sqlite3)      | Railway (persistent volume) | Single file, simple backup, BLOB storage  |
 | AI Service | OpenAI GPT-4o-mini           | External API                | Vision model for extraction               |

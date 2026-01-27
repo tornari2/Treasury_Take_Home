@@ -1,1 +1,0 @@
-{"version":1,"functions":{"/api/audit-logs":{},"/api/applications/[id]/verify":{},"/api/auth/logout":{},"/api/auth/me":{},"/api/auth/login":{},"/api/applications/[id]":{},"/api/batch/status/[batchId]":{},"/api/applications":{},"/api/batch/verify":{}}}

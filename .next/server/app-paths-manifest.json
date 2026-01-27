@@ -1,16 +1,1 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
-  "/review/[id]/page": "app/review/[id]/page.js",
-  "/api/applications/route": "app/api/applications/route.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/api/applications/[id]/route": "app/api/applications/[id]/route.js",
-  "/api/applications/[id]/verify/route": "app/api/applications/[id]/verify/route.js",
-  "/api/audit-logs/route": "app/api/audit-logs/route.js",
-  "/api/auth/me/route": "app/api/auth/me/route.js",
-  "/api/batch/status/[batchId]/route": "app/api/batch/status/[batchId]/route.js",
-  "/api/auth/logout/route": "app/api/auth/logout/route.js",
-  "/api/batch/verify/route": "app/api/batch/verify/route.js"
-}
+{}

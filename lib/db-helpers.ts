@@ -1,5 +1,9 @@
 import db from './db';
+import { ensureMigrations } from './migrations';
 import type { User, Application, LabelImage, AuditLog } from '@/types/database';
+
+// Ensure migrations run before any database operations
+ensureMigrations();
 
 // User helpers
 export const userHelpers = {

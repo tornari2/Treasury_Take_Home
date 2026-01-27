@@ -72,5 +72,36 @@ export function runMigrations() {
   `);
 }
 
-// Run migrations on import
-runMigrations();
+// Run migrations lazily - only when database is first accessed
+// This prevents build-time errors when database directory doesn't exist
+let migrationsRun = false;
+
+export function ensureMigrations() {
+  if (!migrationsRun) {
+    try {
+      runMigrations();
+      migrationsRun = true;
+    } catch (error) {
+      // During build, database might not be available - that's okay
+      // Check if we're in a build context
+      const isBuildTime =
+        process.env.NEXT_PHASE === 'phase-production-build' ||
+        process.env.NODE_ENV === 'production' ||
+        !process.env.DATABASE_PATH;
+
+      if (
+        isBuildTime &&
+        error instanceof Error &&
+        error.message.includes('Database not available')
+      ) {
+        // Silently skip during build - database will be initialized at runtime
+        return;
+      }
+      // In runtime, throw the error
+      throw error;
+    }
+  }
+}
+
+// Don't auto-run migrations on import - only run when explicitly called
+// This prevents build-time database initialization

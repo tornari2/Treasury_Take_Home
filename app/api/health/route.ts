@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { ensureMigrations } from '@/lib/migrations';
+
+export const dynamic = 'force-dynamic';
+
+// Ensure migrations are run before health check
+ensureMigrations();
 
 export async function GET() {
   try {

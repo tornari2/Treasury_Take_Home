@@ -1,52 +1,58 @@
 # Tech Context
 
-*Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and constraints.*
+_Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and constraints._
 
 ## Technologies Used
 
 ### Core Stack
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| **Runtime** | Node.js | 20+ | JavaScript runtime |
-| **Framework** | Next.js | 14+ (App Router) | Full-stack React framework |
-| **Language** | TypeScript | 5+ | Type-safe JavaScript |
-| **Database** | SQLite | 3.x (better-sqlite3) | Persistent storage + BLOB |
-| **AI** | OpenAI GPT-4o-mini | Latest | Vision model for extraction |
+
+| Layer         | Technology         | Version              | Purpose                     |
+| ------------- | ------------------ | -------------------- | --------------------------- |
+| **Runtime**   | Node.js            | 20+                  | JavaScript runtime          |
+| **Framework** | Next.js            | 14+ (App Router)     | Full-stack React framework  |
+| **Language**  | TypeScript         | 5+                   | Type-safe JavaScript        |
+| **Database**  | SQLite             | 3.x (better-sqlite3) | Persistent storage + BLOB   |
+| **AI**        | OpenAI GPT-4o-mini | Latest               | Vision model for extraction |
 
 ### Frontend
-| Technology | Purpose |
-|-----------|---------|
-| React 18+ | UI library |
-| Tailwind CSS | Utility-first styling |
-| shadcn/ui | Pre-built UI components |
+
+| Technology    | Purpose                            |
+| ------------- | ---------------------------------- |
+| React 18+     | UI library                         |
+| Tailwind CSS  | Utility-first styling              |
+| shadcn/ui     | Pre-built UI components            |
 | React Context | State management (auth, selection) |
-| next/image | Optimized image rendering |
+| next/image    | Optimized image rendering          |
 
 ### Backend
-| Technology | Purpose |
-|-----------|---------|
-| Next.js API Routes | RESTful API endpoints |
-| bcrypt | Password hashing (cost factor 12) |
-| better-sqlite3 | Synchronous SQLite driver |
-| OpenAI Node SDK | OpenAI API client |
+
+| Technology         | Purpose                           |
+| ------------------ | --------------------------------- |
+| Next.js API Routes | RESTful API endpoints             |
+| bcrypt             | Password hashing (cost factor 12) |
+| better-sqlite3     | Synchronous SQLite driver         |
+| OpenAI Node SDK    | OpenAI API client                 |
 
 ### Development Tools
-| Tool | Purpose |
-|------|---------|
-| Task Master | Task breakdown and tracking |
-| ESLint + Prettier | Code linting and formatting |
-| Git + GitHub | Version control + CI/CD |
-| Railway CLI (optional) | Local Railway testing |
+
+| Tool                   | Purpose                     |
+| ---------------------- | --------------------------- |
+| Task Master            | Task breakdown and tracking |
+| ESLint + Prettier      | Code linting and formatting |
+| Git + GitHub           | Version control + CI/CD     |
+| Railway CLI (optional) | Local Railway testing       |
 
 ## Development Setup
 
 ### Prerequisites
+
 - Node.js 20+ installed
 - Git installed
 - OpenAI API key
 - Railway account (for deployment)
 
 ### Initial Setup
+
 ```bash
 # 1. Clone repository
 git clone https://github.com/tornari2/Treasury_Take_Home.git
@@ -71,6 +77,7 @@ open http://localhost:3000
 ```
 
 ### Environment Variables (`.env`)
+
 ```bash
 # Required
 OPENAI_API_KEY=sk-proj-...           # OpenAI API key
@@ -87,6 +94,7 @@ NODE_ENV=development                 # development | production
 ```
 
 ### Development Commands
+
 ```bash
 npm run dev          # Start dev server (localhost:3000)
 npm run build        # Build for production
@@ -99,6 +107,7 @@ npm run db:reset     # Drop + recreate + seed
 ```
 
 ### Task Master Usage
+
 ```bash
 # Initialize project (already done)
 # See .taskmaster/ directory
@@ -113,6 +122,7 @@ npm run db:reset     # Drop + recreate + seed
 ## Technical Constraints
 
 ### Performance Requirements
+
 - **Single verification:** < 5 seconds (95th percentile)
 - **Batch processing (100):** < 3 minutes (target: ~20 seconds)
 - **Page load:** < 2 seconds to interactive
@@ -120,24 +130,28 @@ npm run db:reset     # Drop + recreate + seed
 - **Database queries:** < 50ms (with indexing)
 
 ### Browser Support
+
 - **Desktop:** Chrome, Firefox, Safari, Edge (last 2 versions)
 - **Tablet:** iPad Safari, Android Chrome (1024px minimum width)
 - **Mobile:** Not supported (use tablet/desktop)
 - **JavaScript:** Required (no graceful degradation)
 
 ### Data Constraints
+
 - **SQLite database:** ~10GB limit (Railway persistent volume)
 - **Image size:** < 500KB per image (optimize on seed if needed)
 - **Concurrent writes:** Limited (mostly read workload, acceptable)
 - **Application limit:** 150K/year sustainable with SQLite
 
 ### API Constraints
+
 - **OpenAI rate limits:** 10 concurrent requests maximum (batch processing)
 - **OpenAI costs:** ~$0.01 per application (2 images × GPT-4o-mini)
 - **Network latency:** Railway → OpenAI typically 200-500ms
 - **Timeout:** 10 seconds per OpenAI call (retry once on timeout)
 
 ### Security Requirements (Prototype)
+
 - **Authentication:** Session-based with bcrypt password hashing
 - **HTTPS:** Enforced (Railway provides SSL)
 - **Input validation:** All API inputs sanitized
@@ -149,6 +163,7 @@ npm run db:reset     # Drop + recreate + seed
 ## Dependencies
 
 ### Production Dependencies (package.json)
+
 ```json
 {
   "next": "^14.0.0",
@@ -164,6 +179,7 @@ npm run db:reset     # Drop + recreate + seed
 ```
 
 ### Development Dependencies
+
 ```json
 {
   "eslint": "^8.0.0",
@@ -176,11 +192,11 @@ npm run db:reset     # Drop + recreate + seed
 ```
 
 ### External Services
+
 - **OpenAI API:** GPT-4o-mini vision model
   - Endpoint: `https://api.openai.com/v1/chat/completions`
   - Model: `gpt-4o-mini` (vision-capable)
   - Cost: ~$0.005 per image
-  
 - **Railway:** Deployment platform
   - Build: Nixpacks (auto-detects Next.js)
   - Runtime: Node.js 20
@@ -189,6 +205,7 @@ npm run db:reset     # Drop + recreate + seed
 ## Deployment Configuration
 
 ### Railway Setup
+
 ```bash
 # Environment variables (Railway dashboard)
 OPENAI_API_KEY=sk-proj-...
@@ -199,6 +216,7 @@ NODE_ENV=production
 ```
 
 ### Build Configuration
+
 ```json
 {
   "builder": "NIXPACKS",
@@ -213,12 +231,14 @@ NODE_ENV=production
 ```
 
 ### Persistent Volume
+
 - **Mount Path:** `/app/data`
 - **Purpose:** SQLite database file storage
 - **Size:** 10GB (sufficient for 150K apps/year with images)
 - **Backup:** Manual download via Railway dashboard (future: automated)
 
 ### Auto-Deploy Pipeline
+
 1. Push to GitHub `main` branch
 2. Railway webhook detects push
 3. Railway builds (`npm install && npm run build`)
@@ -229,6 +249,7 @@ NODE_ENV=production
 ## Database Management
 
 ### Schema Initialization
+
 ```sql
 -- src/lib/db/schema.sql
 CREATE TABLE users (...);
@@ -243,6 +264,7 @@ CREATE INDEX idx_audit_log_user ON audit_log(user_id);
 ```
 
 ### Sample Data Seeding
+
 ```bash
 # src/lib/db/seed.ts
 npm run db:seed
@@ -254,4 +276,5 @@ npm run db:seed
 ```
 
 ---
-*Last Updated: January 26, 2025 (Tech stack finalized). Update when dependencies, tools, or constraints change.*
+
+_Last Updated: January 26, 2025 (Tech stack finalized). Update when dependencies, tools, or constraints change._

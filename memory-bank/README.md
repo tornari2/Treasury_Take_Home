@@ -12,14 +12,14 @@ projectbrief.md  ──┬──► productContext.md ──┐
 
 ## Core Files (Required)
 
-| File | Purpose |
-|------|--------|
-| **projectbrief.md** | Scope, goals, requirements – source of truth |
-| **productContext.md** | Why the project exists, problems solved, UX goals |
+| File                  | Purpose                                            |
+| --------------------- | -------------------------------------------------- |
+| **projectbrief.md**   | Scope, goals, requirements – source of truth       |
+| **productContext.md** | Why the project exists, problems solved, UX goals  |
 | **systemPatterns.md** | Architecture, technical decisions, design patterns |
-| **techContext.md** | Stack, dev setup, constraints, dependencies |
-| **activeContext.md** | Current focus, recent changes, next steps |
-| **progress.md** | What works, what’s left, status, known issues |
+| **techContext.md**    | Stack, dev setup, constraints, dependencies        |
+| **activeContext.md**  | Current focus, recent changes, next steps          |
+| **progress.md**       | What works, what’s left, status, known issues      |
 
 ## When to Update
 

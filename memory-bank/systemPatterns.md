@@ -1,10 +1,11 @@
 # System Patterns
 
-*Derives from [projectbrief.md](./projectbrief.md). Captures architecture and design decisions.*
+_Derives from [projectbrief.md](./projectbrief.md). Captures architecture and design decisions._
 
 ## System Architecture
 
 ### High-Level Design: Full-Stack Monolith
+
 ```
 ┌─────────────────────────────────────────┐
 │  Railway Single Service                 │
@@ -26,9 +27,11 @@
 ## Key Technical Decisions
 
 ### 1. Railway-Only Deployment (No Vercel Split) ✅
+
 **Decision:** Deploy entire full-stack Next.js app on Railway  
 **Alternative Rejected:** Vercel (frontend) + Railway (backend)  
 **Rationale:**
+
 - Simpler deployment (one platform, one billing account)
 - No CORS configuration needed
 - Faster development iteration (single environment)
@@ -36,36 +39,44 @@
 - Meets tight 1-week timeline
 
 ### 2. SQLite for Database (No PostgreSQL) ✅
+
 **Decision:** SQLite with BLOBs on Railway persistent volume  
 **Alternative Rejected:** PostgreSQL + S3 for images  
 **Rationale:**
+
 - Perfect scale for 150K apps/year, 100 concurrent users
 - Built-in BLOB storage (images stored directly in DB)
 - Single-file backups (simple disaster recovery)
 - Zero connection pool complexity
 - Fast reads (this workload is 95% reads)
-**Trade-off:** Limited concurrent writes (acceptable - mostly read-heavy)
+  **Trade-off:** Limited concurrent writes (acceptable - mostly read-heavy)
 
 ### 3. 10 Concurrent Workers for Batch Processing ✅
+
 **Decision:** Process 10 applications in parallel (OpenAI API calls)  
 **Alternative Rejected:** Sequential (too slow) or unlimited (rate limits)  
 **Rationale:**
+
 - Batch of 100 apps completes in ~20 seconds (well under 3-minute target)
 - Balances speed with OpenAI rate limits and cost
 - No async queue infrastructure needed (simpler)
-**Performance:** 100 apps = 10 iterations of 10 parallel calls at ~2s each
+  **Performance:** 100 apps = 10 iterations of 10 parallel calls at ~2s each
 
 ### 4. Confidence Threshold: 0.85 ✅
+
 **Decision:** Fields with confidence < 0.85 → automatic SOFT MISMATCH  
 **Rationale:**
+
 - Low confidence indicates AI uncertainty (requires human review)
 - Even if normalized values match, low confidence is risky
 - Yellow flag (not red) because it might still be acceptable
-**Implementation:** Stored per-field in `extracted_data` JSON column
+  **Implementation:** Stored per-field in `extracted_data` JSON column
 
 ### 5. Normalization Algorithm (5-Step) ✅
+
 **Decision:** Standardized text processing before comparison  
 **Steps:**
+
 1. Convert to lowercase
 2. Collapse whitespace (multiple spaces → single)
 3. Trim leading/trailing whitespace
@@ -75,38 +86,45 @@
 **Rationale:** Distinguishes trivial formatting differences (soft mismatch) from material differences (hard mismatch)
 
 ### 6. React Context for State (No Redux) ✅
+
 **Decision:** Use React Context for auth + application selection state  
 **Alternative Rejected:** Redux, Zustand, MobX  
 **Rationale:**
+
 - Sufficient for auth state + batch selection checkboxes
 - No complex global store needed
 - Simpler implementation (prototype-appropriate)
-**Trade-off:** Less structured than Redux (acceptable for this scope)
+  **Trade-off:** Less structured than Redux (acceptable for this scope)
 
 ### 7. Session Cookies for Auth (No JWT) ✅
+
 **Decision:** Session-based authentication with httpOnly cookies  
 **Alternative Rejected:** JWT tokens  
 **Rationale:**
+
 - Simpler server-side session revocation
 - No token refresh logic needed
 - More secure (httpOnly prevents XSS)
-**Trade-off:** Less suitable for multi-server deployments (not needed - single Railway service)
+  **Trade-off:** Less suitable for multi-server deployments (not needed - single Railway service)
 
 ## Design Patterns in Use
 
 ### Frontend Patterns
+
 - **Component Composition:** Login, Dashboard, Review screens as discrete components
 - **Context Providers:** AuthContext (user session), ApplicationContext (selected apps)
 - **Compound Components:** ImageViewer + ComparisonTable for review screen
 - **Custom Hooks:** `useAuth()`, `useApplications()`, `useBatchVerify()`
 
 ### Backend Patterns
+
 - **Service Layer:** VerificationService (AI + matching), NormalizationService, ImageService
 - **Repository Pattern:** Database queries abstracted into repository functions
 - **Middleware Chain:** Authentication middleware → Authorization → Request handler
 - **Error Handling:** Centralized error handler with user-friendly messages
 
 ### Data Patterns
+
 - **BLOB Storage:** Images stored directly in SQLite (no external storage)
 - **JSON Columns:** `expected_label_data`, `extracted_data`, `verification_result` (flexible schema)
 - **Audit Logging:** All mutations tracked in `audit_log` table (immutable records)
@@ -114,6 +132,7 @@
 ## Component / Module Relationships
 
 ### Frontend Architecture
+
 ```
 src/app/
 ├── (auth)/
@@ -130,6 +149,7 @@ src/app/
 ```
 
 ### API Architecture
+
 ```
 src/app/api/
 ├── auth/
@@ -147,6 +167,7 @@ src/app/api/
 ```
 
 ### Database Schema (4 Entities)
+
 ```
 User (agents + admins)
   ↓ (1:many)
@@ -162,28 +183,33 @@ User + Application → AuditLog (all actions)
 ## Conventions
 
 ### Code Conventions
+
 - **TypeScript everywhere:** Shared types between frontend/backend (`src/types/`)
 - **API naming:** RESTful (GET /applications, POST /applications/:id/verify)
 - **Component naming:** PascalCase for components, camelCase for functions
 - **File structure:** Next.js App Router conventions (`app/`, `api/`)
 
 ### Data Conventions
+
 - **Image pre-loading:** All images in database before agent access (no upload flow)
 - **Beverage type:** Pre-set in application row (source of truth, not inferred)
 - **Status values:** `pending`, `needs_review`, `approved`, `rejected` (lowercase snake_case)
 - **Match statuses:** `match`, `soft_mismatch`, `hard_mismatch`, `not_found`
 
 ### Process Conventions
+
 - **Memory Bank:** Read ALL files at task start, update on significant change or when asked "update memory bank"
 - **Task Master:** Use for task breakdown (`.taskmaster/docs/prd.txt` → parse-prd)
 - **Git workflow:** Commit frequently, push to `main` branch (auto-deploys to Railway)
 - **Cursor rules:** Project-specific patterns in `.cursor/rules/` (e.g., `taskmaster/`)
 
 ### Performance Conventions
+
 - **5-second hard limit:** Any verification taking >5s needs optimization
 - **Parallel processing:** Front + back labels processed simultaneously (not sequential)
 - **Database indexing:** Index on `status`, `assigned_agent_id`, `beverage_type`
 - **Image optimization:** Images should be <500KB each (if larger, resize on seed)
 
 ---
-*Last Updated: January 26, 2025 (Architecture finalized). Update when major design decisions change or patterns emerge.*
+
+_Last Updated: January 26, 2025 (Architecture finalized). Update when major design decisions change or patterns emerge._

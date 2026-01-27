@@ -1,0 +1,41 @@
+"use strict";exports.id=742,exports.ids=[742],exports.modules={9178:(e,t,a)=>{a.d(t,{SO:()=>c,So:()=>p,ed:()=>l,ts:()=>d});var n=a(8691),r=a(8547),i=a(909);let s=new Map;async function o(e,t){return n.ZP.compare(e,t)}function l(e){let t=(0,r.Z)(),a=Date.now()+864e5;return s.set(t,{userId:e,expiresAt:a}),function(){let e=Date.now();for(let[t,a]of s.entries())e>a.expiresAt&&s.delete(t)}(),t}function c(e){s.delete(e)}async function p(e,t){let a=i.tJ.findByEmail(e);return a&&await o(t,a.password_hash)?(i.tJ.updateLastLogin(a.id),i.c8.create(a.id,"login"),a):null}function d(e){if(!e)return null;let t=function(e){let t=s.get(e);return t?Date.now()>t.expiresAt?(s.delete(e),null):{userId:t.userId}:null}(e);return t&&i.tJ.findById(t.userId)||null}},5389:(e,t,a)=>{a.d(t,{P:()=>c,o:()=>l});var n=a(8547),r=a(354),i=a(307),s=a(909);let o=new Map;async function l(e){let t=(0,n.Z)(),a=new Date().toISOString(),l={batch_id:t,status:"processing",total_applications:e.length,processed:0,successful:0,failed:0,started_at:a,results:[]};o.set(t,l);let c=async e=>{let a=e.map(async e=>{try{let t=s.M1.findById(e);if(!t)throw Error(`Application ${e} not found`);let a=s.uH.findByApplicationId(e);if(0===a.length)throw Error(`No label images found for application ${e}`);let n=JSON.parse(t.expected_label_data);for(let o of a)try{let{extractedData:a,confidence:l,processingTimeMs:c}=await (0,r.T)(o.image_data,o.mime_type,t.beverage_type),p=(0,i.sr)(n,a),d=(0,i.Kz)(p);s.uH.updateExtraction(o.id,JSON.stringify(a),JSON.stringify(p),l,c),"needs_review"===d&&"pending"===t.status&&s.M1.updateStatus(e,"needs_review",null)}catch(t){throw console.error(`Error processing label image for app ${e}:`,t),t}l.results.push({application_id:e,status:"success"}),l.successful++}catch(t){l.results.push({application_id:e,status:"failed",error:t instanceof Error?t.message:"Unknown error"}),l.failed++}finally{l.processed++,o.set(t,{...l})}});await Promise.allSettled(a)};for(let t=0;t<e.length;t+=10){let a=e.slice(t,t+10);await c(a)}return l.status="completed",o.set(t,l),t}function c(e){return o.get(e)||null}},909:(e,t,a)=>{a.d(t,{M1:()=>f,c8:()=>_,uH:()=>m,tJ:()=>u});var n=a(5890),r=a.n(n),i=a(5315),s=a.n(i),o=a(2048),l=a.n(o);let c=process.env.DATABASE_PATH||"./data/database.db",p=s().dirname(c);l().existsSync(p)||l().mkdirSync(p,{recursive:!0});let d=new(r())(c);d.pragma("foreign_keys = ON");let u={create:(e,t,a,n="agent")=>d.prepare(`
+      INSERT INTO users (email, password_hash, name, role)
+      VALUES (?, ?, ?, ?)
+    `).run(e,t,a,n),findByEmail:e=>d.prepare("SELECT * FROM users WHERE email = ?").get(e),findById:e=>d.prepare("SELECT * FROM users WHERE id = ?").get(e),updateLastLogin:e=>d.prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?").run(e)},f={create:(e,t,a,n=null)=>d.prepare(`
+      INSERT INTO applications (applicant_name, beverage_type, expected_label_data, assigned_agent_id)
+      VALUES (?, ?, ?, ?)
+    `).run(e,t,a,n),findById:e=>d.prepare("SELECT * FROM applications WHERE id = ?").get(e),findAll:()=>d.prepare("SELECT * FROM applications ORDER BY created_at DESC").all(),findByStatus:e=>d.prepare("SELECT * FROM applications WHERE status = ? ORDER BY created_at DESC").all(e),updateStatus:(e,t,a=null)=>d.prepare(`
+      UPDATE applications 
+      SET status = ?, reviewed_at = CURRENT_TIMESTAMP, review_notes = ?
+      WHERE id = ?
+    `).run(t,a,e)},m={create:(e,t,a,n)=>d.prepare(`
+      INSERT INTO label_images (application_id, image_type, image_data, mime_type)
+      VALUES (?, ?, ?, ?)
+    `).run(e,t,a,n),findByApplicationId:e=>d.prepare("SELECT * FROM label_images WHERE application_id = ?").all(e),updateExtraction:(e,t,a,n,r)=>d.prepare(`
+      UPDATE label_images 
+      SET extracted_data = ?, verification_result = ?, confidence_score = ?, 
+          processed_at = CURRENT_TIMESTAMP, processing_time_ms = ?
+      WHERE id = ?
+    `).run(t,a,n,r,e)},_={create:(e,t,a=null,n=null)=>d.prepare(`
+      INSERT INTO audit_logs (user_id, application_id, action, details)
+      VALUES (?, ?, ?, ?)
+    `).run(e,a,t,n),findByUserId:(e,t=100)=>d.prepare(`
+      SELECT * FROM audit_logs 
+      WHERE user_id = ? 
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    `).all(e,t),findByApplicationId:e=>d.prepare(`
+      SELECT * FROM audit_logs 
+      WHERE application_id = ? 
+      ORDER BY timestamp DESC
+    `).all(e)}},2704:(e,t,a)=>{a.d(t,{k:()=>o,m:()=>s});var n=a(7070),r=a(9178),i=a(1615);async function s(e){let t=await (0,i.cookies)(),a=t.get("session")?.value;if(!a)return n.NextResponse.json({error:"Authentication required"},{status:401});let s=(0,r.ts)(a);return s?{user:s}:n.NextResponse.json({error:"Invalid session"},{status:401})}async function o(e){let t=await s(e);return t instanceof n.NextResponse?t:"admin"!==t.user.role?n.NextResponse.json({error:"Admin access required"},{status:403}):t}},354:(e,t,a)=>{a.d(t,{T:()=>r});let n=new(a(1088)).ZP({apiKey:process.env.OPENAI_API_KEY});async function r(e,t,a){let r=Date.now(),i=e.toString("base64"),s=`data:${t};base64,${i}`,o={brand_name:"Brand name",class_type:"Class/type designation",alcohol_content:"Alcohol content percentage",net_contents:"Net contents (volume)",producer_name:"Producer name",producer_address:"Producer address",health_warning:"Government health warning statement (must be exact)"};"spirits"===a?(o.age_statement="Age statement (if applicable)",o.country_of_origin="Country of origin (if imported)"):"wine"===a?(o.appellation_of_origin="Appellation of origin (if applicable)",o.sulfite_declaration="Sulfite declaration",o.country_of_origin="Country of origin (if imported)"):"beer"===a&&(o.sulfite_declaration="Sulfite declaration (if applicable)",o.country_of_origin="Country of origin (if imported)");let l=Object.entries(o).map(([e,t])=>`- ${e}: ${t}`).join("\n");try{let e=await n.chat.completions.create({model:"gpt-4o-mini",messages:[{role:"system",content:`You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label image and return them as JSON with confidence scores (0-1) for each field. If a field is not found, omit it from the response. For the health_warning field, extract the EXACT text including case and formatting.
+
+Fields to extract:
+${l}
+
+Return JSON in this format:
+{
+  "brand_name": { "value": "...", "confidence": 0.95 },
+  "alcohol_content": { "value": "...", "confidence": 0.92 },
+  ...
+}`},{role:"user",content:[{type:"text",text:"Extract all label information from this image. Pay special attention to the health warning - it must be extracted exactly as shown, including all caps and formatting."},{type:"image_url",image_url:{url:s}}]}],response_format:{type:"json_object"},max_tokens:2e3}),t=e.choices[0]?.message?.content;if(!t)throw Error("No response from OpenAI");let a=JSON.parse(t),i={};for(let[e,t]of Object.entries(a))t&&"object"==typeof t&&"value"in t&&"confidence"in t&&(i[e]={value:String(t.value),confidence:Number(t.confidence)});let o=Object.values(i).map(e=>e.confidence),c=o.length>0?o.reduce((e,t)=>e+t,0)/o.length:0,p=Date.now()-r;return{extractedData:i,confidence:c,processingTimeMs:p}}catch(e){throw console.error("OpenAI extraction error:",e),e}}},307:(e,t,a)=>{function n(e){return e.toLowerCase().trim().replace(/\s+/g," ")}function r(e,t){let a={};for(let[r,i]of Object.entries(e))if(i){let e=t[r];a[r]=function(e,t,a){var r,i;if(!a||!a.value)return{match:!1,type:"not_found",expected:t};if(!t)return{match:!0,type:"match",extracted:a.value};if("health_warning"===e){let e=t===(r=a.value)?{match:!0,type:"match"}:(t.toUpperCase(),r.toUpperCase().startsWith("GOVERNMENT WARNING:")&&t===r)?{match:!0,type:"match"}:{match:!1,type:"hard_mismatch"};return{match:e.match,type:e.type,expected:t,extracted:a.value}}return t===(i=a.value)||n(t)===n(i)?{match:!0,type:"match",expected:t,extracted:a.value}:!function(e,t){let a=n(e),r=n(t);return a===r&&e!==t||a.replace(/[^\w\s]/g,"")===r.replace(/[^\w\s]/g,"")}(t,a.value)?{match:!1,type:"hard_mismatch",expected:t,extracted:a.value}:{match:!1,type:"soft_mismatch",expected:t,extracted:a.value}}(r,i,e)}return a}function i(e){let t=Object.values(e).some(e=>"hard_mismatch"===e.type||"not_found"===e.type),a=Object.values(e).some(e=>"soft_mismatch"===e.type);return t?"pending":a?"needs_review":"pending"}a.d(t,{Kz:()=>i,sr:()=>r})}};

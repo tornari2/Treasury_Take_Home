@@ -1,0 +1,54 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/middleware';
+import { processBatch } from '@/lib/batch-processor';
+import { auditLogHelpers } from '@/lib/db-helpers';
+
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: NextRequest) {
+  try {
+    const authResult = await requireAuth(request);
+    if (authResult instanceof NextResponse) {
+      return authResult;
+    }
+
+    const { user } = authResult;
+    const body = await request.json();
+    const { application_ids } = body;
+
+    if (!Array.isArray(application_ids) || application_ids.length === 0) {
+      return NextResponse.json(
+        { error: 'application_ids must be a non-empty array' },
+        { status: 400 }
+      );
+    }
+
+    if (application_ids.length > 500) {
+      return NextResponse.json({ error: 'Maximum 500 applications per batch' }, { status: 400 });
+    }
+
+    // Start batch processing (async)
+    const batchId = await processBatch(application_ids);
+
+    // Log batch action
+    auditLogHelpers.create(
+      user.id,
+      'verified',
+      null,
+      JSON.stringify({ batch_id: batchId, count: application_ids.length })
+    );
+
+    return NextResponse.json(
+      {
+        batch_id: batchId,
+        total_applications: application_ids.length,
+        status: 'processing',
+        status_url: `/api/batch/status/${batchId}`,
+      },
+      { status: 202 }
+    );
+  } catch (error) {
+    console.error('Batch verify error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

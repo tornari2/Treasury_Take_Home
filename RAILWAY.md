@@ -55,20 +55,58 @@ Railway will automatically deploy when you push to your connected GitHub branch.
 
 ## Troubleshooting Build Failures
 
+### Issue: Empty Logs / Build Not Starting
+
+**This is the most common issue. Try these steps in order:**
+
+1. **Verify GitHub Connection:**
+   - Railway Dashboard → Your Project → Settings → Source
+   - Ensure GitHub repo is connected
+   - Check that the correct branch is selected (usually `main` or `master`)
+
+2. **Manually Trigger Deployment:**
+   - Railway Dashboard → Your Project → Deployments
+   - Click **"Redeploy"** or **"Deploy"** button
+   - Select the latest commit
+
+3. **Check Service Configuration:**
+   - Railway Dashboard → Your Service → Settings
+   - Verify **Root Directory** is `/` (not empty or wrong path)
+   - Verify **Build Command** is `npm install && npm run build` (or leave auto)
+   - Verify **Start Command** is `npm start` (or leave auto)
+
+4. **Verify Project Detection:**
+   - Railway should auto-detect Next.js
+   - If not detected, ensure `package.json` is in root directory
+   - Check that `nixpacks.toml` exists (it does)
+
+5. **Check Railway Service Status:**
+   - Ensure the service is not paused
+   - Check if there are any service limits or billing issues
+
+6. **Use Railway CLI to Debug:**
+   ```bash
+   railway login
+   railway link
+   railway logs --deployment <deployment-id>
+   ```
+
 ### Issue: Build fails with "better-sqlite3" errors
 
 **Solution:** The `nixpacks.toml` file is already configured with build tools. If issues persist:
 
 - Ensure Railway is using Nixpacks builder (not Dockerfile)
 - Check build logs for specific error messages
+- Verify `nixpacks.toml` is committed to your repo
 
 ### Issue: Database not found
 
 **Solution:**
 
-- Verify `DATABASE_PATH=/app/data/database.db` is set
+- Verify `DATABASE_PATH=/app/data/database.db` is set in Railway Variables
 - Ensure persistent volume is mounted at `/app/data`
 - The database will be created automatically on first run
+- Check that volume is attached to the service (Settings → Volumes)
 
 ### Issue: Husky prepare script fails
 
@@ -81,6 +119,7 @@ Railway will automatically deploy when you push to your connected GitHub branch.
 - Verify `/api/health` endpoint exists (already created)
 - Check that database connection is working
 - Review Railway logs for errors
+- Ensure environment variables are set correctly
 
 ## Verifying Deployment
 

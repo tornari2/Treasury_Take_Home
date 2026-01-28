@@ -79,11 +79,11 @@ By automating routine verification (e.g., "does brand name on label match databa
 
 The system validates different fields based on beverage type (pre-set in database):
 
-**Distilled Spirits (10 fields):** Brand, class/type, ABV, net contents, producer name/address, health warning, country of origin (imports), age statement (if applicable)
+**Distilled Spirits (9 fields):** Brand, fanciful name (if present), class/type, ABV, net contents, producer name/address, health warning, country of origin (imports only), age statement (required)
 
-**Wine (11 fields):** Brand, class/type, ABV, net contents, producer name/address, health warning, sulfite declaration, appellation (if applicable), country of origin (imports)
+**Wine (12 fields):** Brand, fanciful name (if present), class/type (required, cross-checks if app has varietal), ABV, net contents, producer name/address, health warning, country of origin (imports only), appellation (conditionally required), vintage date (if present), sulfite declaration (required), foreign wine percentage (if foreign wine referenced)
 
-**Beer (8-9 fields):** Brand, class/type, net contents, producer name/address, health warning, ABV (state-dependent), additives (if applicable), country of origin (imports)
+**Beer (8 fields):** Brand, fanciful name (if present), class/type, net contents, producer name/address, health warning, country of origin (imports only), alcohol content (surfaced if missing, doesn't fail)
 
 ### Verification Logic (Three-Tier System)
 
@@ -176,4 +176,4 @@ The system validates different fields based on beverage type (pre-set in databas
 
 ---
 
-_Last Updated: January 26, 2025 (PRD v2.0). Update when user needs, acceptance criteria, or product scope change._
+_Last Updated: January 28, 2025 (Updated validation field counts and rules to reflect OriginType enum and cross-check requirements). Update when user needs, acceptance criteria, or product scope change._

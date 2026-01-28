@@ -303,8 +303,7 @@ The validation rules are organized into a modular folder structure for better ma
 
 ```
 lib/validation/
-├── types.ts              # Enums (BeverageType, MatchStatus) and interfaces (ApplicationData, AIExtractionResult, etc.)
-├── origin-codes.ts       # Origin code constants (ORIGIN_CODES, US_ORIGIN_CODES) and helper functions
+├── types.ts              # Enums (BeverageType, OriginType, MatchStatus) and interfaces (ApplicationData, AIExtractionResult, etc.)
 ├── constants.ts          # Validation constants (REQUIRED_HEALTH_WARNING, ALCOHOL_CONTENT_PATTERNS, NET_CONTENTS_PATTERNS)
 ├── prompts.ts            # AI extraction prompts (BEER_EXTRACTION_PROMPT, SPIRITS_EXTRACTION_PROMPT, WINE_EXTRACTION_PROMPT)
 ├── utils.ts              # Utility functions (normalizeString, stringsMatch, isSoftMismatch, matchesAnyPattern, etc.)
@@ -326,22 +325,53 @@ The system now uses `ApplicationData` as the source of truth for application dat
 ```typescript
 interface ApplicationData {
   id: string;
-  beverageType: BeverageType;
-  originCode: string;
-  brandName: string;
-  fancifulName?: string | null;
-  producerName: string;
-  producerAddress: { city: string; state: string };
-  appellation?: string | null; // Wine-specific
-  varietal?: string | null; // Wine-specific
-  vintageDate?: string | null; // Wine-specific
-  labelImages: string[];
+  beverageType: BeverageType; // 'beer' | 'wine' | 'spirits'
+  originType: OriginType; // 'domestic' | 'imported'
+  brandName: string; // Required - must match label
+  fancifulName?: string | null; // Optional - if present, must match label
+  producerName: string; // Required - must match label
+  producerAddress: {
+    city: string; // Required - must match label
+    state: string; // Required - must match label
+  };
+  appellation?: string | null; // Wine-specific - if present, must match label
+  varietal?: string | null; // Wine-specific - if present, classType must match
+  vintageDate?: string | null; // Wine-specific - if present, must match label
+  labelImages: string[]; // Array of image URLs or base64 strings
 }
 ```
+
+**Key Changes:**
+
+- `originCode: string` replaced with `originType: OriginType` enum (DOMESTIC/IMPORTED)
+- Origin codes infrastructure removed (no longer using TTB origin code mappings)
 
 **Database Storage:** Stored as JSON in `application_data` column (migrated from `expected_label_data`)
 
 **Conversion:** `lib/application-converter.ts` converts database `Application` records to `ApplicationData` format
+
+### Validation Rules Summary
+
+**Cross-Check Fields (Bidirectional):** If field exists in application OR label, it must exist in both and match:
+
+- Brand Name (always required)
+- Fanciful Name (optional)
+- Producer Name & Address
+- Wine Varietal (if application has varietal, classType must match)
+- Vintage Date (wine, if present)
+- Appellation (wine, if present)
+
+**Presence Fields (Required on Label):**
+
+- Class/Type designation (all beverages)
+- Net Contents (all beverages)
+- Health Warning (all beverages, exact text + formatting)
+- Alcohol Content (wine, spirits; beer surfaced if missing)
+- Country of Origin (required if `originType === IMPORTED`, no cross-checking)
+- Age Statement (spirits only)
+- Sulfite Declaration (wine only)
+- Appellation (wine, conditionally required if varietal/vintage/estate bottled present)
+- Foreign Wine Percentage (wine, required if foreign wine referenced)
 
 ## Database Management
 
@@ -390,4 +420,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 27, 2025 (Validation module refactored into modular structure, ApplicationData direct usage, Railway deployment configured with Railpack). Update when dependencies, tools, or constraints change._
+_Last Updated: January 28, 2025 (Replaced origin codes with OriginType enum, updated validation rules for wine varietal/appellation cross-checks, removed country of origin cross-checking). Update when dependencies, tools, or constraints change._

@@ -1,9 +1,23 @@
 import OpenAI from 'openai';
 import type { ExtractedData } from '@/types/database';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid requiring API key during build time
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error(
+        'Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.'
+      );
+    }
+    openai = new OpenAI({
+      apiKey,
+    });
+  }
+  return openai;
+}
 
 /**
  * Extract label data from an image using GPT-4o-mini vision
@@ -47,7 +61,8 @@ export async function extractLabelData(
     .join('\n');
 
   try {
-    const response = await openai.chat.completions.create({
+    const client = getOpenAIClient();
+    const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {

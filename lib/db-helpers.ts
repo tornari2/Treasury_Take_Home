@@ -41,14 +41,14 @@ export const applicationHelpers = {
   create: (
     applicantName: string,
     beverageType: 'spirits' | 'wine' | 'beer',
-    expectedLabelData: string,
+    applicationData: string, // JSON string of ApplicationData format
     assignedAgentId: number | null = null
   ) => {
     const stmt = db.prepare(`
-      INSERT INTO applications (applicant_name, beverage_type, expected_label_data, assigned_agent_id)
+      INSERT INTO applications (applicant_name, beverage_type, application_data, assigned_agent_id)
       VALUES (?, ?, ?, ?)
     `);
-    return stmt.run(applicantName, beverageType, expectedLabelData, assignedAgentId);
+    return stmt.run(applicantName, beverageType, applicationData, assignedAgentId);
   },
 
   findById: (id: number): Application | undefined => {

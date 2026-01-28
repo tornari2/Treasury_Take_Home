@@ -2,7 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { extractLabelData } from './openai-service';
 import { verifyApplication, determineApplicationStatus } from './verification';
 import { applicationHelpers, labelImageHelpers } from './db-helpers';
-import type { ExpectedLabelData } from '@/types/database';
+import { convertApplicationToApplicationData } from './application-converter';
+import type { ExtractedData } from '@/types/database';
 
 export interface BatchStatus {
   batch_id: string;
@@ -59,7 +60,11 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
           throw new Error(`No label images found for application ${appId}`);
         }
 
-        const expectedLabelData: ExpectedLabelData = JSON.parse(application.expected_label_data);
+        // Convert database Application to ApplicationData format
+        const applicationData = convertApplicationToApplicationData(
+          application,
+          labelImages.map((img) => img.id)
+        );
 
         // Process all label images for this application
         for (const labelImage of labelImages) {
@@ -70,7 +75,8 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
               application.beverage_type
             );
 
-            const verificationResult = verifyApplication(expectedLabelData, extractedData);
+            // Verify extracted data against application data
+            const verificationResult = verifyApplication(applicationData, extractedData);
             const newStatus = determineApplicationStatus(verificationResult);
 
             labelImageHelpers.updateExtraction(

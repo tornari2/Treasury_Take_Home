@@ -29,9 +29,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const labelImages = labelImageHelpers.findByApplicationId(applicationId);
 
     // Parse JSON fields and convert image data to base64 for frontend
+    const applicationDataField =
+      (application as any).application_data || (application as any).expected_label_data;
     const parsedApplication = {
       ...application,
-      expected_label_data: JSON.parse(application.expected_label_data),
+      application_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+      // Keep expected_label_data for backward compatibility during migration
+      expected_label_data: applicationDataField ? JSON.parse(applicationDataField) : null,
       label_images: labelImages.map((img) => ({
         ...img,
         image_data_base64: img.image_data.toString('base64'),
@@ -94,10 +98,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const updatedApplication = applicationHelpers.findById(applicationId);
 
+    const applicationDataField =
+      (updatedApplication as any).application_data ||
+      (updatedApplication as any).expected_label_data;
     return NextResponse.json({
       application: {
         ...updatedApplication,
-        expected_label_data: JSON.parse(updatedApplication!.expected_label_data),
+        application_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+        // Keep expected_label_data for backward compatibility during migration
+        expected_label_data: applicationDataField ? JSON.parse(applicationDataField) : null,
       },
     });
   } catch (error) {

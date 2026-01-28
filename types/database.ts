@@ -27,10 +27,25 @@ export interface Application {
   beverage_type: BeverageType;
   status: ApplicationStatus;
   assigned_agent_id: number | null;
-  expected_label_data: string; // JSON string
+  application_data: string; // JSON string - stores ApplicationData format
   created_at: string;
   reviewed_at: string | null;
   review_notes: string | null;
+}
+
+// Legacy interface for backward compatibility during migration
+export interface ExpectedLabelData {
+  brand_name?: string;
+  class_type?: string;
+  alcohol_content?: string;
+  net_contents?: string;
+  producer_name?: string;
+  producer_address?: string;
+  health_warning?: string;
+  country_of_origin?: string;
+  age_statement?: string;
+  appellation_of_origin?: string;
+  sulfite_declaration?: string;
 }
 
 export interface LabelImage {

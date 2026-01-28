@@ -27,10 +27,16 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse JSON fields
-    const parsedApplications = applications.map((app) => ({
-      ...app,
-      expected_label_data: JSON.parse(app.expected_label_data),
-    }));
+    const parsedApplications = applications.map((app) => {
+      const applicationDataField =
+        (app as any).application_data || (app as any).expected_label_data;
+      return {
+        ...app,
+        application_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+        // Keep expected_label_data for backward compatibility during migration
+        expected_label_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+      };
+    });
 
     return NextResponse.json({
       applications: parsedApplications,

@@ -1,192 +1,211 @@
-import type { ExpectedLabelData, ExtractedData, VerificationResult } from '@/types/database';
+// ============================================================
+// TTB Label Verification Module
+// Uses validation module as the source of truth for validation rules
+// ============================================================
+
+import {
+  ApplicationData,
+  AIExtractionResult,
+  BeerExtractionResult,
+  SpiritsExtractionResult,
+  WineExtractionResult,
+  validateLabel,
+  determineApplicationStatus as determineStatusFromValidation,
+} from './validation';
+import type { ExtractedData, VerificationResult } from '@/types/database';
 
 /**
- * Normalize text for comparison (lowercase, trim, remove extra spaces)
+ * Convert ExtractedData to AIExtractionResult format
+ * This converts the legacy extraction format to the new validation format
  */
-export function normalizeText(text: string): string {
-  return text.toLowerCase().trim().replace(/\s+/g, ' ');
-}
-
-/**
- * Check if two texts match (exact or normalized)
- */
-export function textsMatch(expected: string, extracted: string): boolean {
-  if (expected === extracted) return true;
-  return normalizeText(expected) === normalizeText(extracted);
-}
-
-/**
- * Check if it's a soft mismatch (trivial formatting difference)
- */
-export function isSoftMismatch(expected: string, extracted: string): boolean {
-  const normalizedExpected = normalizeText(expected);
-  const normalizedExtracted = normalizeText(extracted);
-
-  // Case differences only
-  if (normalizedExpected === normalizedExtracted && expected !== extracted) {
-    return true;
-  }
-
-  // Punctuation differences (e.g., "45%" vs "45% Alc./Vol.")
-  // Check if the core numeric/alphanumeric content matches
-  const expectedClean = normalizedExpected.replace(/[^\w\s]/g, '').trim();
-  const extractedClean = normalizedExtracted.replace(/[^\w\s]/g, '').trim();
-
-  // If cleaned versions match, it's a soft mismatch
-  if (expectedClean === extractedClean && expectedClean.length > 0) {
-    return true;
-  }
-
-  // Also check if extracted contains the expected (for cases like "45%" in "45% Alc./Vol.")
-  if (extractedClean.includes(expectedClean) && expectedClean.length > 0) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Verify health warning with strict validation
- */
-export function verifyHealthWarning(
-  expected: string,
-  extracted: string
-): {
-  match: boolean;
-  type: 'match' | 'hard_mismatch';
-} {
-  // Health warning must be exact match
-  if (expected === extracted) {
-    return { match: true, type: 'match' };
-  }
-
-  // Check if "GOVERNMENT WARNING:" is in all caps
-  const extractedUpper = extracted.toUpperCase();
-
-  // Must start with "GOVERNMENT WARNING:" in all caps
-  if (!extractedUpper.startsWith('GOVERNMENT WARNING:')) {
-    return { match: false, type: 'hard_mismatch' };
-  }
-
-  // Full text must match exactly
-  if (expected !== extracted) {
-    return { match: false, type: 'hard_mismatch' };
-  }
-
-  return { match: true, type: 'match' };
-}
-
-/**
- * Verify a single field
- */
-export function verifyField(
-  fieldName: string,
-  expected: string | undefined,
-  extracted: { value: string; confidence: number } | undefined
-): {
-  match: boolean;
-  type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found';
-  expected?: string;
-  extracted?: string;
-} {
-  // Field not found
-  if (!extracted || !extracted.value) {
-    return {
-      match: false,
-      type: 'not_found',
-      expected,
-    };
-  }
-
-  // No expected value
-  if (!expected) {
-    return {
-      match: true,
-      type: 'match',
-      extracted: extracted.value,
-    };
-  }
-
-  // Health warning requires strict validation
-  if (fieldName === 'health_warning') {
-    const result = verifyHealthWarning(expected, extracted.value);
-    return {
-      match: result.match,
-      type: result.type,
-      expected,
-      extracted: extracted.value,
-    };
-  }
-
-  // Exact match (case-sensitive)
-  if (expected === extracted.value) {
-    return {
-      match: true,
-      type: 'match',
-      expected,
-      extracted: extracted.value,
-    };
-  }
-
-  // Normalized match (case-insensitive but same text)
-  if (normalizeText(expected) === normalizeText(extracted.value)) {
-    return {
-      match: false,
-      type: 'soft_mismatch',
-      expected,
-      extracted: extracted.value,
-    };
-  }
-
-  // Soft mismatch (formatting differences)
-  if (isSoftMismatch(expected, extracted.value)) {
-    return {
-      match: false,
-      type: 'soft_mismatch',
-      expected,
-      extracted: extracted.value,
-    };
-  }
-
-  // Hard mismatch (material difference)
-  return {
-    match: false,
-    type: 'hard_mismatch',
-    expected,
-    extracted: extracted.value,
-  };
-}
-
-/**
- * Verify all fields in expected label data against extracted data
- */
-export function verifyApplication(
-  expectedLabelData: ExpectedLabelData,
+function convertToAIExtractionResult(
+  beverageType: 'spirits' | 'wine' | 'beer',
   extractedData: ExtractedData
-): VerificationResult {
+): AIExtractionResult {
+  const getValue = (key: string): string | null => {
+    const field = extractedData[key];
+    return field?.value || null;
+  };
+
+  const baseExtraction = {
+    brandName: getValue('brand_name'),
+    fancifulName: getValue('fanciful_name'),
+    classType: getValue('class_type'),
+    alcoholContent: getValue('alcohol_content'),
+    netContents: getValue('net_contents'),
+    producerName: getValue('producer_name'),
+    producerAddress: getValue('producer_address'),
+    healthWarningText: getValue('health_warning'),
+    countryOfOrigin: getValue('country_of_origin'),
+  };
+
+  const formatChecks = {
+    governmentWarningAllCaps: null, // Not available in current extraction
+    governmentWarningBold: null,
+    surgeonCapitalized: null,
+    generalCapitalized: null,
+  };
+
+  const confidenceNotes = null;
+
+  switch (beverageType) {
+    case 'beer':
+      return {
+        extraction: {
+          ...baseExtraction,
+          colorAdditiveDisclosure: getValue('color_additive_disclosure'),
+          sulfiteDeclaration: getValue('sulfite_declaration'),
+          aspartameDeclaration: getValue('aspartame_declaration'),
+        },
+        formatChecks,
+        confidenceNotes,
+      } as BeerExtractionResult;
+
+    case 'spirits':
+      return {
+        extraction: {
+          ...baseExtraction,
+          ageStatement: getValue('age_statement'),
+          colorIngredientDisclosure: getValue('color_ingredient_disclosure'),
+          commodityStatement: getValue('commodity_statement'),
+        },
+        formatChecks,
+        confidenceNotes,
+      } as SpiritsExtractionResult;
+
+    case 'wine':
+      return {
+        extraction: {
+          ...baseExtraction,
+          appellation: getValue('appellation_of_origin'),
+          vintageDate: getValue('vintage_date'),
+          sulfiteDeclaration: getValue('sulfite_declaration'),
+          foreignWinePercentage: getValue('foreign_wine_percentage'),
+          isEstateBottled: null, // Not in current extraction
+          colorIngredientDisclosure: getValue('color_ingredient_disclosure'),
+        },
+        formatChecks,
+        confidenceNotes,
+      } as WineExtractionResult;
+
+    default:
+      throw new Error(`Unknown beverage type: ${beverageType}`);
+  }
+}
+
+/**
+ * Convert ValidationResult to legacy VerificationResult format
+ * This maintains backward compatibility with existing API responses
+ */
+function convertToVerificationResult(validationResult: {
+  fieldResults: Array<{
+    field: string;
+    status: any;
+    expected: string | null;
+    extracted: string | null;
+  }>;
+}): VerificationResult {
   const result: VerificationResult = {};
 
-  // Verify each expected field
-  for (const [fieldName, expectedValue] of Object.entries(expectedLabelData)) {
-    if (expectedValue) {
-      const extracted = extractedData[fieldName];
-      result[fieldName] = verifyField(fieldName, expectedValue, extracted);
+  for (const fieldResult of validationResult.fieldResults) {
+    // Map field names from camelCase to snake_case
+    const fieldName = mapFieldName(fieldResult.field);
+
+    // Map MatchStatus to legacy type
+    let type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found';
+    switch (fieldResult.status) {
+      case 'match':
+        type = 'match';
+        break;
+      case 'soft_mismatch':
+        type = 'soft_mismatch';
+        break;
+      case 'hard_mismatch':
+      case 'not_found':
+        type = fieldResult.status === 'not_found' ? 'not_found' : 'hard_mismatch';
+        break;
+      default:
+        type = 'match'; // NOT_APPLICABLE and SURFACED treated as match for legacy compatibility
     }
+
+    result[fieldName] = {
+      match: type === 'match',
+      type,
+      expected: fieldResult.expected || undefined,
+      extracted: fieldResult.extracted || undefined,
+    };
   }
 
   return result;
 }
 
 /**
+ * Map field names from new validation module to legacy format
+ */
+function mapFieldName(field: string): string {
+  const fieldMap: Record<string, string> = {
+    brandName: 'brand_name',
+    fancifulName: 'fanciful_name',
+    classType: 'class_type',
+    alcoholContent: 'alcohol_content',
+    netContents: 'net_contents',
+    producerNameAddress: 'producer_name_address', // Combined field
+    healthWarning: 'health_warning',
+    countryOfOrigin: 'country_of_origin',
+    appellation: 'appellation_of_origin',
+    vintageDate: 'vintage_date',
+    sulfiteDeclaration: 'sulfite_declaration',
+    ageStatement: 'age_statement',
+    foreignWinePercentage: 'foreign_wine_percentage',
+  };
+
+  return (
+    fieldMap[field] ||
+    field
+      .replace(/([A-Z])/g, '_$1')
+      .toLowerCase()
+      .replace(/^_/, '')
+  );
+}
+
+/**
+ * Verify application using the new validation module
+ * Now uses ApplicationData directly instead of converting from ExpectedLabelData
+ */
+export function verifyApplication(
+  applicationData: ApplicationData,
+  extractedData: ExtractedData
+): VerificationResult {
+  try {
+    // Convert extraction to new format
+    const aiResult = convertToAIExtractionResult(applicationData.beverageType, extractedData);
+
+    // Run validation using new module
+    const validationResult = validateLabel(applicationData, aiResult);
+
+    // Convert back to legacy format for API compatibility
+    return convertToVerificationResult(validationResult);
+  } catch (error) {
+    console.error('Verification error:', error);
+    // Return empty result on error
+    return {};
+  }
+}
+
+/**
  * Determine overall application status based on verification results
+ * Maintains backward compatibility with legacy VerificationResult format
  */
 export function determineApplicationStatus(
   verificationResult: VerificationResult
 ): 'pending' | 'needs_review' | 'approved' | 'rejected' {
-  const hasHardMismatch = Object.values(verificationResult).some(
-    (r) => r.type === 'hard_mismatch' || r.type === 'not_found'
-  );
-  const hasSoftMismatch = Object.values(verificationResult).some((r) => r.type === 'soft_mismatch');
+  const results = Object.values(verificationResult);
+
+  // Check for hard mismatches or not found
+  const hasHardMismatch = results.some((r) => r.type === 'hard_mismatch' || r.type === 'not_found');
+
+  // Check for soft mismatches
+  const hasSoftMismatch = results.some((r) => r.type === 'soft_mismatch');
 
   // Hard mismatches or missing fields - needs agent review (stays pending)
   if (hasHardMismatch) {
@@ -201,3 +220,6 @@ export function determineApplicationStatus(
   // All match - ready for agent approval (stays pending until agent approves)
   return 'pending';
 }
+
+// Re-export utility functions for backward compatibility
+export { normalizeString as normalizeText } from './validation';

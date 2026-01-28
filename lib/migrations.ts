@@ -22,13 +22,23 @@ export function runMigrations() {
       beverage_type TEXT NOT NULL CHECK(beverage_type IN ('spirits', 'wine', 'beer')),
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'needs_review', 'approved', 'rejected')),
       assigned_agent_id INTEGER,
-      expected_label_data TEXT NOT NULL,
+      application_data TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       reviewed_at DATETIME,
       review_notes TEXT,
       FOREIGN KEY (assigned_agent_id) REFERENCES users(id)
     )
   `);
+
+  // Migration: Rename expected_label_data to application_data if column exists
+  try {
+    db.exec(`
+      ALTER TABLE applications 
+      RENAME COLUMN expected_label_data TO application_data
+    `);
+  } catch (error) {
+    // Column might not exist or already renamed - that's okay
+  }
 
   // Create label_images table
   db.exec(`

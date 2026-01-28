@@ -4,7 +4,8 @@ import { applicationHelpers, labelImageHelpers } from '@/lib/db-helpers';
 import { auditLogHelpers } from '@/lib/db-helpers';
 import { extractLabelData } from '@/lib/openai-service';
 import { verifyApplication, determineApplicationStatus } from '@/lib/verification';
-import type { ExpectedLabelData } from '@/types/database';
+import { convertApplicationToApplicationData } from '@/lib/application-converter';
+import type { ExtractedData } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,8 +39,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       );
     }
 
-    const expectedLabelData: ExpectedLabelData = JSON.parse(application.expected_label_data);
-    const verificationResults: Record<string, any> = {};
+    // Convert database Application to ApplicationData format
+    const applicationData = convertApplicationToApplicationData(
+      application,
+      labelImages.map((img) => img.id)
+    );
+
+    const verificationResults: Record<string, any[]> = {};
     const startTime = Date.now();
 
     // Process each label image
@@ -52,8 +58,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           application.beverage_type
         );
 
-        // Verify extracted data against expected data
-        const verificationResult = verifyApplication(expectedLabelData, extractedData);
+        // Verify extracted data against application data
+        const verificationResult = verifyApplication(applicationData, extractedData);
 
         // Determine if status should change
         const newStatus = determineApplicationStatus(verificationResult);
@@ -67,7 +73,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           processingTimeMs
         );
 
-        verificationResults[labelImage.image_type] = verificationResult;
+        // Store results as array to handle duplicate image types
+        if (!verificationResults[labelImage.image_type]) {
+          verificationResults[labelImage.image_type] = [];
+        }
+        verificationResults[labelImage.image_type].push({
+          image_id: labelImage.id,
+          verification_result: verificationResult,
+          confidence,
+          processing_time_ms: processingTimeMs,
+        });
 
         // Update application status if needed (only if soft mismatch detected)
         if (newStatus === 'needs_review' && application.status === 'pending') {
@@ -75,10 +90,15 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         }
       } catch (error) {
         console.error(`Error processing label image ${labelImage.id}:`, error);
-        verificationResults[labelImage.image_type] = {
+        // Store error results as array too
+        if (!verificationResults[labelImage.image_type]) {
+          verificationResults[labelImage.image_type] = [];
+        }
+        verificationResults[labelImage.image_type].push({
+          image_id: labelImage.id,
           error: 'Failed to process image',
           message: error instanceof Error ? error.message : 'Unknown error',
-        };
+        });
       }
     }
 
@@ -92,10 +112,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       JSON.stringify({ processing_time_ms: totalProcessingTime })
     );
 
-    // Determine overall status
-    const allResults = Object.values(verificationResults).flatMap((r) =>
-      Object.values(r).filter((v) => typeof v === 'object' && v !== null && 'type' in v)
-    );
+    // Determine overall status from all verification results
+    const allResults = Object.values(verificationResults)
+      .flat() // Flatten arrays of results per image type
+      .flatMap((result) => {
+        // Handle both new array format and legacy single-result format
+        if (result.verification_result) {
+          return Object.values(result.verification_result).filter(
+            (v) => typeof v === 'object' && v !== null && 'type' in v
+          );
+        }
+        // Legacy format or error format
+        if (result.error) {
+          return [];
+        }
+        return Object.values(result).filter(
+          (v) => typeof v === 'object' && v !== null && 'type' in v
+        );
+      });
     const hasHardMismatch = allResults.some(
       (r: any) => r.type === 'hard_mismatch' || r.type === 'not_found'
     );

@@ -12,6 +12,14 @@ export enum BeverageType {
 }
 
 /**
+ * Origin type - indicates whether beverage is domestic or imported
+ */
+export enum OriginType {
+  DOMESTIC = 'domestic',
+  IMPORTED = 'imported',
+}
+
+/**
  * Match status for field validation
  */
 export enum MatchStatus {
@@ -31,7 +39,7 @@ export interface ApplicationData {
 
   // Basic Info
   beverageType: BeverageType;
-  originCode: string; // Two-character origin code (e.g., '50' for Italy, '01' for California)
+  originType: OriginType; // Whether the beverage is domestic or imported
 
   // Fields to cross-check against label (all beverage types)
   brandName: string;

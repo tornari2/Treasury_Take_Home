@@ -68,15 +68,15 @@ export function validateAppellation(
     };
   }
 
-  // If label has appellation but application doesn't
+  // If label has appellation but application doesn't (CROSS-CHECK: must exist in both if exists in one)
   if (!valueExists(expected) && valueExists(extracted)) {
     return {
       field: 'appellation',
-      status: MatchStatus.MATCH,
+      status: MatchStatus.HARD_MISMATCH,
       expected: null,
       extracted: extracted!,
-      rule: 'PRESENCE: Appellation found on label',
-      details: 'Appellation present on label but not specified in application',
+      rule: 'CROSS-CHECK: Appellation on label must be in application',
+      details: 'Label contains an appellation not listed in the application',
     };
   }
 
@@ -112,81 +112,68 @@ export function validateAppellation(
 }
 
 /**
- * Validate Wine Varietal / Class Type (wine only)
- * If present on label, must match application
+ * Validate Wine Class/Type (wine only)
+ * REQUIRED on label (PRESENCE check only).
+ * If application has a varietal, the classType IS the varietal and must be cross-checked.
  */
 export function validateWineVarietal(
   application: ApplicationData,
   extracted: string | null
 ): FieldValidationResult {
-  const expected = application.varietal;
+  const expectedVarietal = application.varietal;
 
-  const expectedExists = valueExists(expected);
-  const extractedExists = valueExists(extracted);
-
-  // Neither has varietal - that's OK
-  if (!expectedExists && !extractedExists) {
-    return {
-      field: 'classType',
-      status: MatchStatus.NOT_APPLICABLE,
-      expected: null,
-      extracted: null,
-      rule: 'CROSS-CHECK: Varietal/class type not specified in application or on label',
-    };
-  }
-
-  // Application has varietal but label doesn't
-  if (expectedExists && !extractedExists) {
+  // Class/Type is REQUIRED on wine labels
+  if (!extracted) {
     return {
       field: 'classType',
       status: MatchStatus.NOT_FOUND,
-      expected: expected!,
+      expected: 'Class/type designation required on wine label',
       extracted: null,
-      rule: 'CROSS-CHECK: Varietal in application must appear on label',
-      details: 'Application specifies a varietal but it was not found on the label',
+      rule: 'PRESENCE: Class/type designation must appear on wine label',
+      details: 'Class/type designation is required on the label',
     };
   }
 
-  // Label has varietal but application doesn't
-  if (!expectedExists && extractedExists) {
+  // If application has a varietal, the classType IS the varietal and must be cross-checked
+  if (valueExists(expectedVarietal)) {
+    // Cross-check: classType must match application varietal
+    if (stringsMatch(expectedVarietal, extracted)) {
+      if (isSoftMismatch(expectedVarietal, extracted)) {
+        return {
+          field: 'classType',
+          status: MatchStatus.SOFT_MISMATCH,
+          expected: expectedVarietal!,
+          extracted: extracted!,
+          rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) must match application',
+          details: 'Case or formatting difference detected',
+        };
+      }
+      return {
+        field: 'classType',
+        status: MatchStatus.MATCH,
+        expected: expectedVarietal!,
+        extracted: extracted!,
+        rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) present and matches application',
+      };
+    }
+
     return {
       field: 'classType',
       status: MatchStatus.HARD_MISMATCH,
-      expected: null,
+      expected: expectedVarietal!,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Varietal on label must be in application',
-      details: 'Label contains a varietal not listed in the application',
+      rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) must match application',
+      details: 'Class/type does not match application varietal',
     };
   }
 
-  // Both have varietals - check if they match
-  if (stringsMatch(expected, extracted)) {
-    if (isSoftMismatch(expected, extracted)) {
-      return {
-        field: 'classType',
-        status: MatchStatus.SOFT_MISMATCH,
-        expected: expected!,
-        extracted: extracted!,
-        rule: 'CROSS-CHECK: Varietal must match application',
-        details: 'Case or formatting difference detected',
-      };
-    }
-    return {
-      field: 'classType',
-      status: MatchStatus.MATCH,
-      expected: expected!,
-      extracted: extracted!,
-      rule: 'CROSS-CHECK: Varietal matches application',
-    };
-  }
-
+  // Application doesn't have varietal - classType just needs to be present (no cross-check)
   return {
     field: 'classType',
-    status: MatchStatus.HARD_MISMATCH,
-    expected: expected!,
+    status: MatchStatus.MATCH,
+    expected: null,
     extracted: extracted!,
-    rule: 'CROSS-CHECK: Varietal must match application',
-    details: 'Varietals do not match',
+    rule: 'PRESENCE: Class/type designation present on label',
   };
 }
 

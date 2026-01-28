@@ -14,9 +14,6 @@
 // Types and Enums
 export * from './types';
 
-// Origin Codes
-export * from './origin-codes';
-
 // Constants
 export * from './constants';
 

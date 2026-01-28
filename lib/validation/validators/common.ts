@@ -8,14 +8,13 @@ import {
   NET_CONTENTS_PATTERNS,
   REQUIRED_HEALTH_WARNING,
 } from '../constants';
-import { isUSOrigin, getCountryFromOriginCode } from '../origin-codes';
+import { OriginType } from '../types';
 import {
   stringsMatch,
   isSoftMismatch,
   matchesAnyPattern,
   valueExists,
   healthWarningMatchesExact,
-  countryMatchesOriginCode,
   normalizeString,
 } from '../utils';
 
@@ -405,54 +404,40 @@ export function validateHealthWarning(
 
 /**
  * Validate Country of Origin
- * Required for non-US origins, and must match the origin code
+ * Required for imported products. No cross-checking - filled in by TTB agents.
  */
 export function validateCountryOfOrigin(
-  originCode: string,
+  originType: OriginType,
   extracted: string | null
 ): FieldValidationResult {
-  const isDomestic = isUSOrigin(originCode);
-  const expectedCountry = getCountryFromOriginCode(originCode);
-
   // Domestic products don't require country of origin
-  if (isDomestic) {
+  if (originType === OriginType.DOMESTIC) {
     return {
       field: 'countryOfOrigin',
       status: MatchStatus.NOT_APPLICABLE,
       expected: null,
       extracted,
-      rule: 'PRESENCE: Country of origin not required for US domestic products',
+      rule: 'PRESENCE: Country of origin not required for domestic products',
     };
   }
 
-  // Non-US products require country of origin
+  // Imported products require country of origin
   if (!extracted) {
     return {
       field: 'countryOfOrigin',
       status: MatchStatus.NOT_FOUND,
-      expected: expectedCountry || 'Country of origin required for imported products',
+      expected: 'Country of origin required for imported products',
       extracted: null,
       rule: 'PRESENCE: Country of origin must appear on label for imported products',
     };
   }
 
-  // Check if the extracted country matches the origin code
-  if (!countryMatchesOriginCode(extracted, originCode)) {
-    return {
-      field: 'countryOfOrigin',
-      status: MatchStatus.HARD_MISMATCH,
-      expected: expectedCountry,
-      extracted,
-      rule: 'CROSS-CHECK: Country of origin must match application origin code',
-      details: `Expected country "${expectedCountry}" based on origin code "${originCode}"`,
-    };
-  }
-
+  // Country of origin is present - no cross-checking needed (filled by TTB agents)
   return {
     field: 'countryOfOrigin',
     status: MatchStatus.MATCH,
-    expected: expectedCountry,
+    expected: null,
     extracted,
-    rule: 'PRESENCE + CROSS-CHECK: Country of origin present and matches origin code',
+    rule: 'PRESENCE: Country of origin present on label',
   };
 }

@@ -92,7 +92,7 @@ export function validateBeerLabel(
     validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
-  fieldResults.push(validateCountryOfOrigin(application.originCode, extraction.countryOfOrigin));
+  fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
   fieldResults.push(validateAlcoholContent(extraction.alcoholContent)); // Surfaced if missing, but doesn't fail
 
   // Surfaced fields
@@ -133,7 +133,7 @@ export function validateSpiritsLabel(
     validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
-  fieldResults.push(validateCountryOfOrigin(application.originCode, extraction.countryOfOrigin));
+  fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
   fieldResults.push(validateAgeStatement(extraction.ageStatement)); // REQUIRED for spirits
 
   // Surfaced fields
@@ -171,7 +171,7 @@ export function validateWineLabel(
     validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
-  fieldResults.push(validateCountryOfOrigin(application.originCode, extraction.countryOfOrigin));
+  fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
   fieldResults.push(validateAppellation(application, extraction)); // Now takes full extraction for context
   fieldResults.push(validateVintageDate(application, extraction.vintageDate)); // Cross-check vintage
   fieldResults.push(validateSulfiteDeclaration(extraction.sulfiteDeclaration)); // REQUIRED for wine

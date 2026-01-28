@@ -3,7 +3,6 @@
 // ============================================================
 
 import { REQUIRED_HEALTH_WARNING } from './constants';
-import { getCountryFromOriginCode } from './origin-codes';
 
 /**
  * Normalize string for comparison (trim, collapse whitespace, lowercase)
@@ -63,27 +62,4 @@ export function valueExists(value: string | null | undefined): boolean {
 export function healthWarningMatchesExact(extracted: string | null | undefined): boolean {
   if (!extracted) return false;
   return normalizeWhitespace(extracted) === normalizeWhitespace(REQUIRED_HEALTH_WARNING);
-}
-
-/**
- * Check if extracted country matches the expected country from origin code
- */
-export function countryMatchesOriginCode(
-  extractedCountry: string | null | undefined,
-  originCode: string
-): boolean {
-  if (!extractedCountry) return false;
-
-  const expectedCountry = getCountryFromOriginCode(originCode);
-  if (!expectedCountry) return false;
-
-  const normalizedExtracted = normalizeString(extractedCountry);
-  const normalizedExpected = normalizeString(expectedCountry);
-
-  // Check if the extracted country contains the expected country name
-  // This handles cases like "Product of Italy" matching "ITALY"
-  return (
-    normalizedExtracted.includes(normalizedExpected) ||
-    normalizedExpected.includes(normalizedExtracted)
-  );
 }

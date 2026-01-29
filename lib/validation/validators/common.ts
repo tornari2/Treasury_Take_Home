@@ -494,7 +494,7 @@ export function validateAlcoholContent(
  * - Wine/Spirits: Metric units REQUIRED (mL, L), U.S. customary optional
  *
  * Normalization handled:
- * - mL, ml., ML → treated as metric
+ * - mL, ml., ML, milliliter, milliliters → treated as metric milliliters
  * - L, litre, liter → treated as liters
  * - fl. oz., fluid ounces → U.S. units
  */

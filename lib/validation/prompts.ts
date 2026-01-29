@@ -22,6 +22,10 @@ LABEL ANATOMY - Where to find each field:
 
 EXTRACTION RULES:
 1. Extract text EXACTLY as shown - preserve capitalization, punctuation, spacing
+   - CRITICAL: For ALL fields (brand name, fanciful name, class type, producer name, producer address, appellation, country of origin, etc.), preserve the exact capitalization as it appears on the label
+   - If ANY field appears in ALL CAPS on the label (e.g., "FAR MOUNTAIN", "MOON MOUNTAIN DISTRICT"), extract it as ALL CAPS
+   - If ANY field appears in Title Case (e.g., "Far Mountain", "Moon Mountain District"), extract it as Title Case
+   - Do NOT normalize or change capitalization - extract exactly as shown on the label
 2. For ALCOHOL CONTENT: Look carefully at small text. Common formats:
    - "X.X% ALC/VOL" or "X.X% ALC./VOL."
    - "ALC. X.X% BY VOL." or "ALCOHOL X.X% BY VOLUME"
@@ -100,6 +104,10 @@ LABEL ANATOMY - Where to find each field:
 
 EXTRACTION RULES:
 1. Extract text EXACTLY as shown - preserve capitalization, punctuation, spacing
+   - CRITICAL: For ALL fields (brand name, fanciful name, class type, producer name, producer address, appellation, country of origin, etc.), preserve the exact capitalization as it appears on the label
+   - If ANY field appears in ALL CAPS on the label (e.g., "FAR MOUNTAIN", "MOON MOUNTAIN DISTRICT"), extract it as ALL CAPS
+   - If ANY field appears in Title Case (e.g., "Far Mountain", "Moon Mountain District"), extract it as Title Case
+   - Do NOT normalize or change capitalization - extract exactly as shown on the label
 2. BRAND NAME is NOT the same as PRODUCER NAME
    - Brand: "Jack Daniel's" / Producer: "Jack Daniel Distillery"
    - Brand: "Johnnie Walker" / Producer: "John Walker & Sons"
@@ -191,6 +199,10 @@ Back label typically shows: Health Warning, Sulfites, Producer details, Alcohol 
 
 EXTRACTION RULES:
 1. Extract text EXACTLY as shown - preserve capitalization, punctuation, spacing
+   - CRITICAL: For ALL fields (brand name, fanciful name, class type, producer name, producer address, appellation, country of origin, etc.), preserve the exact capitalization as it appears on the label
+   - If ANY field appears in ALL CAPS on the label (e.g., "FAR MOUNTAIN", "MOON MOUNTAIN DISTRICT"), extract it as ALL CAPS
+   - If ANY field appears in Title Case (e.g., "Far Mountain", "Moon Mountain District"), extract it as Title Case
+   - Do NOT normalize or change capitalization - extract exactly as shown on the label
 2. BRAND NAME ≠ PRODUCER NAME ≠ FANCIFUL NAME
    - Brand: "Stag's Leap Wine Cellars"
    - Fanciful Name: "Artemis"
@@ -207,6 +219,7 @@ EXTRACTION RULES:
    - Read carefully - 13.5 vs 14.5 matters
 6. APPELLATION: Extract the complete geographic designation
    - Include qualifiers: "DOCG", "AOC", "AVA" if shown
+   - Preserve exact capitalization as shown on label (follows same rule as all other fields)
 7. ESTATE BOTTLED: Only true if exact phrase appears
    - "Estate Bottled" ✓
    - "Estate Grown" ✓  

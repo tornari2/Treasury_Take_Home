@@ -251,8 +251,12 @@ export function parseNetContentsToML(value: string | null): number | null {
     return numericValue * 1000; // Convert liters to milliliters
   }
 
-  // Check for milliliters (mL, ml, etc.)
-  if (/^\d+(\.\d+)?\s*m[Ll]\.?$/i.test(normalized)) {
+  // Check for milliliters (mL, ml, milliliter, milliliters, etc.)
+  if (
+    /^\d+(\.\d+)?\s*m[Ll]\.?$/i.test(normalized) ||
+    /^\d+(\.\d+)?\s*milliliter(s)?$/i.test(normalized) ||
+    /^\d+(\.\d+)?\s*millilitre(s)?$/i.test(normalized)
+  ) {
     return numericValue; // Already in milliliters
   }
 

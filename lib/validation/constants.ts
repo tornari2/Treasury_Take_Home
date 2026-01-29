@@ -35,6 +35,8 @@ export const NET_CONTENTS_PATTERNS = {
     /^\d+(\.\d+)?\s*[Ll]\.?$/, // L, l, L.
     /^\d+(\.\d+)?\s*[Ll]iter(s)?$/i, // liter, litre, liters, litres
     /^\d+(\.\d+)?\s*[Ll]itre(s)?$/i, // litre, litres (British spelling)
+    /^\d+(\.\d+)?\s*milliliter(s)?$/i, // milliliter, milliliters
+    /^\d+(\.\d+)?\s*millilitre(s)?$/i, // millilitre, millilitres (British spelling)
   ],
   usCustomary: [
     /^\d+(\.\d+)?\s*fl\.?\s*oz\.?$/i, // fl oz, fl. oz., fl oz., fl. oz

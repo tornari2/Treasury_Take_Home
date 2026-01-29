@@ -211,7 +211,15 @@ export async function extractLabelData(
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label images and return them as JSON with confidence scores (0-1) for each field. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response. For the health_warning field, extract the EXACT text as it appears on the label.
+            content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label images and return them as JSON with confidence scores (0-1) for each field. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response.
+
+IMPORTANT - Preserve exact capitalization for ALL fields:
+- CRITICAL: For EVERY field (brand_name, fanciful_name, class_type, producer_name, producer_address, appellation_of_origin, country_of_origin, etc.), preserve the exact capitalization as it appears on the label
+- If ANY field appears in ALL CAPS on the label (e.g., "FAR MOUNTAIN", "MOON MOUNTAIN DISTRICT SONOMA COUNTY"), extract it as ALL CAPS
+- If ANY field appears in Title Case (e.g., "Far Mountain", "Moon Mountain District Sonoma County"), extract it as Title Case
+- Do NOT normalize or change capitalization - extract exactly as shown on the label for all fields
+
+For the health_warning field, extract the EXACT text as it appears on the label.
 
 Fields to extract:
 ${fieldsList}
@@ -234,14 +242,14 @@ Return JSON in this format:
 
       const response = await Promise.race([apiCall, createTimeoutPromise(timeoutMs)]);
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
+      const responseContent = response.choices[0]?.message?.content;
+      if (!responseContent) {
         throw new OpenAIAPIError('No response content from OpenAI API');
       }
 
       let parsed;
       try {
-        parsed = JSON.parse(content);
+        parsed = JSON.parse(responseContent);
       } catch (parseError) {
         throw new OpenAIAPIError(
           `Invalid JSON response from OpenAI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`

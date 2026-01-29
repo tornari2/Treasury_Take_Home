@@ -42,12 +42,11 @@ export default function ReviewPage() {
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
-  const [selectedImageType, setSelectedImageType] = useState<string>('front');
   const [reviewNotes, setReviewNotes] = useState('');
-  const [imageZoom, setImageZoom] = useState(1);
-  const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imageZooms, setImageZooms] = useState<Record<number, number>>({});
+  const [imagePans, setImagePans] = useState<Record<number, { x: number; y: number }>>({});
+  const [isDragging, setIsDragging] = useState<Record<number, boolean>>({});
+  const [dragStart, setDragStart] = useState<Record<number, { x: number; y: number }>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   // Batch navigation state
@@ -104,10 +103,19 @@ export default function ReviewPage() {
     }
   }, [params.id, searchParams]);
 
-  // Reset pan when image type changes
+  // Initialize zoom and pan for all images
   useEffect(() => {
-    setImagePan({ x: 0, y: 0 });
-  }, [selectedImageType]);
+    if (application?.label_images) {
+      const initialZooms: Record<number, number> = {};
+      const initialPans: Record<number, { x: number; y: number }> = {};
+      application.label_images.forEach((img) => {
+        initialZooms[img.id] = 1;
+        initialPans[img.id] = { x: 0, y: 0 };
+      });
+      setImageZooms(initialZooms);
+      setImagePans(initialPans);
+    }
+  }, [application]);
 
   const fetchApplication = async () => {
     try {
@@ -350,65 +358,41 @@ export default function ReviewPage() {
     );
   }
 
-  const currentImage = application.label_images.find((img) => img.image_type === selectedImageType);
+  // Use the first image's verification result (they should all be the same)
+  const verificationResult = application.label_images[0]?.verification_result || {};
 
-  const verificationResult = currentImage?.verification_result || {};
-
-  // Handle mouse wheel zoom centered at cursor position
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    const container = e.currentTarget;
-    const rect = container.getBoundingClientRect();
-
-    // Get mouse position relative to container
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Calculate zoom point relative to current pan and zoom
-    const zoomPointX = (mouseX - imagePan.x) / imageZoom;
-    const zoomPointY = (mouseY - imagePan.y) / imageZoom;
-
-    setImageZoom((prevZoom) => {
-      const newZoom = Math.max(0.5, Math.min(3, prevZoom + delta));
-
-      // Calculate new pan to keep the zoom point under the cursor
-      const newPanX = mouseX - zoomPointX * newZoom;
-      const newPanY = mouseY - zoomPointY * newZoom;
-
-      setImagePan({ x: newPanX, y: newPanY });
-
-      return newZoom;
-    });
-  };
-
-  // Handle mouse down for panning
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Handle mouse down for panning a specific image
+  const handleMouseDown = (imageId: number) => (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button === 0) {
       // Left mouse button
-      setIsDragging(true);
-      setDragStart({ x: e.clientX - imagePan.x, y: e.clientY - imagePan.y });
+      const currentPan = imagePans[imageId] || { x: 0, y: 0 };
+      setIsDragging((prev) => ({ ...prev, [imageId]: true }));
+      setDragStart((prev) => ({
+        ...prev,
+        [imageId]: { x: e.clientX - currentPan.x, y: e.clientY - currentPan.y },
+      }));
     }
   };
 
-  // Handle mouse move for panning
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging) {
-      setImagePan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      });
+  // Handle mouse move for panning a specific image
+  const handleMouseMove = (imageId: number) => (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDragging[imageId]) {
+      const start = dragStart[imageId] || { x: 0, y: 0 };
+      setImagePans((prev) => ({
+        ...prev,
+        [imageId]: { x: e.clientX - start.x, y: e.clientY - start.y },
+      }));
     }
   };
 
   // Handle mouse up for panning
-  const handleMouseUp = () => {
-    setIsDragging(false);
+  const handleMouseUp = (imageId: number) => () => {
+    setIsDragging((prev) => ({ ...prev, [imageId]: false }));
   };
 
   // Handle mouse leave to stop dragging
-  const handleMouseLeave = () => {
-    setIsDragging(false);
+  const handleMouseLeave = (imageId: number) => () => {
+    setIsDragging((prev) => ({ ...prev, [imageId]: false }));
   };
 
   return (
@@ -460,89 +444,96 @@ export default function ReviewPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Label Images</h2>
 
-            <div className="mb-4 flex gap-2">
-              {application.label_images.map((img) => (
-                <Button
-                  key={img.id}
-                  onClick={() => setSelectedImageType(img.image_type)}
-                  variant={selectedImageType === img.image_type ? 'default' : 'outline'}
-                >
-                  {img.image_type}
-                </Button>
-              ))}
-            </div>
+            <div className="space-y-6">
+              {application.label_images.map((img) => {
+                const imageZoom = imageZooms[img.id] || 1;
+                const imagePan = imagePans[img.id] || { x: 0, y: 0 };
+                const isImageDragging = isDragging[img.id] || false;
 
-            {currentImage && (
-              <div className="border rounded-lg p-4 bg-gray-50">
-                <div className="mb-2 flex justify-between items-center">
-                  <span className="text-sm text-gray-600">
-                    Confidence:{' '}
-                    {currentImage.confidence_score
-                      ? `${(currentImage.confidence_score * 100).toFixed(1)}%`
-                      : 'N/A'}
-                  </span>
-                  <div className="flex gap-2 items-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setImageZoom(Math.max(0.5, imageZoom - 0.1));
-                        // Reset pan when zooming out significantly
-                        if (imageZoom <= 1) {
-                          setImagePan({ x: 0, y: 0 });
-                        }
-                      }}
+                return (
+                  <div key={img.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="mb-2 flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium capitalize">{img.image_type}</span>
+                        <span className="text-sm text-gray-600">
+                          (Confidence:{' '}
+                          {img.confidence_score
+                            ? `${(img.confidence_score * 100).toFixed(1)}%`
+                            : 'N/A'}
+                          )
+                        </span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const newZoom = Math.max(0.5, imageZoom - 0.1);
+                            setImageZooms((prev) => ({ ...prev, [img.id]: newZoom }));
+                            // Reset pan when zooming out significantly
+                            if (newZoom <= 1) {
+                              setImagePans((prev) => ({ ...prev, [img.id]: { x: 0, y: 0 } }));
+                            }
+                          }}
+                        >
+                          -
+                        </Button>
+                        <span className="text-sm w-12 text-center">
+                          {Math.round(imageZoom * 100)}%
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setImageZooms((prev) => ({
+                              ...prev,
+                              [img.id]: Math.min(3, imageZoom + 0.1),
+                            }));
+                          }}
+                        >
+                          +
+                        </Button>
+                        {(imageZoom !== 1 || imagePan.x !== 0 || imagePan.y !== 0) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setImageZooms((prev) => ({ ...prev, [img.id]: 1 }));
+                              setImagePans((prev) => ({ ...prev, [img.id]: { x: 0, y: 0 } }));
+                            }}
+                            title="Reset zoom and pan"
+                          >
+                            Reset
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div
+                      className="overflow-hidden border rounded relative cursor-grab active:cursor-grabbing"
+                      style={{ height: '500px' }}
+                      onMouseDown={handleMouseDown(img.id)}
+                      onMouseMove={handleMouseMove(img.id)}
+                      onMouseUp={handleMouseUp(img.id)}
+                      onMouseLeave={handleMouseLeave(img.id)}
                     >
-                      -
-                    </Button>
-                    <span className="text-sm w-12 text-center">{Math.round(imageZoom * 100)}%</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setImageZoom(Math.min(3, imageZoom + 0.1))}
-                    >
-                      +
-                    </Button>
-                    {(imageZoom !== 1 || imagePan.x !== 0 || imagePan.y !== 0) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setImageZoom(1);
-                          setImagePan({ x: 0, y: 0 });
-                        }}
-                        title="Reset zoom and pan"
-                      >
-                        Reset
-                      </Button>
-                    )}
+                      {img.image_data_base64 && (
+                        <img
+                          src={`data:${img.mime_type};base64,${img.image_data_base64}`}
+                          alt={img.image_type}
+                          style={{
+                            transform: `translate(${imagePan.x}px, ${imagePan.y}px) scale(${imageZoom})`,
+                            transformOrigin: 'top left',
+                            transition: isImageDragging ? 'none' : 'transform 0.1s ease-out',
+                          }}
+                          className="max-w-full select-none"
+                          draggable={false}
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div
-                  className="overflow-hidden border rounded relative cursor-grab active:cursor-grabbing"
-                  style={{ height: '500px' }}
-                  onWheel={handleWheel}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  {currentImage.image_data_base64 && (
-                    <img
-                      src={`data:${currentImage.mime_type};base64,${currentImage.image_data_base64}`}
-                      alt={currentImage.image_type}
-                      style={{
-                        transform: `translate(${imagePan.x}px, ${imagePan.y}px) scale(${imageZoom})`,
-                        transformOrigin: 'top left',
-                        transition: isDragging ? 'none' : 'transform 0.1s ease-out',
-                      }}
-                      className="max-w-full select-none"
-                      draggable={false}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
           {/* Right Panel: Verification Results */}

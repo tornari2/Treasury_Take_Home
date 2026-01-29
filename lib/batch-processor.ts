@@ -101,20 +101,27 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
           labelImages.map((img) => img.id)
         );
 
-        // Process all label images for this application
+        // Process all label images together for this application
         let finalStatus = 'pending';
-        for (const labelImage of labelImages) {
-          try {
-            const { extractedData, confidence, processingTimeMs } = await extractLabelData(
-              labelImage.image_data,
-              labelImage.mime_type,
-              application.beverage_type
-            );
+        try {
+          // Prepare all images for extraction
+          const images = labelImages.map((img) => ({
+            imageBuffer: img.image_data,
+            mimeType: img.mime_type,
+          }));
 
-            // Verify extracted data against application data
-            const verificationResult = verifyApplication(applicationData, extractedData);
-            const newStatus = determineApplicationStatus(verificationResult);
+          // Extract data from all images using OpenAI (single API call)
+          const { extractedData, confidence, processingTimeMs } = await extractLabelData(
+            images,
+            application.beverage_type
+          );
 
+          // Verify extracted data against application data
+          const verificationResult = verifyApplication(applicationData, extractedData);
+          const newStatus = determineApplicationStatus(verificationResult);
+
+          // Store results in database for each image (same extracted data for all)
+          for (const labelImage of labelImages) {
             labelImageHelpers.updateExtraction(
               labelImage.id,
               JSON.stringify(extractedData),
@@ -122,35 +129,34 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
               confidence,
               processingTimeMs
             );
-
-            // Track the most severe status across all images
-            // needs_review takes precedence over pending
-            if (newStatus === 'needs_review') {
-              finalStatus = 'needs_review';
-            }
-          } catch (error) {
-            console.error(`Error processing label image for app ${appId}:`, error);
-
-            // Determine user-friendly error message
-            let errorMessage = 'Unknown error';
-            if (error instanceof OpenAIAPIKeyError) {
-              errorMessage = 'OpenAI API key is not configured or invalid';
-            } else if (error instanceof OpenAITimeoutError) {
-              errorMessage = 'Request timed out. Please try again.';
-            } else if (error instanceof OpenAINetworkError) {
-              errorMessage = 'Network error occurred';
-            } else if (error instanceof OpenAIAPIError) {
-              if (error.statusCode === 429) {
-                errorMessage = 'Rate limit exceeded. Please wait and try again.';
-              } else {
-                errorMessage = `OpenAI API error: ${error.message}`;
-              }
-            } else if (error instanceof Error) {
-              errorMessage = error.message;
-            }
-
-            throw new Error(errorMessage);
           }
+
+          // Track the most severe status
+          if (newStatus === 'needs_review') {
+            finalStatus = 'needs_review';
+          }
+        } catch (error) {
+          console.error(`Error processing label images for app ${appId}:`, error);
+
+          // Determine user-friendly error message
+          let errorMessage = 'Unknown error';
+          if (error instanceof OpenAIAPIKeyError) {
+            errorMessage = 'OpenAI API key is not configured or invalid';
+          } else if (error instanceof OpenAITimeoutError) {
+            errorMessage = 'Request timed out. Please try again.';
+          } else if (error instanceof OpenAINetworkError) {
+            errorMessage = 'Network error occurred';
+          } else if (error instanceof OpenAIAPIError) {
+            if (error.statusCode === 429) {
+              errorMessage = 'Rate limit exceeded. Please wait and try again.';
+            } else {
+              errorMessage = `OpenAI API error: ${error.message}`;
+            }
+          } else if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+
+          throw new Error(errorMessage);
         }
 
         // Update application status based on verification results

@@ -68,23 +68,28 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const verificationResults: Record<string, any[]> = {};
     const startTime = Date.now();
 
-    // Process each label image
-    for (const labelImage of labelImages) {
-      try {
-        // Extract data from image using OpenAI
-        const { extractedData, confidence, processingTimeMs } = await extractLabelData(
-          labelImage.image_data,
-          labelImage.mime_type,
-          application.beverage_type
-        );
+    // Process all label images together
+    try {
+      // Prepare all images for extraction
+      const images = labelImages.map((img) => ({
+        imageBuffer: img.image_data,
+        mimeType: img.mime_type,
+      }));
 
-        // Verify extracted data against application data
-        const verificationResult = verifyApplication(applicationData, extractedData);
+      // Extract data from all images using OpenAI (single API call)
+      const { extractedData, confidence, processingTimeMs } = await extractLabelData(
+        images,
+        application.beverage_type
+      );
 
-        // Determine if status should change
-        const newStatus = determineApplicationStatus(verificationResult);
+      // Verify extracted data against application data
+      const verificationResult = verifyApplication(applicationData, extractedData);
 
-        // Store results in database
+      // Determine if status should change
+      const newStatus = determineApplicationStatus(verificationResult);
+
+      // Store results in database for each image (same extracted data for all)
+      for (const labelImage of labelImages) {
         labelImageHelpers.updateExtraction(
           labelImage.id,
           JSON.stringify(extractedData),
@@ -103,47 +108,47 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           confidence,
           processing_time_ms: processingTimeMs,
         });
+      }
 
-        // Update application status based on verification results
-        // Status was already reset to 'pending' at the start, so we can update it here
-        if (newStatus === 'needs_review') {
-          applicationHelpers.updateStatus(applicationId, 'needs_review', null);
+      // Update application status based on verification results
+      if (newStatus === 'needs_review') {
+        applicationHelpers.updateStatus(applicationId, 'needs_review', null);
+      }
+    } catch (error) {
+      console.error(`Error processing label images for application ${applicationId}:`, error);
+
+      // Determine error type and user-friendly message
+      let errorType = 'Processing Error';
+      let errorMessage = 'Failed to process images';
+      let userMessage = 'Verification failed. Please try again.';
+
+      if (error instanceof OpenAIAPIKeyError) {
+        errorType = 'Configuration Error';
+        errorMessage = error.message;
+        userMessage = 'OpenAI API key is not configured or invalid. Please contact administrator.';
+      } else if (error instanceof OpenAITimeoutError) {
+        errorType = 'Timeout Error';
+        errorMessage = error.message;
+        userMessage =
+          'Verification timed out. The images may be too large or the service is busy. Please try again.';
+      } else if (error instanceof OpenAINetworkError) {
+        errorType = 'Network Error';
+        errorMessage = error.message;
+        userMessage = 'Network error occurred. Please check your connection and try again.';
+      } else if (error instanceof OpenAIAPIError) {
+        errorType = 'API Error';
+        errorMessage = error.message;
+        if (error.statusCode === 429) {
+          userMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+        } else {
+          userMessage = 'OpenAI API error occurred. Please try again later.';
         }
-      } catch (error) {
-        console.error(`Error processing label image ${labelImage.id}:`, error);
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
 
-        // Determine error type and user-friendly message
-        let errorType = 'Processing Error';
-        let errorMessage = 'Failed to process image';
-        let userMessage = 'Verification failed for this image. Please try again.';
-
-        if (error instanceof OpenAIAPIKeyError) {
-          errorType = 'Configuration Error';
-          errorMessage = error.message;
-          userMessage =
-            'OpenAI API key is not configured or invalid. Please contact administrator.';
-        } else if (error instanceof OpenAITimeoutError) {
-          errorType = 'Timeout Error';
-          errorMessage = error.message;
-          userMessage =
-            'Verification timed out. The image may be too large or the service is busy. Please try again.';
-        } else if (error instanceof OpenAINetworkError) {
-          errorType = 'Network Error';
-          errorMessage = error.message;
-          userMessage = 'Network error occurred. Please check your connection and try again.';
-        } else if (error instanceof OpenAIAPIError) {
-          errorType = 'API Error';
-          errorMessage = error.message;
-          if (error.statusCode === 429) {
-            userMessage = 'Rate limit exceeded. Please wait a moment and try again.';
-          } else {
-            userMessage = 'OpenAI API error occurred. Please try again later.';
-          }
-        } else if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-
-        // Store error results as array too
+      // Store error results for all images
+      for (const labelImage of labelImages) {
         if (!verificationResults[labelImage.image_type]) {
           verificationResults[labelImage.image_type] = [];
         }

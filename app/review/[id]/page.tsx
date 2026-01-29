@@ -644,13 +644,6 @@ export default function ReviewPage() {
                 >
                   Reject
                 </Button>
-                <Button
-                  onClick={() => handleStatusUpdate('needs_review')}
-                  className="flex-1"
-                  variant="secondary"
-                >
-                  Flag for Review
-                </Button>
               </div>
             </div>
           </div>

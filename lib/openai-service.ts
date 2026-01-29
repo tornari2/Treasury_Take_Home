@@ -130,18 +130,24 @@ async function retryWithBackoff<T>(
 }
 
 /**
- * Extract label data from an image using GPT-4o vision
+ * Extract label data from multiple images using GPT-4o vision
+ * Processes all images together to extract all fields across all images
  */
 export async function extractLabelData(
-  imageBuffer: Buffer,
-  mimeType: string,
+  images: Array<{ imageBuffer: Buffer; mimeType: string }>,
   beverageType: 'spirits' | 'wine' | 'beer'
 ): Promise<{ extractedData: ExtractedData; confidence: number; processingTimeMs: number }> {
   const startTime = Date.now();
 
-  // Convert buffer to base64
-  const base64Image = imageBuffer.toString('base64');
-  const dataUrl = `data:${mimeType};base64,${base64Image}`;
+  if (images.length === 0) {
+    throw new OpenAIAPIError('At least one image is required');
+  }
+
+  // Convert all buffers to base64 data URLs
+  const imageDataUrls = images.map((img) => {
+    const base64Image = img.imageBuffer.toString('base64');
+    return `data:${img.mimeType};base64,${base64Image}`;
+  });
 
   // Define fields to extract based on beverage type
   const fieldDefinitions: Record<string, string> = {
@@ -172,9 +178,32 @@ export async function extractLabelData(
     .map(([key, desc]) => `- ${key}: ${desc}`)
     .join('\n');
 
+  // Calculate timeout based on number of images (30 seconds per image, max 2 minutes)
+  const timeoutMs = Math.min(TIMEOUT_MS * images.length, 120000);
+
   return retryWithBackoff(async () => {
     try {
       const client = getOpenAIClient();
+
+      // Build content array with text prompt and all images
+      const content: Array<
+        { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
+      > = [
+        {
+          type: 'text',
+          text: `Extract all label information from these ${images.length} label image(s) (front, back, neck, side, etc.). Look for all fields across ALL images - information may be spread across different label panels. Pay special attention to the health warning - extract it exactly as shown on the label, preserving the capitalization and formatting as it appears.`,
+        },
+      ];
+
+      // Add all images to the content array
+      for (const dataUrl of imageDataUrls) {
+        content.push({
+          type: 'image_url',
+          image_url: {
+            url: dataUrl,
+          },
+        });
+      }
 
       // Race between API call and timeout
       const apiCall = client.chat.completions.create({
@@ -182,7 +211,7 @@ export async function extractLabelData(
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label image and return them as JSON with confidence scores (0-1) for each field. If a field is not found, omit it from the response. For the health_warning field, extract the EXACT text as it appears on the label.
+            content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label images and return them as JSON with confidence scores (0-1) for each field. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response. For the health_warning field, extract the EXACT text as it appears on the label.
 
 Fields to extract:
 ${fieldsList}
@@ -196,25 +225,14 @@ Return JSON in this format:
           },
           {
             role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extract all label information from this image. Pay special attention to the health warning - extract it exactly as shown on the label, preserving the capitalization and formatting as it appears.',
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: dataUrl,
-                },
-              },
-            ],
+            content,
           },
         ],
         response_format: { type: 'json_object' },
         max_tokens: 2000,
       });
 
-      const response = await Promise.race([apiCall, createTimeoutPromise(TIMEOUT_MS)]);
+      const response = await Promise.race([apiCall, createTimeoutPromise(timeoutMs)]);
 
       const content = response.choices[0]?.message?.content;
       if (!content) {

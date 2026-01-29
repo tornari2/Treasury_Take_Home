@@ -348,7 +348,6 @@ export default function Dashboard() {
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="needs_review">Needs Review</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
@@ -382,8 +381,12 @@ export default function Dashboard() {
                 </TableRow>
               ) : (
                 applications.map((app) => (
-                  <TableRow key={app.id} className={selectedApps.has(app.id) ? 'bg-blue-50' : ''}>
-                    <TableCell>
+                  <TableRow
+                    key={app.id}
+                    className={`cursor-pointer ${selectedApps.has(app.id) ? 'bg-blue-50' : ''}`}
+                    onClick={() => handleSelectApp(app.id)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedApps.has(app.id)}
                         onCheckedChange={() => handleSelectApp(app.id)}

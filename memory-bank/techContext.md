@@ -155,9 +155,12 @@ npx tsx scripts/create-test-user.ts # Create test user
 ### API Constraints
 
 - **OpenAI rate limits:** 10 concurrent requests maximum (batch processing)
-- **OpenAI costs:** ~$0.01 per application (2 images × GPT-4o-mini)
+- **OpenAI costs:** ~$0.01 per application (2 images × GPT-4o)
 - **Network latency:** Railway → OpenAI typically 200-500ms
-- **Timeout:** 10 seconds per OpenAI call (retry once on timeout)
+- **Timeout:** 30 seconds per OpenAI call with explicit timeout handling
+- **Retry logic:** Automatic retry with exponential backoff (max 2 retries for transient failures)
+- **Error handling:** Custom error types for API key, timeout, network, and API errors
+- **API key validation:** Validates key presence and format before processing
 
 ### Security Requirements (Prototype)
 
@@ -223,8 +226,10 @@ npx tsx scripts/create-test-user.ts # Create test user
 
 ### External Services
 
-- **OpenAI API:** GPT-4o-mini vision model
+- **OpenAI API:** GPT-4o vision model
   - Endpoint: `https://api.openai.com/v1/chat/completions`
+  - Error handling: Custom error types, timeout handling, retry logic
+  - API key validation before processing
   - Model: `gpt-4o-mini` (vision-capable)
   - Cost: ~$0.005 per image
 - **Railway:** Deployment platform (to be configured)

@@ -344,6 +344,47 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
   - Net contents shows beverage-specific expected formats
   - Added `not_applicable` type support in verification results
 
+### Error Handling & Resilience ✅ (January 29, 2025)
+
+- **OpenAI API Error Handling:**
+  - Custom error types for different failure scenarios
+  - API key validation before processing
+  - 30-second timeout per image
+  - Retry logic with exponential backoff
+  - User-friendly error messages
+
+- **Re-verification Status Reset:**
+  - Status automatically resets to "pending" when re-verifying
+  - Ensures fresh verification regardless of previous status
+
+### UX Enhancements ✅ (January 29, 2025)
+
+- **Label Image Viewer:**
+  - Click-and-drag panning
+  - Mouse wheel zoom centered at cursor
+  - Less sensitive zoom controls
+  - Reset button for zoom/pan
+
+- **Dashboard:**
+  - Action buttons always visible (disabled when no selection)
+  - Count shown only for 2+ applications
+  - Removed "Exit Batch" button
+
+- **Batch Flow:**
+  - Automatic redirect after completing batch (no popup)
+
+### Validation Improvements ✅ (January 29, 2025)
+
+- **Brand Name:**
+  - Case-only differences treated as MATCH
+  - Only formatting differences result in SOFT_MISMATCH
+
+- **Extraction Prompts:**
+  - TTB expert framing added
+  - Label anatomy sections
+  - Detailed extraction rules
+  - Better field guidance
+
 ---
 
-_Last Updated: January 29, 2025 (Dashboard UI improvements: Brand Name column, sequential batch navigation, action buttons; Validation enhancements: health warning capitalization fix, producer name case matching, improved field not found display; AI model update: GPT-4o-mini → GPT-4o). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (Error handling improvements: comprehensive OpenAI API error handling with timeouts, retries, and user-friendly messages; UX enhancements: image viewer pan/zoom, dashboard improvements, batch flow improvements; Validation improvements: brand name case handling, enhanced extraction prompts). Ready for production deployment and testing._

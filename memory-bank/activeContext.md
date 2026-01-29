@@ -8,6 +8,65 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 **Primary Goal:** TTB Label Verification System prototype - **COMPLETE** ✅  
 **Current Sprint:** Code quality improvements, testing, and deployment preparation
 
+## Recent Changes (January 29, 2025 - Latest)
+
+### Error Handling & Resilience ✅ (Latest)
+
+- **Comprehensive OpenAI API Error Handling:**
+  - Custom error types: `OpenAIAPIKeyError`, `OpenAITimeoutError`, `OpenAINetworkError`, `OpenAIAPIError`
+  - API key validation before processing (checks presence and format)
+  - 30-second timeout per image with explicit timeout handling
+  - Retry logic with exponential backoff (max 2 retries for transient failures)
+  - User-friendly error messages distinguishing error types
+  - Graceful degradation: single image errors don't block batch processing
+
+- **Frontend Error Display:**
+  - Specific error messages instead of generic alerts
+  - Network error detection and appropriate messaging
+  - Error details from API responses displayed to users
+  - Better error handling in both single and batch verification flows
+
+- **Re-verification Status Reset:**
+  - Application status automatically resets to "pending" when re-verifying
+  - Ensures fresh start for re-verification regardless of previous status
+  - Status then updated based on new verification results
+
+### UX Enhancements ✅ (Latest)
+
+- **Label Image Viewer Improvements:**
+  - Click-and-drag panning for zoomed images
+  - Mouse wheel zoom centered at cursor position
+  - Less sensitive zoom (5% increments instead of 10%)
+  - Reset button appears when image is zoomed/panned
+  - Auto-reset pan when switching between image types
+
+- **Dashboard Improvements:**
+  - Action buttons (Review, Verify, Delete) always visible
+  - Buttons disabled (greyed out) when no applications selected
+  - Count shown on buttons only when 2+ applications selected
+  - Removed "Exit Batch" button (kept only "Return to Dashboard")
+
+- **Batch Review Flow:**
+  - Automatic redirect to dashboard after completing last application in batch
+  - No confirmation popup - seamless flow
+
+### Validation Improvements ✅ (Latest)
+
+- **Brand Name Validation:**
+  - Case-only differences (e.g., "CROOKED HAMMOCK BREWERY" vs "Crooked Hammock Brewery") treated as MATCH
+  - Only formatting differences (punctuation, whitespace) result in SOFT_MISMATCH
+  - Added `differsOnlyByCase()` utility function
+
+- **Extraction Prompt Enhancements:**
+  - Added TTB expert framing to all prompts (beer, spirits, wine)
+  - Label anatomy sections explaining where fields appear on labels
+  - Detailed extraction rules with format examples
+  - Better guidance for alcohol content, net contents, and other fields
+  - Wine prompt includes front/back label structure guidance
+
+- **Field Label Updates:**
+  - "Producer Name Address" renamed to "Producer Name & Address" for consistency
+
 ## Recent Changes (January 29, 2025)
 
 ### Dashboard UI Improvements ✅ (Latest)

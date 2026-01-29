@@ -323,4 +323,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents, standards of fill, alcohol content rules for beer/wine, producer address city/state only, domestic UI display). Ready for production deployment and testing._
+_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents, standards of fill, alcohol content rules for beer/wine, producer address city/state only, producer name/address phrase requirements for spirits/wine/imported beer, domestic UI display). Ready for production deployment and testing._

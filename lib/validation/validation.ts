@@ -87,24 +87,27 @@ export function validateBeerLabel(
   fieldResults.push(validateBrandName(application, extraction.brandName));
   fieldResults.push(validateFancifulName(application, extraction.fancifulName));
   fieldResults.push(validateClassType(extraction.classType));
-  fieldResults.push(validateNetContents(extraction.netContents));
+  fieldResults.push(validateNetContents(extraction.netContents, BeverageType.BEER));
   fieldResults.push(
     validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
   fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
-  fieldResults.push(validateAlcoholContent(extraction.alcoholContent)); // Surfaced if missing, but doesn't fail
+  fieldResults.push(
+    validateAlcoholContent(extraction.alcoholContent, BeverageType.BEER, {
+      classType: extraction.classType,
+      brandName: extraction.brandName,
+      fancifulName: extraction.fancifulName,
+    })
+  );
 
   // Surfaced fields
   const surfacedFields = extractBeerSurfacedFields(extraction);
 
-  // For beer, alcohol content NOT_FOUND doesn't cause overall failure
-  const nonFailingFields = ['alcoholContent'];
-
   return {
     applicationId: application.id,
     beverageType: BeverageType.BEER,
-    overallStatus: calculateOverallStatus(fieldResults, nonFailingFields),
+    overallStatus: calculateOverallStatus(fieldResults),
     fieldResults,
     surfacedFields,
     timestamp: new Date().toISOString(),
@@ -127,8 +130,8 @@ export function validateSpiritsLabel(
   fieldResults.push(validateBrandName(application, extraction.brandName));
   fieldResults.push(validateFancifulName(application, extraction.fancifulName));
   fieldResults.push(validateClassType(extraction.classType));
-  fieldResults.push(validateAlcoholContent(extraction.alcoholContent));
-  fieldResults.push(validateNetContents(extraction.netContents));
+  fieldResults.push(validateAlcoholContent(extraction.alcoholContent, BeverageType.SPIRITS));
+  fieldResults.push(validateNetContents(extraction.netContents, BeverageType.SPIRITS));
   fieldResults.push(
     validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
   );
@@ -165,8 +168,12 @@ export function validateWineLabel(
   fieldResults.push(validateBrandName(application, extraction.brandName));
   fieldResults.push(validateFancifulName(application, extraction.fancifulName));
   fieldResults.push(validateWineVarietal(application, extraction.classType)); // Cross-check varietal
-  fieldResults.push(validateAlcoholContent(extraction.alcoholContent));
-  fieldResults.push(validateNetContents(extraction.netContents));
+  fieldResults.push(
+    validateAlcoholContent(extraction.alcoholContent, BeverageType.WINE, {
+      classType: extraction.classType,
+    })
+  );
+  fieldResults.push(validateNetContents(extraction.netContents, BeverageType.WINE));
   fieldResults.push(
     validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
   );

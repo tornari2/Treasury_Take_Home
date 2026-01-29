@@ -95,7 +95,7 @@ export interface ExtractedData {
 export interface VerificationResult {
   [key: string]: {
     match: boolean;
-    type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found';
+    type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found' | 'not_applicable';
     expected?: string;
     extracted?: string;
   };

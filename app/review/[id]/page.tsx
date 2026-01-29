@@ -155,6 +155,8 @@ export default function ReviewPage() {
       case 'hard_mismatch':
       case 'not_found':
         return 'destructive';
+      case 'not_applicable':
+        return 'outline';
       default:
         return 'outline';
     }
@@ -170,6 +172,8 @@ export default function ReviewPage() {
       case 'hard_mismatch':
       case 'not_found':
         return <XCircle className="h-5 w-5 text-red-600" />;
+      case 'not_applicable':
+        return <Info className="h-5 w-5 text-gray-500" />;
       default:
         return null;
     }
@@ -298,20 +302,28 @@ export default function ReviewPage() {
                         <div className="font-semibold capitalize">
                           {fieldName.replace(/_/g, ' ')}
                         </div>
-                        {result.expected && (
-                          <div className="text-sm mt-1">
-                            <span className="font-medium">Expected:</span> {result.expected}
+                        {result.type === 'not_applicable' ? (
+                          <div className="text-sm mt-1 text-muted-foreground">
+                            {result.expected || 'N/A - Not applicable'}
                           </div>
-                        )}
-                        {result.extracted && (
-                          <div className="text-sm">
-                            <span className="font-medium">Extracted:</span> {result.extracted}
-                          </div>
-                        )}
-                        {result.type === 'not_found' && (
-                          <div className="text-sm text-destructive mt-1">
-                            Field not found on label
-                          </div>
+                        ) : (
+                          <>
+                            {result.expected && (
+                              <div className="text-sm mt-1">
+                                <span className="font-medium">Expected:</span> {result.expected}
+                              </div>
+                            )}
+                            {result.extracted && (
+                              <div className="text-sm">
+                                <span className="font-medium">Extracted:</span> {result.extracted}
+                              </div>
+                            )}
+                            {result.type === 'not_found' && (
+                              <div className="text-sm text-destructive mt-1">
+                                Field not found on label
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>

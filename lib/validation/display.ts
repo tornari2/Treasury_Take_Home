@@ -46,7 +46,7 @@ export const REQUIRED_FIELDS = {
       'producerNameAddress',
       'healthWarning',
       'countryOfOrigin', // Non-US origins only
-      'alcoholContent', // NOT_FOUND if missing but doesn't fail validation
+      'alcoholContent', // REQUIRED
     ],
     surfaced: ['colorAdditiveDisclosure', 'sulfiteDeclaration', 'aspartameDeclaration'],
   },

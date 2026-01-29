@@ -112,7 +112,7 @@ function convertToVerificationResult(validationResult: {
     const fieldName = mapFieldName(fieldResult.field);
 
     // Map MatchStatus to legacy type
-    let type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found';
+    let type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found' | 'not_applicable';
     switch (fieldResult.status) {
       case 'match':
         type = 'match';
@@ -124,12 +124,15 @@ function convertToVerificationResult(validationResult: {
       case 'not_found':
         type = fieldResult.status === 'not_found' ? 'not_found' : 'hard_mismatch';
         break;
+      case 'not_applicable':
+        type = 'not_applicable';
+        break;
       default:
-        type = 'match'; // NOT_APPLICABLE and SURFACED treated as match for legacy compatibility
+        type = 'match'; // SURFACED treated as match for legacy compatibility
     }
 
     result[fieldName] = {
-      match: type === 'match',
+      match: type === 'match' || type === 'not_applicable',
       type,
       expected: fieldResult.expected || undefined,
       extracted: fieldResult.extracted || undefined,

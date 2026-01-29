@@ -6,13 +6,13 @@ _Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and con
 
 ### Core Stack
 
-| Layer         | Technology         | Version              | Purpose                     |
-| ------------- | ------------------ | -------------------- | --------------------------- |
-| **Runtime**   | Node.js            | 20+                  | JavaScript runtime          |
-| **Framework** | Next.js            | 14.2.5 (App Router)  | Full-stack React framework  |
-| **Language**  | TypeScript         | 5.5.4                | Type-safe JavaScript        |
-| **Database**  | SQLite             | 3.x (better-sqlite3) | Persistent storage + BLOB   |
-| **AI**        | OpenAI GPT-4o-mini | Latest               | Vision model for extraction |
+| Layer         | Technology    | Version              | Purpose                     |
+| ------------- | ------------- | -------------------- | --------------------------- |
+| **Runtime**   | Node.js       | 20+                  | JavaScript runtime          |
+| **Framework** | Next.js       | 14.2.5 (App Router)  | Full-stack React framework  |
+| **Language**  | TypeScript    | 5.5.4                | Type-safe JavaScript        |
+| **Database**  | SQLite        | 3.x (better-sqlite3) | Persistent storage + BLOB   |
+| **AI**        | OpenAI GPT-4o | Latest               | Vision model for extraction |
 
 ### Frontend
 
@@ -452,4 +452,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 28, 2025 (Validation UX improvements: "Field not found" messages for missing fields, U.S. prefix support for net contents validation, business entity suffix normalization for producer name matching, health warning remainder bold validation rule, dashboard TTB_ID display and delete functionality, verification redirect to review page, review page title removal, Dialog component installed, authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._
+_Last Updated: January 29, 2025 (Dashboard UI improvements: Brand Name column, sequential batch navigation with Previous/Next buttons, Review/Verify/Delete action buttons below queue; Validation enhancements: health warning capitalization fix (only "GOVERNMENT WARNING:" all caps), producer name case-only differences treated as MATCH, improved field not found display showing actual expected values; AI model update: GPT-4o-mini → GPT-4o for vision tasks). Update when dependencies, tools, or constraints change._

@@ -8,9 +8,61 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 **Primary Goal:** TTB Label Verification System prototype - **COMPLETE** ✅  
 **Current Sprint:** Code quality improvements, testing, and deployment preparation
 
+## Recent Changes (January 29, 2025)
+
+### Dashboard UI Improvements ✅ (Latest)
+
+- **Table Column Updates:**
+  - Replaced "Beverage Type" column with "Brand Name" column
+  - Brand name displays from `application_data.brandName` or `expected_label_data.brand_name`
+  - Removed "Actions" column from table
+  - Removed individual "Verify" and "Delete" buttons from each row
+
+- **Action Buttons:**
+  - Added three action buttons below the application queue table: Review, Verify, Delete
+  - Buttons appear when one or more applications are selected
+  - Review: Navigates to first selected application with sequential navigation enabled
+  - Verify: Batch verifies selected applications and navigates through them sequentially
+  - Delete: Deletes selected applications with confirmation dialog
+
+- **Sequential Batch Review Navigation:**
+  - After batch verification or selecting applications for review, users can navigate sequentially
+  - Previous/Next buttons in review page header
+  - Position indicator shows "Application X of Y"
+  - Exit Batch button to return to dashboard
+  - Auto-navigation to next application after status update (approve/reject/flag)
+  - Batch context persists in sessionStorage across page refreshes
+  - Navigation handles missing/deleted applications gracefully
+
+### Validation Enhancements ✅ (Latest)
+
+- **Health Warning Validation Fix:**
+  - Updated validation: Only "GOVERNMENT WARNING:" must be in ALL CAPS
+  - Remainder of warning can have normal capitalization (e.g., "According to the Surgeon General...")
+  - Updated `REQUIRED_HEALTH_WARNING` constant to reflect correct format
+  - Comparison function normalizes remainder case-insensitively while preserving "GOVERNMENT WARNING:" case
+
+- **Producer Name Validation:**
+  - Case-only differences (e.g., "LAKE HOUSTON BREWERY" vs "LAKE HOUSTON Brewery") now treated as MATCH
+  - Only non-case formatting differences (punctuation, whitespace) result in SOFT_MISMATCH
+  - Entity suffix differences still result in SOFT_MISMATCH
+
+- **Field Not Found Display Improvements:**
+  - All cross-checked fields now show actual expected values instead of "Field not found"
+  - When field exists in application but not found by AI:
+    - Expected: [actual value from application]
+    - Extracted: "Field not found"
+  - Updated fields: brandName, fancifulName, producerNameAddress, healthWarning, appellation, vintageDate, classType (wine)
+
+### AI Model Update ✅ (Latest)
+
+- **Vision Model:** Updated from GPT-4o-mini to GPT-4o for label verification
+- Updated in `lib/openai-service.ts`
+- Improved accuracy for complex label extraction tasks
+
 ## Recent Changes (January 28, 2025)
 
-### Validation UX Improvements ✅ (Latest)
+### Validation UX Improvements ✅
 
 - **Improved Error Messages:**
   - All validation functions now show "Field not found" instead of format strings when fields are missing
@@ -368,4 +420,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 28, 2025 (Validation UX improvements: "Field not found" messages, U.S. prefix support for net contents, business entity suffix normalization for producer names, health warning remainder bold validation, dashboard TTB_ID display and delete functionality, verification redirect to review page, review page title removal). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (Dashboard UI improvements: Brand Name column, sequential batch navigation, action buttons; Validation enhancements: health warning capitalization fix, producer name case matching, improved field not found display; AI model update: GPT-4o-mini → GPT-4o). Ready for production deployment and testing._

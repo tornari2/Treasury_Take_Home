@@ -1,5 +1,9 @@
 import OpenAI from 'openai';
 import type { ExtractedData } from '@/types/database';
+import {
+  getBeverageSpecificInstructions,
+  getClassTypeFieldDescription,
+} from '@/lib/validation/prompts';
 
 // Custom error types for better error handling
 export class OpenAIAPIKeyError extends Error {
@@ -136,7 +140,7 @@ async function retryWithBackoff<T>(
 export async function extractLabelData(
   images: Array<{ imageBuffer: Buffer; mimeType: string }>,
   beverageType: 'spirits' | 'wine' | 'beer'
-): Promise<{ extractedData: ExtractedData; confidence: number; processingTimeMs: number }> {
+): Promise<{ extractedData: ExtractedData; processingTimeMs: number }> {
   const startTime = Date.now();
 
   if (images.length === 0) {
@@ -152,13 +156,14 @@ export async function extractLabelData(
   // Define fields to extract based on beverage type
   const fieldDefinitions: Record<string, string> = {
     brand_name: 'Brand name',
-    class_type: 'Class/type designation',
-    alcohol_content: 'Alcohol content percentage',
+    class_type: getClassTypeFieldDescription(beverageType),
+    alcohol_content:
+      'Alcohol content - CRITICAL: Extract COMPLETE text including any prefix (e.g., "ALC.", "ALCOHOL", "ABV") if present. Example: "ALC. 12.5% BY VOL." not "12.5% BY VOL."',
     net_contents: 'Net contents (volume)',
     producer_name: 'Producer name',
     producer_address: 'Producer address',
     producer_name_phrase:
-      'Phrase immediately preceding producer name/address (e.g., "Bottled By", "Imported By", "Imported by", or null if no such phrase)',
+      'Phrase immediately preceding producer name/address (e.g., "Bottled By", "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", or null if no such phrase). For imported beverages, extract phrases like "Imported By" or "DISTRIBUTED AND IMPORTED BY" if present.',
     health_warning: 'Government health warning statement (must be exact)',
   };
 
@@ -177,6 +182,9 @@ export async function extractLabelData(
   const fieldsList = Object.entries(fieldDefinitions)
     .map(([key, desc]) => `- ${key}: ${desc}`)
     .join('\n');
+
+  // Get beverage-specific instructions
+  const beverageSpecificInstructions = getBeverageSpecificInstructions(beverageType);
 
   // Calculate timeout based on number of images (30 seconds per image, max 2 minutes)
   const timeoutMs = Math.min(TIMEOUT_MS * images.length, 120000);
@@ -211,7 +219,7 @@ export async function extractLabelData(
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label images and return them as JSON with confidence scores (0-1) for each field. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response.
+            content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label images and return them as JSON. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response.
 
 IMPORTANT - Preserve exact capitalization for ALL fields:
 - CRITICAL: For EVERY field (brand_name, fanciful_name, class_type, producer_name, producer_address, appellation_of_origin, country_of_origin, etc.), preserve the exact capitalization as it appears on the label
@@ -221,13 +229,32 @@ IMPORTANT - Preserve exact capitalization for ALL fields:
 
 For the health_warning field, extract the EXACT text as it appears on the label.
 
+CRITICAL FOR ALCOHOL_CONTENT FIELD - EXTRACT COMPLETE TEXT INCLUDING PREFIXES:
+- You MUST extract the COMPLETE text exactly as shown on the label, including ALL prefix words that appear before the percentage
+- Common prefixes include: "ALC.", "ALCOHOL", "ABV", "Alc.", "Alcohol", etc.
+- DO NOT extract just the percentage and suffix - you MUST include the prefix if it appears on the label
+- Examples of CORRECT extraction:
+  * If label shows "ALC. 12.5% BY VOL." → extract "ALC. 12.5% BY VOL." (NOT "12.5% BY VOL.")
+  * If label shows "ALCOHOL 14% BY VOLUME" → extract "ALCOHOL 14% BY VOLUME" (NOT "14% BY VOLUME")
+  * If label shows "12.5% Alc/Vol" → extract "12.5% Alc/Vol" (complete as shown)
+  * If label shows "Alc. 13.5% by Vol." → extract "Alc. 13.5% by Vol." (NOT "13.5% by Vol.")
+- This is CRITICAL - omitting the prefix will cause validation failures
+
+CRITICAL FOR IMPORTED BEVERAGES - PRODUCER NAME/ADDRESS:
+- If the label indicates the beverage is imported (look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or country of origin indicating foreign production), you MUST extract the US importer/distributor name and address, NOT the foreign producer.
+- The importer/distributor name/address appears IMMEDIATELY after phrases like "Imported By" or "DISTRIBUTED AND IMPORTED BY".
+- The foreign producer information may also appear on the label, but you should IGNORE it and extract only the US importer/distributor.
+- Example: If you see "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA", extract "Geo US Trading, Inc, Lombard, IL" as producer_name/producer_address, NOT "LTD WINIVERIA..." (which is the foreign producer).
+
+${beverageSpecificInstructions}
+
 Fields to extract:
 ${fieldsList}
 
 Return JSON in this format:
 {
-  "brand_name": { "value": "...", "confidence": 0.95 },
-  "alcohol_content": { "value": "...", "confidence": 0.92 },
+  "brand_name": "...",
+  "alcohol_content": "...",
   ...
 }`,
           },
@@ -260,24 +287,26 @@ Return JSON in this format:
 
       // Convert response to ExtractedData format
       for (const [key, value] of Object.entries(parsed)) {
-        if (value && typeof value === 'object' && 'value' in value && 'confidence' in value) {
+        // Handle both old format (with confidence) and new format (direct values)
+        if (value && typeof value === 'object' && 'value' in value) {
+          // Old format with confidence - extract just the value
           extractedData[key] = {
             value: String(value.value),
-            confidence: Number(value.confidence),
+            confidence: 0, // Default confidence, not used
+          };
+        } else if (value !== null && value !== undefined) {
+          // New format - direct value
+          extractedData[key] = {
+            value: String(value),
+            confidence: 0, // Default confidence, not used
           };
         }
       }
-
-      // Calculate overall confidence (average of all field confidences)
-      const confidences = Object.values(extractedData).map((f) => f.confidence);
-      const overallConfidence =
-        confidences.length > 0 ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0;
 
       const processingTimeMs = Date.now() - startTime;
 
       return {
         extractedData,
-        confidence: overallConfidence,
         processingTimeMs,
       };
     } catch (error) {

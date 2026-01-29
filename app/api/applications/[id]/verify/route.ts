@@ -77,7 +77,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }));
 
       // Extract data from all images using OpenAI (single API call)
-      const { extractedData, confidence, processingTimeMs } = await extractLabelData(
+      const { extractedData, processingTimeMs } = await extractLabelData(
         images,
         application.beverage_type
       );
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           labelImage.id,
           JSON.stringify(extractedData),
           JSON.stringify(verificationResult),
-          confidence,
+          null, // confidence_score no longer used
           processingTimeMs
         );
 
@@ -105,7 +105,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         verificationResults[labelImage.image_type].push({
           image_id: labelImage.id,
           verification_result: verificationResult,
-          confidence,
           processing_time_ms: processingTimeMs,
         });
       }

@@ -61,8 +61,8 @@ describe('Verification Utilities', () => {
       };
 
       const extracted: ExtractedData = {
-        brand_name: { value: 'Old Tom', confidence: 0.98 },
-        alcohol_content: { value: '45%', confidence: 0.95 },
+        brand_name: { value: 'Old Tom', confidence: 0 },
+        alcohol_content: { value: '45%', confidence: 0 },
       };
 
       const result = verifyApplication(applicationData, extracted);

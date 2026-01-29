@@ -474,13 +474,6 @@ export default function ReviewPage() {
                     <div className="mb-2 flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium capitalize">{img.image_type}</span>
-                        <span className="text-sm text-gray-600">
-                          (Confidence:{' '}
-                          {img.confidence_score
-                            ? `${(img.confidence_score * 100).toFixed(1)}%`
-                            : 'N/A'}
-                          )
-                        </span>
                       </div>
                       <div className="flex gap-2 items-center">
                         <Button
@@ -615,15 +608,6 @@ export default function ReviewPage() {
             )}
 
             <div className="mt-6 space-y-4">
-              <Alert className="border-blue-200 bg-blue-50">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-sm text-blue-900">
-                  <strong>Your Decision:</strong> Review the verification results above, but use
-                  your professional judgment. You can approve even if mismatches are flagged, or
-                  reject for reasons beyond what the system detected.
-                </AlertDescription>
-              </Alert>
-
               <div className="space-y-2">
                 <Label htmlFor="review-notes">
                   Review Notes

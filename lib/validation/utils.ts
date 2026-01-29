@@ -48,8 +48,17 @@ function normalizeBusinessEntitySuffix(str: string): string {
 }
 
 /**
+ * Normalize string removing punctuation for comparison
+ * Removes common punctuation marks but preserves structure
+ */
+function normalizePunctuation(str: string): string {
+  return str.replace(/[,;:]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
  * Check if two strings match (case-insensitive, normalized)
  * For producer names, also normalizes business entity suffixes
+ * Handles punctuation differences (e.g., "Inc," vs "Inc")
  */
 export function stringsMatch(
   a: string | null | undefined,
@@ -66,7 +75,16 @@ export function stringsMatch(
     return aWithoutSuffix === bWithoutSuffix;
   }
 
-  return normalizedA === normalizedB;
+  // Check exact normalized match first
+  if (normalizedA === normalizedB) {
+    return true;
+  }
+
+  // If exact match fails, try normalizing punctuation differences
+  // This handles cases like "Geo US Trading, Inc" vs "Geo US Trading Inc"
+  const aWithoutPunctuation = normalizePunctuation(normalizedA);
+  const bWithoutPunctuation = normalizePunctuation(normalizedB);
+  return aWithoutPunctuation === bWithoutPunctuation;
 }
 
 /**
@@ -82,8 +100,12 @@ export function producerNamesMatchIgnoringEntitySuffix(
   const normalizedExpected = normalizeString(expected);
   const normalizedExtracted = normalizeString(extracted);
 
-  const expectedWithoutSuffix = normalizeBusinessEntitySuffix(normalizedExpected);
-  const extractedWithoutSuffix = normalizeBusinessEntitySuffix(normalizedExtracted);
+  // Normalize punctuation before removing suffixes to handle cases like "Geo US Trading, Inc" vs "Geo US Trading Inc"
+  const expectedWithoutPunctuation = normalizePunctuation(normalizedExpected);
+  const extractedWithoutPunctuation = normalizePunctuation(normalizedExtracted);
+
+  const expectedWithoutSuffix = normalizeBusinessEntitySuffix(expectedWithoutPunctuation);
+  const extractedWithoutSuffix = normalizeBusinessEntitySuffix(extractedWithoutPunctuation);
 
   return expectedWithoutSuffix === extractedWithoutSuffix;
 }
@@ -173,6 +195,7 @@ export function healthWarningMatchesExact(extracted: string | null | undefined):
  * Normalize state name or abbreviation to a canonical form
  * State names and two-letter abbreviations are EQUIVALENT
  * Example: "ME" = "Maine" = "maine" = "MAINE"
+ * Handles zip codes after state (e.g., "IL 60148-1215" -> extracts "IL")
  * Returns the normalized lowercase state name (full name preferred)
  */
 export function normalizeState(state: string | null | undefined): string {
@@ -181,19 +204,24 @@ export function normalizeState(state: string | null | undefined): string {
   const normalized = normalizeString(state);
   if (!normalized) return '';
 
+  // Extract state part if zip code is present (e.g., "il 60148-1215" -> "il")
+  // Zip codes are typically 5 digits, optionally followed by dash and 4 digits
+  const statePart = normalized.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+  const stateToCheck = statePart || normalized;
+
   // Check if it's already a normalized state name
-  if (US_STATE_REVERSE_MAP[normalized]) {
-    return normalized; // Already a full state name
+  if (US_STATE_REVERSE_MAP[stateToCheck]) {
+    return stateToCheck; // Already a full state name
   }
 
   // Check if it's an abbreviation (case-insensitive)
-  const upperAbbr = normalized.toUpperCase();
+  const upperAbbr = stateToCheck.toUpperCase();
   if (US_STATE_MAP[upperAbbr]) {
     return US_STATE_MAP[upperAbbr]; // Convert abbreviation to full name
   }
 
   // Return normalized form (might be a partial match or unknown state)
-  return normalized;
+  return stateToCheck;
 }
 
 /**

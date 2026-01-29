@@ -309,3 +309,107 @@ export function getExtractionPrompt(beverageType: BeverageType): string {
       throw new Error(`Unknown beverage type: ${beverageType}`);
   }
 }
+
+/**
+ * Get beverage-specific extraction instructions for the generic prompt
+ * These are instructions that should be appended to the base extraction prompt
+ * Returns empty string if no beverage-specific instructions needed
+ */
+export function getBeverageSpecificInstructions(beverageType: 'spirits' | 'wine' | 'beer'): string {
+  switch (beverageType) {
+    case 'wine':
+      return `
+
+CRITICAL WINE-SPECIFIC RULES:
+- VARIETAL vs CLASS/TYPE: These are different things:
+  * Varietal: Grape variety name (e.g., "Khikhvi", "Chardonnay", "Cabernet Sauvignon", "Rkatsiteli", "Saperavi", "Pinot Noir")
+  * Class/Type: Generic wine category (e.g., "White Wine", "Red Wine", "Dry Wine", "White Dry Wine")
+- CRITICAL PRIORITY RULE FOR class_type FIELD: If BOTH a varietal (grape name) AND a class/type (e.g., "White Wine", "Red Wine", "White Dry Wine") appear on the label, you MUST extract the VARIETAL, NOT the class/type. Varietals ALWAYS take precedence over generic class/type designations.
+- Examples:
+  * If label shows "Khikhvi" and "White Dry Wine", extract "Khikhvi" as class_type (NOT "White Dry Wine")
+  * If label shows "Chardonnay" and "White Wine", extract "Chardonnay" as class_type (NOT "White Wine")
+  * If label shows "Cabernet Sauvignon" and "Red Wine", extract "Cabernet Sauvignon" as class_type (NOT "Red Wine")
+- Only extract the class/type if NO varietal is present on the label.
+- This is a CRITICAL requirement - failure to follow this rule will cause validation errors.
+
+- ALCOHOL CONTENT: Wines typically 5.5-24% depending on type
+  * Table wine: 11-14.5%
+  * High alcohol: 14.5-16%
+  * Fortified (Port, Sherry): 17-24%
+  * Read carefully - 13.5 vs 14.5 matters
+
+- PRODUCER NAME/ADDRESS: CRITICAL FOR IMPORTED WINES:
+  * Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or similar variations
+  * Extract the name/address that IMMEDIATELY follows these phrases - this is the US importer/distributor, NOT the foreign producer
+  * Example: If label shows "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA", extract "Geo US Trading, Inc, Lombard, IL" (the US importer), NOT "LTD WINIVERIA..." (the foreign producer)
+  * For domestic wines, extract the producer name/address (may follow "Bottled By", "Produced By", etc.)
+
+- SULFITE DECLARATION: Required on most wines - look carefully on back label or bottom of front label`;
+
+    case 'beer':
+      return `
+
+CRITICAL BEER-SPECIFIC RULES:
+- ALCOHOL CONTENT: Look carefully at small text. Common formats:
+  * "X.X% ALC/VOL" or "X.X% ALC./VOL."
+  * "ALC. X.X% BY VOL." or "ALCOHOL X.X% BY VOLUME"
+  * "ABV X.X%" or "X.X% ABV"
+  * Read the number carefully - distinguish 5 from 6, 4 from 9, etc.
+
+- NET CONTENTS: Usually formatted as:
+  * "12 FL OZ" or "12 fl oz" or "12 FL. OZ."
+  * "355 mL" or "355ml"
+
+- PRODUCER NAME/ADDRESS: CRITICAL FOR IMPORTED BEERS:
+  * Look for phrases like "Imported by", "Imported By", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or similar variations
+  * Extract the name/address that IMMEDIATELY follows these phrases - this is the US importer/distributor, NOT the foreign producer
+  * Example: If label shows "DISTRIBUTED AND IMPORTED BY Company Name, City, State" followed by foreign producer info, extract "Company Name, City, State" (the US importer), NOT the foreign producer
+  * For domestic beers, extract the producer name/address (may follow "Brewed by", "Bottled by", etc.)
+
+- FANCIFUL NAME: Optional - many beers don't have one. Only extract if present.`;
+
+    case 'spirits':
+      return `
+
+CRITICAL SPIRITS-SPECIFIC RULES:
+- ALCOHOL CONTENT: Spirits are typically 35-50% ABV (70-100 proof)
+  * May show % only, proof only, or both
+  * Read numbers carefully: distinguish 40 vs 45, 80 vs 86, 90 vs 96
+  * Common misreads: 40↔45, 80↔86, 90↔96
+
+- CLASS/TYPE: Be specific - include full designation as shown
+  * "Bourbon" → extract as "Kentucky Straight Bourbon Whiskey" if that's what's shown
+  * "Scotch" → extract as "Single Malt Scotch Whisky" if that's what's shown
+
+- AGE STATEMENT: Only extract if explicitly stated with a specific age/duration
+  * "Aged 12 Years" ✓
+  * "Aged in Oak Barrels" ✗ (no age = null)
+
+- PRODUCER NAME/ADDRESS: CRITICAL FOR IMPORTED SPIRITS:
+  * Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or similar variations
+  * Extract the name/address that IMMEDIATELY follows these phrases - this is the US importer/distributor, NOT the foreign producer
+  * Example: If label shows "DISTRIBUTED AND IMPORTED BY Company Name, City, State" followed by foreign producer info, extract "Company Name, City, State" (the US importer), NOT the foreign producer
+  * For domestic spirits, extract the producer name/address (may follow "Bottled By", "Distilled By", etc.)
+
+- BRAND NAME is NOT the same as PRODUCER NAME (they are different fields)`;
+
+    default:
+      return '';
+  }
+}
+
+/**
+ * Get beverage-specific field description for class_type field
+ */
+export function getClassTypeFieldDescription(beverageType: 'spirits' | 'wine' | 'beer'): string {
+  switch (beverageType) {
+    case 'wine':
+      return 'Varietal (grape name like "Khikhvi", "Chardonnay") OR class/type (like "White Wine") - CRITICAL: If both varietal and class/type appear, extract the VARIETAL, not the class/type';
+    case 'beer':
+      return 'Beer style (e.g., "Ale", "Lager", "India Pale Ale", "Stout")';
+    case 'spirits':
+      return 'Spirit type designation (e.g., "Kentucky Straight Bourbon Whiskey", "Vodka", "Gin")';
+    default:
+      return 'Class/type designation';
+  }
+}

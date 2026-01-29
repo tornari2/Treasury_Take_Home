@@ -105,7 +105,7 @@ export const labelImageHelpers = {
     id: number,
     extractedData: string,
     verificationResult: string,
-    confidenceScore: number,
+    confidenceScore: number | null,
     processingTimeMs: number
   ) => {
     const stmt = db.prepare(`

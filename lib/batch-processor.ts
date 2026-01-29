@@ -111,7 +111,7 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
           }));
 
           // Extract data from all images using OpenAI (single API call)
-          const { extractedData, confidence, processingTimeMs } = await extractLabelData(
+          const { extractedData, processingTimeMs } = await extractLabelData(
             images,
             application.beverage_type
           );
@@ -126,7 +126,7 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
               labelImage.id,
               JSON.stringify(extractedData),
               JSON.stringify(verificationResult),
-              confidence,
+              null, // confidence_score no longer used
               processingTimeMs
             );
           }

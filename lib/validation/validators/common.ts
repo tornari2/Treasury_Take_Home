@@ -359,10 +359,11 @@ export function validateAlcoholContent(
         };
       }
       // If table/light wine, numerical statement is optional - this is OK
+      // Still show expected format for reference
       return {
         field: 'alcoholContent',
         status: MatchStatus.MATCH,
-        expected: null,
+        expected: expectedFormat + ' (optional for table/light wines)',
         extracted: null,
         rule: 'WINE RULE: For wines 7-14% ABV with "table wine" or "light wine" designation, numerical alcohol content statement is optional',
       };
@@ -477,10 +478,11 @@ export function validateAlcoholContent(
   }
 
   // If we get here, validation passed
+  // Return expected format so user knows what format is required (even when validation passes)
   return {
     field: 'alcoholContent',
     status: MatchStatus.MATCH,
-    expected: null,
+    expected: expectedFormat,
     extracted,
     rule: 'PRESENCE + FORMAT: Alcohol content present and properly formatted',
   };

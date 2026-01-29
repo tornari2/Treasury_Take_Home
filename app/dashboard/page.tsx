@@ -293,6 +293,20 @@ export default function Dashboard() {
     return appData?.brandName || appData?.brand_name || '—';
   };
 
+  const getProductType = (app: Application): string => {
+    // Capitalize first letter of beverage type
+    if (!app.beverage_type) return '—';
+    return app.beverage_type.charAt(0).toUpperCase() + app.beverage_type.slice(1);
+  };
+
+  const getProductSource = (app: Application): string => {
+    const appData = app.application_data || app.expected_label_data;
+    const originType = appData?.originType;
+    if (!originType) return '—';
+    // Capitalize first letter
+    return originType.charAt(0).toUpperCase() + originType.slice(1);
+  };
+
   const getStatusVariant = (
     status: string
   ): 'default' | 'secondary' | 'destructive' | 'outline' => {
@@ -370,6 +384,8 @@ export default function Dashboard() {
                 <TableHead>ID</TableHead>
                 <TableHead>Applicant</TableHead>
                 <TableHead>Brand Name</TableHead>
+                <TableHead>Product Type</TableHead>
+                <TableHead>Product Source</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
               </TableRow>
@@ -377,7 +393,7 @@ export default function Dashboard() {
             <TableBody>
               {applications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
                     No applications found
                   </TableCell>
                 </TableRow>
@@ -397,6 +413,8 @@ export default function Dashboard() {
                     <TableCell className="font-medium">{getTtbId(app)}</TableCell>
                     <TableCell>{app.applicant_name}</TableCell>
                     <TableCell>{getBrandName(app)}</TableCell>
+                    <TableCell>{getProductType(app)}</TableCell>
+                    <TableCell>{getProductSource(app)}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(app.status)}>
                         {getStatusDisplayText(app.status)}

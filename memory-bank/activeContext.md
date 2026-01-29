@@ -10,7 +10,66 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### UX and Extraction Accuracy Improvements ✅ (Latest - January 29, 2025)
+### UI/UX Improvements & Validation Refinements ✅ (Latest - January 29, 2025)
+
+- **Application Form Enhancements:**
+  - Removed vintage field from wine applications (no longer in use)
+  - Auto-assign image types based on upload order: 1st image = "front", 2nd = "back", 3rd = "side", 4th = "neck" (cycles)
+  - Hide fanciful name field when beverage type is wine (removed from wine validation)
+  - Updated beverage type labels: "Beer" → "Malt Beverage", "Spirits" → "Distilled Spirits"
+  - Clear fanciful name when switching to wine beverage type
+
+- **Review Page Improvements:**
+  - Display "Expected: None" when field is extracted but not expected (instead of omitting Expected line)
+  - Fixed field label capitalization: "apellation of origin" → "Appellation of Origin"
+  - Renamed field labels: "Class Type" → "Class/Type", "Producer Name Address" → "Producer Name & Address"
+  - For wines: renamed "Class/Type (or Varietal)" → "Varietal (or Class/Type)" to reflect varietal priority
+
+- **Validation Enhancements:**
+  - Removed fanciful name from wine validation (`lib/validation/validation.ts`) and extraction prompts
+  - Removed fanciful name from `WineExtractionResult` type
+  - Removed "needs_review" status: soft mismatches now stay as "pending" (removed from status determination, dashboard display, and API routes)
+  - Country of origin: show "Required (not cross-checked)" for imported beverages instead of null
+  - Updated country of origin validation to show clearer expected values for imported products
+  - Producer validation: enforce "Imported By" phrase detection for imported beverages (hard mismatch if missing)
+  - Wine varietal priority: validation expects varietal when application has varietal, extraction prioritizes varietal over class/type
+
+- **Extraction Prompt Improvements:**
+  - Strengthened alcohol content extraction: added explicit warnings to preserve "ALC." prefix
+  - Added varietal priority rule for wines: if both varietal and class/type appear, extract varietal
+  - Enhanced instructions for imported beverages: extract importer name/address (following "Imported By"), not producer
+  - Added examples: "Khikhvi", "Rkatsiteli", "Saperavi" to varietal examples
+  - Improved clarity across all beverage type prompts
+
+### Field Removal and Extraction Improvements ✅ (January 29, 2025)
+
+- **Vintage Date Field Removed:**
+  - Removed vintage date extraction from wine labels (no longer appearing in recent applications)
+  - Updated wine extraction prompt (`lib/validation/prompts.ts`) to remove all vintage-related instructions
+  - Removed vintage validation from wine label validation flow (`lib/validation/validation.ts`)
+  - Updated appellation validator to remove vintage date requirement check (`lib/validation/validators/wine.ts`)
+  - Updated verification converter to set `vintageDate: null` for wine (`lib/verification.ts`)
+  - Removed vintage from required fields display (`lib/validation/display.ts`)
+
+- **Loading Screen Flicker Fix:**
+  - Removed "Loading Application" flicker screen when switching between review screens in batch mode
+  - Updated review page (`app/review/[id]/page.tsx`) to initialize `loading` state to `false`
+  - Loading screen now only shows when not in batch mode and no application data is present
+  - Prevents unnecessary loading states during batch navigation
+
+- **Alcohol Content Extraction Enhancement:**
+  - Enhanced all extraction prompts (Beer, Spirits, Wine) to extract complete alcohol content text including prefix words
+  - Added explicit instructions to extract "ALCOHOL", "ALC.", or "ABV" prefixes when present on labels
+  - Updated JSON field descriptions for `alcoholContent` in all three prompts with examples
+  - Example: If label says "ALCOHOL 14% BY VOLUME", extract as "ALCOHOL 14% BY VOLUME" (not just "14% BY VOLUME")
+  - Addresses issue where prefix words were being omitted from extracted values
+
+- **Health Warning Normalization Fix:**
+  - Updated health warning normalization to handle optional Oxford comma variation
+  - "machinery, and" and "machinery and" now both match expected text
+  - Updated `normalizeHealthWarningForComparison()` in `lib/validation/utils.ts`
+
+### UX and Extraction Accuracy Improvements ✅ (January 29, 2025)
 
 - **Dashboard Row Selection:**
   - Application rows are now clickable - clicking anywhere on a row selects/deselects the checkbox
@@ -452,7 +511,7 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 ### Repository State
 
 - Branch: `main`
-- Latest Commit: `00e3720` - "feat: Add comprehensive testing, linting, and code quality tools"
+- Latest Commit: `18991f5` - "fix: improve alcohol content extraction and remove vintage field"
 - All code committed and pushed
 
 ### Project Status
@@ -523,4 +582,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (UX improvements: clickable rows, vertical image display, removed wheel zoom; Extraction accuracy: preserve ALL CAPS for all fields, support milliliters/millilitres; Validation: case-insensitive matching maintained). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (UI/UX improvements: removed vintage field, auto-assign image types, updated beverage labels, improved review page field display; Validation enhancements: removed fanciful name from wine, removed needs_review status, enhanced country of origin and producer validation for imports, wine varietal priority; Extraction improvements: strengthened alcohol content prefix preservation, varietal priority for wines, importer extraction for imported beverages). Ready for production deployment and testing._

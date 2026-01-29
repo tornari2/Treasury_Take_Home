@@ -392,6 +392,33 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
   - Detailed extraction rules
   - Better field guidance
 
+### UI/UX & Validation Refinements ✅ (January 29, 2025)
+
+- **Application Form Improvements:**
+  - Removed vintage field from wine applications (no longer in use)
+  - Auto-assign image types based on upload order (1st=front, 2nd=back, 3rd=side, 4th=neck, cycles)
+  - Hide fanciful name field for wine applications
+  - Updated beverage type labels: 'Beer' -> 'Malt Beverage', 'Spirits' -> 'Distilled Spirits'
+
+- **Review Page Enhancements:**
+  - Display 'Expected: None' when field is extracted but not expected
+  - Fixed field label capitalization (Appellation of Origin)
+  - Renamed 'Class Type' -> 'Class/Type' and 'Producer Name Address' -> 'Producer Name & Address'
+  - For wines: renamed 'Class/Type (or Varietal)' -> 'Varietal (or Class/Type)'
+
+- **Validation Improvements:**
+  - Removed fanciful name from wine validation and extraction
+  - Removed 'needs_review' status (soft mismatches now stay as 'pending')
+  - Country of origin: show 'Required (not cross-checked)' for imported beverages
+  - Producer validation: enforce 'Imported By' phrase detection for imported beverages
+  - Wine varietal priority: extract varietal over class/type when both present on label
+
+- **Extraction Prompt Enhancements:**
+  - Strengthened alcohol content extraction to preserve 'ALC.' prefix
+  - Added varietal priority rule for wines (varietal takes precedence over class/type)
+  - Enhanced instructions to extract importer name/address for imported beverages
+  - Improved clarity for all beverage types
+
 ---
 
-_Last Updated: January 29, 2025 (Error handling improvements: comprehensive OpenAI API error handling with timeouts, retries, and user-friendly messages; UX enhancements: image viewer pan/zoom, dashboard improvements, batch flow improvements; Validation improvements: brand name case handling, enhanced extraction prompts). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (UI/UX improvements: removed vintage field, auto-assign image types, updated beverage labels; Review page: improved field display and capitalization; Validation: removed needs_review status, enhanced country of origin and producer validation for imports, wine varietal priority; Extraction: strengthened alcohol content and varietal extraction). Ready for production deployment and testing._

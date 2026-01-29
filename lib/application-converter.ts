@@ -3,7 +3,7 @@
 // Converts between database Application format and ApplicationData format
 // ============================================================
 
-import { ApplicationData, BeverageType } from './validation';
+import { ApplicationData, BeverageType, OriginType } from './validation';
 import type { Application } from '@/types/database';
 
 /**
@@ -45,8 +45,8 @@ export function convertApplicationToApplicationData(
     return {
       id: String(application.id),
       beverageType: application.beverage_type as BeverageType,
-      originCode:
-        legacyData.origin_code || inferOriginCodeFromCountry(legacyData.country_of_origin || ''),
+      originType:
+        legacyData.originType || inferOriginTypeFromCountry(legacyData.country_of_origin || ''),
       brandName: legacyData.brand_name || '',
       fancifulName: legacyData.fanciful_name || null,
       producerName: legacyData.producer_name || '',
@@ -64,8 +64,9 @@ export function convertApplicationToApplicationData(
   // New format - ApplicationData stored directly
   return {
     id: String(application.id),
+    ttbId: appData.ttbId || null,
     beverageType: (appData.beverageType || application.beverage_type) as BeverageType,
-    originCode: appData.originCode || '00',
+    originType: (appData.originType || OriginType.DOMESTIC) as OriginType,
     brandName: appData.brandName || '',
     fancifulName: appData.fancifulName || null,
     producerName: appData.producerName || '',
@@ -78,33 +79,20 @@ export function convertApplicationToApplicationData(
 }
 
 /**
- * Infer origin code from country name (simple heuristic)
- * Returns '00' (US) if not found or if it's a US state/city
+ * Infer origin type from country name (simple heuristic)
+ * Returns 'domestic' for US, 'imported' otherwise
  */
-function inferOriginCodeFromCountry(countryName: string): string {
-  if (!countryName) return '00';
+function inferOriginTypeFromCountry(countryName: string): OriginType {
+  if (!countryName) return OriginType.DOMESTIC;
 
   const normalized = countryName.toLowerCase().trim();
 
-  // Check if it's a US state or city (default to US)
+  // Check if it's a US state or city (default to domestic)
   const usIndicators = ['united states', 'usa', 'us', 'america', 'american'];
   if (usIndicators.some((indicator) => normalized.includes(indicator))) {
-    return '00';
+    return OriginType.DOMESTIC;
   }
 
-  // Try to find matching origin code by country name
-  // Import origin codes dynamically to avoid circular dependency
-  const { ORIGIN_CODES } = require('./validation/origin-codes');
-  for (const [code, country] of Object.entries(ORIGIN_CODES)) {
-    const countryStr = String(country);
-    if (
-      normalized.includes(countryStr.toLowerCase()) ||
-      countryStr.toLowerCase().includes(normalized)
-    ) {
-      return code;
-    }
-  }
-
-  // Default to US if not found
-  return '00';
+  // Default to imported if not US
+  return OriginType.IMPORTED;
 }

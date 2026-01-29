@@ -63,7 +63,7 @@ export function runMigrations() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       application_id INTEGER,
-      action TEXT NOT NULL CHECK(action IN ('login', 'logout', 'viewed', 'verified', 'approved', 'rejected', 'status_changed')),
+      action TEXT NOT NULL CHECK(action IN ('login', 'logout', 'viewed', 'verified', 'approved', 'rejected', 'status_changed', 'created')),
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       details TEXT,
       FOREIGN KEY (user_id) REFERENCES users(id),

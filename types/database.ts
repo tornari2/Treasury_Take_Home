@@ -9,7 +9,8 @@ export type AuditAction =
   | 'verified'
   | 'approved'
   | 'rejected'
-  | 'status_changed';
+  | 'status_changed'
+  | 'created';
 
 export interface User {
   id: number;

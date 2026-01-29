@@ -1,0 +1,918 @@
+# Project Requirements Document
+## AI-Powered Alcohol Label Verification System
+
+**Prepared for:** TTB Compliance Division  
+**Document Version:** 1.1 (Updated with Implementation Decisions)  
+**Date:** January 2025  
+**Status:** Ready for Development
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Project Overview](#2-project-overview)
+3. [Stakeholder Analysis](#3-stakeholder-analysis)
+4. [Functional Requirements](#4-functional-requirements)
+5. [Data Model](#5-data-model)
+6. [API Specification](#6-api-specification)
+7. [User Interface Design](#7-user-interface-design)
+8. [Technical Architecture](#8-technical-architecture)
+9. [Non-Functional Requirements](#9-non-functional-requirements)
+10. [Assumptions & Constraints](#10-assumptions--constraints)
+11. [Acceptance Criteria](#11-acceptance-criteria)
+12. [Glossary](#12-glossary)
+
+---
+
+## 1. Executive Summary
+
+The TTB Label Verification System is an AI-powered web application designed to streamline the alcohol beverage label compliance review process. By leveraging computer vision and large language models, the system automatically extracts information from uploaded label images and verifies it against application data stored in the database.
+
+The system addresses a critical operational bottleneck: TTB compliance agents currently spend significant time on manual data matching tasks that could be automated. A previous pilot project failed because processing times exceeded 30 seconds per label—agents could verify labels manually faster than the automated system. This solution targets sub-5-second processing times while maintaining high accuracy.
+
+### Key Objectives
+
+- Reduce manual verification time by automating field extraction and comparison
+- Deliver verification results in under 5 seconds per label
+- Support batch processing of up to 500 applications simultaneously (10 concurrent AI calls)
+- Provide an intuitive interface accessible to users of all technical skill levels
+- Implement intelligent matching that distinguishes between critical mismatches and trivial formatting differences
+
+---
+
+## 2. Project Overview
+
+### 2.1 Problem Statement
+
+The Alcohol and Tobacco Tax and Trade Bureau (TTB) reviews approximately 150,000 label applications annually with a team of 47 agents. The current review process requires agents to manually compare label artwork against application data field-by-field—a time-consuming task that consumes roughly half of each agent's workday.
+
+Much of this work involves simple data matching (verifying that the brand name on the label matches the brand name in the application), which is well-suited to automation. By offloading routine verification tasks to AI, agents can focus their expertise on nuanced compliance decisions that require human judgment.
+
+### 2.2 Solution Overview
+
+The proposed solution is a standalone web application that:
+
+1. Retrieves label images (front and back) from pre-loaded SQLite database records
+2. Uses OpenAI's GPT-4o-mini vision model to extract text and structured data from label images
+3. Compares extracted data against expected values stored in the application database
+4. Presents results in a clear, side-by-side comparison view with color-coded match/mismatch indicators
+5. Enables agents to approve, reject, or flag applications for further review
+
+### 2.3 Scope
+
+**In Scope:** Standalone prototype for label verification; user authentication; application management; AI-powered extraction and verification; batch processing (up to 10 concurrent); responsive web interface; keyboard shortcuts; audit trail.
+
+**Out of Scope:** Integration with existing COLA system; FedRAMP certification; PII handling; document retention policies; production security hardening; API rate limiting; PostgreSQL migration.
+
+---
+
+## 3. Stakeholder Analysis
+
+Requirements were gathered through discovery sessions with key stakeholders. The following summarizes their needs and concerns:
+
+| Stakeholder | Role | Key Requirements | Pain Points |
+|-------------|------|------------------|-------------|
+| Sarah Chen | Deputy Director, Label Compliance | Sub-5-second response; batch processing; simple UI | Failed pilot (30+ sec); staff drowning in routine work |
+| Marcus Williams | IT Systems Administrator | Azure-compatible; standalone prototype; standard security | Legacy infrastructure; blocked outbound domains |
+| Dave Morrison | Senior Agent (28 years) | Intelligent matching; minimal workflow disruption | Skeptical of automation; needs nuanced judgment |
+| Jenny Park | Junior Agent (8 months) | Strict warning validation; handle imperfect images | Manual checklist process; rejects for minor issues |
+
+### 3.1 Key Stakeholder Insights
+
+#### Performance Requirement (Sarah Chen)
+> "If we can't get results back in about 5 seconds, nobody's going to use it."
+
+The previous pilot failed because 30-40 second processing times made manual verification faster. This is a hard requirement.
+
+#### Usability Requirement (Sarah Chen)
+> "We need something my mother could figure out—she's 73 and just learned to video call her grandkids last year."
+
+Half the team is over 50. The interface must be immediately intuitive with no training required.
+
+#### Intelligent Matching (Dave Morrison)
+> "The brand name was 'STONE'S THROW' on the label but 'Stone's Throw' in the application. Technically a mismatch? Sure. But it's obviously the same thing."
+
+The system must distinguish between meaningful mismatches and trivial formatting differences.
+
+#### Strict Warning Validation (Jenny Park)
+> "The 'GOVERNMENT WARNING:' part has to be in all caps and bold... I caught one last month where they used 'Government Warning' in title case instead of all caps. Rejected."
+
+Health warning validation must be exact.
+
+---
+
+## 4. Functional Requirements
+
+### 4.1 User Stories
+
+| ID | Priority | User Story | Acceptance Criteria |
+|----|----------|------------|---------------------|
+| US-01 | P0 | As an agent, I can log in to access the verification system | Simple username/password; session management |
+| US-02 | P0 | As an agent, I can view a queue of applications awaiting review | Filterable list; status indicators; select multiple |
+| US-03 | P0 | As an agent, I can select an application to trigger AI verification | Selection triggers verification against pre-loaded images from database |
+| US-04 | P0 | As an agent, I can see verification results in <5 seconds | Timer from selection to results display |
+| US-05 | P0 | As an agent, I can see side-by-side comparison of expected vs. extracted data | Color-coded match/mismatch/review indicators |
+| US-06 | P0 | As an agent, I can approve, reject, or flag an application | Status updates persist; audit trail |
+| US-07 | P1 | As an agent, I can batch process multiple applications | Select all; process up to 10 concurrent; progress indicator |
+| US-08 | P1 | As an agent, soft mismatches are flagged for human review | Case differences, punctuation flagged yellow |
+| US-09 | P1 | As an agent, the health warning is validated exactly | All caps, exact wording, bold detection |
+| US-10 | P2 | As an agent, the system handles imperfect images gracefully | Angle correction; glare handling; confidence scores; low confidence = soft mismatch |
+| US-11 | P2 | As an agent, I can use keyboard shortcuts for common actions | A=Approve, R=Reject, F=Flag, N=Next, ↑/↓=Navigate |
+| US-12 | P2 | As an agent, I can zoom/pan label images | Zoom in/out, pan around high-res images |
+| US-13 | P1 | As an admin, I can view audit logs for all agents | See who did what and when |
+| US-14 | P1 | As an admin, I can create and assign applications | Add new applications to the queue |
+
+### 4.2 Beverage-Specific Required Fields
+
+Different beverage types have different mandatory label fields. The system must validate the appropriate fields based on beverage type (pre-set in database row):
+
+#### Distilled Spirits
+- Brand Name (required)
+- Class or Type Designation (required)
+- Alcohol Content (required)
+- Age Statement (if applicable)
+- Color Ingredient Disclosures (if applicable)
+- Commodity Statement (if applicable)
+- Health Warning Statement (required)
+- Name and Address (required)
+- Net Contents (required)
+- Country of Origin (imports only)
+
+#### Wine
+- Brand Name (required)
+- Class or Type Designation (required)
+- Alcohol Content (required)
+- Appellation of Origin (mandatory in certain circumstances)
+- Percentage of Foreign Wine (if applicable)
+- Color Ingredient Disclosures (if applicable)
+- Health Warning Statement (required)
+- Name and Address (required)
+- Net Contents (required)
+- Sulfite Declaration (required)
+- Country of Origin (imports only)
+
+#### Beer / Malt Beverages
+- Brand Name (required)
+- Class or Type Designation (required)
+- Net Contents (required)
+- Name and Address (required)
+- Alcohol Content (mandatory or optional depending on state)
+- Color Additive Disclosures (if applicable)
+- Sulfite and Aspartame Declarations (if applicable)
+- Health Warning Statement (required)
+- Country of Origin (imports only)
+
+### 4.3 Verification Logic
+
+The system uses a three-tier matching system to categorize verification results:
+
+#### Match Status Definitions
+
+| Status | Indicator | Definition | Example |
+|--------|-----------|------------|---------|
+| MATCH | ✅ Green | Extracted value matches expected value exactly or after normalization | "45% ABV" matches "45% ABV" |
+| SOFT MISMATCH | ⚠️ Yellow | Values are semantically equivalent but differ in case, punctuation, spacing, or formatting | "STONE'S THROW" vs "Stone's Throw" |
+| HARD MISMATCH | ❌ Red | Values are materially different (different words, numbers, or meaning) | "Old Tom" vs "Mountain Creek" |
+| NOT FOUND | ❌ Red | Required field could not be extracted from the label image | Brand name not detected on label |
+| LOW CONFIDENCE | ⚠️ Yellow | AI extraction confidence below 85% threshold | Blurry text detected with 72% confidence |
+
+#### Normalization Algorithm
+
+Before comparing expected vs. extracted values, apply the following normalization:
+
+1. **Case normalization:** Convert both strings to uppercase
+2. **Punctuation removal:** Remove all punctuation except periods in numbers (e.g., keep "4.5")
+3. **Whitespace collapse:** Replace multiple spaces/tabs/newlines with single space
+4. **Trim:** Remove leading/trailing whitespace
+5. **Abbreviation expansion:** Apply standard abbreviations (see table below)
+
+**Standard Abbreviation Equivalents:**
+
+| Abbreviated | Expanded | Notes |
+|-------------|----------|-------|
+| KY | KENTUCKY | State names |
+| CA | CALIFORNIA | State names |
+| mL, ml | MILLILITER | Volume units |
+| L | LITER | Volume units |
+| oz | OUNCE | Volume units |
+| Alc./Vol. | ALC BY VOL | Alcohol content format |
+| ABV | ALC BY VOL | Alcohol content format |
+
+After normalization:
+- If strings are **identical** → MATCH
+- If strings differ but original case/punctuation would explain it → SOFT MISMATCH
+- If strings differ materially → HARD MISMATCH
+
+#### Soft Mismatch Examples
+
+The following differences are considered soft mismatches (semantically equivalent, requires human review):
+
+- Case differences: "STONE'S THROW" vs "Stone's Throw"
+- Punctuation variations: "750ml" vs "750 mL" vs "750mL"
+- Abbreviation differences: "Kentucky" vs "KY"
+- Whitespace variations: "Old  Tom" vs "Old Tom"
+
+#### Hard Mismatch Examples
+
+The following differences are considered hard mismatches (materially different, likely rejection):
+
+- Different brand names: "Old Tom Distillery" vs "Mountain Creek Distillery"
+- Different alcohol content: "45%" vs "40%"
+- Different net contents: "750 mL" vs "1L"
+- Required field missing from label entirely
+
+#### Health Warning Validation (Strict — No Soft Matching)
+
+The Government Health Warning Statement requires exact validation. Unlike other fields, there is **NO soft mismatch tolerance** — any deviation is automatically a **HARD MISMATCH**.
+
+**Required Text (27 CFR § 16.21):**
+
+```
+GOVERNMENT WARNING: (1) According to the Surgeon General, women
+should not drink alcoholic beverages during pregnancy because of the risk of
+birth defects. (2) Consumption of alcoholic beverages impairs your ability to 
+drive a car or operate machinery, and may cause health problems.
+```
+
+**Validation Rules:**
+- "GOVERNMENT WARNING:" must be in ALL CAPS (e.g., "Government Warning:" = HARD MISMATCH)
+- "GOVERNMENT WARNING:" must be bold (vision model detects text formatting)
+- Full warning text must be word-for-word accurate (after normalization)
+- Any deviation in case, wording, or formatting results in HARD MISMATCH
+
+#### Confidence Score Handling
+
+If the AI returns a confidence score below **0.85 (85%)** for any field:
+- Automatically flag as **SOFT MISMATCH** (yellow indicator)
+- Display confidence score to agent: "Low confidence: 72%"
+- Agent must manually review even if normalized values match
+
+### 4.4 Application Status Transitions
+
+Application status is updated based on verification results using a hybrid approach: the system auto-flags applications needing review, but agents make all final approval/rejection decisions.
+
+| Verification Outcome | Automatic Status Change | Agent Actions Available |
+|---------------------|------------------------|------------------------|
+| All fields ✅ MATCH | Remains PENDING | Agent reviews and clicks Approve or Reject |
+| Any field ⚠️ SOFT MISMATCH (no hard mismatches) | Auto-updates to NEEDS REVIEW | Agent reviews differences, then Approves or Rejects |
+| Any field ❌ HARD MISMATCH or NOT FOUND | Remains PENDING | Agent reviews and clicks Approve (override) or Reject |
+
+#### Status Transition Rules
+
+- The system **NEVER auto-approves** — agent confirmation is always required, even when all fields match
+- The system **NEVER auto-rejects** — agent confirmation is always required for rejections
+- Any soft mismatch automatically moves the application to NEEDS REVIEW status
+- Agents can override hard mismatches and approve if they determine the difference is acceptable
+- Invalid images or missing required fields in the database → Application marked as REJECTED
+
+### 4.5 Role-Based Permissions
+
+| Action | Agent | Admin |
+|--------|-------|-------|
+| View assigned applications | ✅ | ✅ All applications |
+| Verify applications | ✅ | ✅ |
+| Approve/reject | ✅ | ✅ |
+| Create applications | ❌ | ✅ |
+| Reassign applications | ❌ | ✅ |
+| View audit logs | Own actions | All actions |
+| Batch process | ✅ | ✅ |
+
+---
+
+## 5. Data Model
+
+### 5.1 Entity Relationship Overview
+
+The system uses four primary entities: Users, Applications, Label Images, and Audit Logs. Each Application belongs to one User (the agent assigned to review it) and can have multiple Label Images (typically front and back, but supports more).
+
+### 5.2 User Entity
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | INTEGER | PRIMARY KEY, AUTO INCREMENT | Unique user identifier |
+| email | VARCHAR(255) | UNIQUE, NOT NULL | User email for login |
+| password_hash | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
+| name | VARCHAR(255) | NOT NULL | Display name |
+| role | ENUM | DEFAULT 'agent' | User role (agent, admin) |
+| created_at | TIMESTAMP | DEFAULT NOW() | Account creation time |
+| last_login | TIMESTAMP | NULLABLE | Last successful login |
+
+### 5.3 Application Entity
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | INTEGER | PRIMARY KEY, AUTO INCREMENT | Unique application identifier |
+| applicant_name | VARCHAR(255) | NOT NULL | Name of permit applicant |
+| beverage_type | ENUM | NOT NULL | spirits, wine, beer (source of truth) |
+| status | ENUM | DEFAULT 'pending' | pending, needs_review, approved, rejected |
+| assigned_agent_id | INTEGER | FOREIGN KEY → Users | Agent assigned to review |
+| created_at | TIMESTAMP | DEFAULT NOW() | Application submission time |
+| reviewed_at | TIMESTAMP | NULLABLE | When review was completed |
+| review_notes | TEXT | NULLABLE | Agent notes on decision |
+| expected_label_data | JSON | NOT NULL | Beverage-type-specific expected fields |
+
+### 5.4 Expected Label Data (JSON Column)
+
+The Application entity includes an `expected_label_data` JSON column containing beverage-type-specific fields:
+
+| Field | Type | Spirits | Wine | Beer |
+|-------|------|---------|------|------|
+| brand_name | STRING | Required | Required | Required |
+| class_type | STRING | Required | Required | Required |
+| alcohol_content | STRING | Required | Required | Varies |
+| net_contents | STRING | Required | Required | Required |
+| producer_name | STRING | Required | Required | Required |
+| producer_address | STRING | Required | Required | Required |
+| health_warning | STRING | Required | Required | Required |
+| country_of_origin | STRING | Imports only | Imports only | Imports only |
+| age_statement | STRING | If applicable | — | — |
+| appellation_of_origin | STRING | — | If applicable | — |
+| sulfite_declaration | STRING | — | Required | If applicable |
+
+### 5.5 Label Image Entity
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | INTEGER | PRIMARY KEY, AUTO INCREMENT | Unique image identifier |
+| application_id | INTEGER | FOREIGN KEY → Applications | Parent application |
+| image_type | ENUM | NOT NULL | front, back, side, neck |
+| image_data | BLOB | NOT NULL | Binary image data (pre-loaded) |
+| mime_type | VARCHAR(50) | NOT NULL | image/jpeg, image/png, etc. |
+| extracted_data | JSON | NULLABLE | AI-extracted field values with confidence |
+| verification_result | JSON | NULLABLE | Match/mismatch per field |
+| confidence_score | FLOAT | NULLABLE | Overall extraction confidence |
+| processed_at | TIMESTAMP | NULLABLE | When AI processing completed |
+| processing_time_ms | INTEGER | NULLABLE | Processing duration |
+
+**Note:** For MVP, assume 2 images per application (front and back). Data model supports more.
+
+#### Extracted Data JSON Format (with confidence scores)
+
+```json
+{
+  "brand_name": {
+    "value": "Old Tom",
+    "confidence": 0.98
+  },
+  "alcohol_content": {
+    "value": "45% Alc./Vol.",
+    "confidence": 0.95
+  },
+  "health_warning": {
+    "value": "GOVERNMENT WARNING: ...",
+    "confidence": 0.88,
+    "formatting": {
+      "all_caps": true,
+      "bold": true
+    }
+  }
+}
+```
+
+### 5.6 Audit Log Entity
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | INTEGER | PRIMARY KEY, AUTO INCREMENT | Unique log identifier |
+| user_id | INTEGER | FOREIGN KEY → Users | User who performed action |
+| application_id | INTEGER | FOREIGN KEY → Applications, NULLABLE | Related application (if applicable) |
+| action | ENUM | NOT NULL | login, logout, viewed, verified, approved, rejected, status_changed, created, reassigned |
+| timestamp | TIMESTAMP | DEFAULT NOW() | When action occurred |
+| details | JSON | NULLABLE | Action-specific metadata (e.g., old/new status) |
+| ip_address | VARCHAR(45) | NULLABLE | User IP address |
+
+---
+
+## 6. API Specification
+
+The system exposes a RESTful API using **Next.js API Routes** with OpenAPI/Swagger documentation auto-generated by the framework.
+
+### 6.1 Authentication Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | /api/auth/login | Authenticate user with username/password, create session | No |
+| POST | /api/auth/logout | End session | Yes |
+| GET | /api/auth/me | Get current user profile | Yes |
+
+### 6.2 Application Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | /api/applications | List applications (filterable by status) | Yes |
+| GET | /api/applications/:id | Get single application with images and verification results | Yes |
+| POST | /api/applications | Create new application (admin only) | Yes (admin) |
+| PATCH | /api/applications/:id | Update application status/notes | Yes |
+| POST | /api/applications/:id/verify | Trigger AI verification for this application | Yes |
+| PATCH | /api/applications/:id/reassign | Reassign application to different agent (admin only) | Yes (admin) |
+
+### 6.3 Batch Processing Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | /api/batch/verify | Trigger verification for multiple applications (up to 10 concurrent) | Yes |
+| GET | /api/batch/status/:batchId | Get batch processing status | Yes |
+
+### 6.4 Audit Log Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | /api/audit | List audit logs (admin: all, agent: own) | Yes |
+| GET | /api/audit/:applicationId | Get audit trail for specific application | Yes |
+
+### 6.5 Request/Response Examples
+
+#### POST /api/applications/:id/verify
+
+**Request:** Empty body (verification uses pre-loaded images from database)
+
+**Response (200 OK):**
+```json
+{
+  "application_id": 42,
+  "verification_results": {
+    "front_label": {
+      "brand_name": {
+        "expected": "OLD TOM",
+        "extracted": "Old Tom",
+        "confidence": 0.98,
+        "status": "soft_mismatch"
+      },
+      "alcohol_content": {
+        "expected": "45%",
+        "extracted": "45% Alc./Vol.",
+        "confidence": 0.95,
+        "status": "match"
+      }
+    },
+    "back_label": {
+      "health_warning": {
+        "expected": "GOVERNMENT WARNING: (1) According to the Surgeon General...",
+        "extracted": "GOVERNMENT WARNING: (1) According to the Surgeon General...",
+        "confidence": 0.92,
+        "formatting": {
+          "all_caps": true,
+          "bold": true
+        },
+        "status": "match"
+      }
+    }
+  },
+  "overall_status": "needs_review",
+  "processing_time_ms": 2340
+}
+```
+
+#### POST /api/batch/verify
+
+**Request:**
+```json
+{
+  "application_ids": [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "batch_id": "batch_abc123",
+  "total_applications": 10,
+  "status": "processing",
+  "estimated_completion_seconds": 30
+}
+```
+
+#### Error Response (Invalid Image)
+
+**Response (422 Unprocessable Entity):**
+```json
+{
+  "error": "verification_failed",
+  "message": "Label image is corrupted or in an unsupported format.",
+  "application_id": 42,
+  "details": {
+    "image_id": 84,
+    "image_type": "front",
+    "error": "Failed to decode image data"
+  }
+}
+```
+
+---
+
+## 7. User Interface Design
+
+### 7.1 Design Principles
+
+- **Simplicity First:** "My mother could figure it out" — no hidden menus, obvious workflows
+- **Color-Coded Status:** Green (match), Yellow (soft mismatch), Red (hard mismatch/missing)
+- **Minimal Clicks:** Select → Review → Decide (3 steps maximum)
+- **Immediate Feedback:** Progress indicators, sub-5-second results
+- **Keyboard Shortcuts:** Power users can navigate without mouse
+
+### 7.2 Screen Inventory
+
+#### Screen 1: Login
+
+Simple email/password form with TTB branding. Error messages for invalid credentials.
+
+**Elements:**
+- Email input
+- Password input (masked)
+- "Log In" button
+- TTB logo/branding
+- Error message area
+
+#### Screen 2: Application Queue (Dashboard)
+
+Primary working view for agents. Features include:
+
+- **Header:** User name, logout button, keyboard shortcuts legend (hover)
+- **Filters:** Status dropdown (All, Pending, Needs Review, Approved, Rejected)
+- **Table:** Application list with columns:
+  - Checkbox (for batch selection)
+  - Application ID
+  - Applicant Name
+  - Beverage Type
+  - Status (color-coded badge)
+  - Assigned Agent
+  - Created Date
+- **Batch Actions:** "Select All" checkbox in header, "Verify Selected" button
+- **Navigation:** Keyboard shortcuts (↑/↓ to navigate, Enter to open)
+- **Legend Button:** Small "?" icon in top-right that shows keyboard shortcuts on hover
+
+**Keyboard Shortcuts (Dashboard):**
+- `↑` / `↓` : Navigate application list
+- `Space` : Toggle checkbox selection
+- `Enter` : Open selected application
+- `Ctrl+A` : Select all
+- `Ctrl+V` : Verify selected applications
+
+#### Screen 3: Application Review (Side-by-Side Comparison)
+
+Detailed view for individual application review. Verification runs automatically when this screen loads (or can be manually triggered).
+
+**Layout:**
+- **Left Panel (40% width):** Label images
+  - Tabs: Front / Back (or more if applicable)
+  - Zoomable images (react-medium-image-zoom)
+  - Pan/zoom controls
+  - Download button
+- **Right Panel (60% width):** Field-by-field verification results
+  - Application metadata (ID, applicant, beverage type, status)
+  - Verification status summary (processing / complete)
+  - Processing time display
+  - **Field comparison table:**
+    - Field name
+    - Expected value
+    - Extracted value
+    - Confidence score (if < 100%)
+    - Status indicator (✅ ⚠️ ❌)
+  - Color-coded rows (green/yellow/red backgrounds)
+  - Expandable details for formatting issues (e.g., health warning bold/caps check)
+- **Bottom Actions:**
+  - "Approve" button (green)
+  - "Reject" button (red)
+  - "Flag for Review" button (yellow)
+  - "Add Notes" text area
+  - "Back to Queue" link
+- **Keyboard Shortcuts (Review):**
+  - `A` : Approve
+  - `R` : Reject
+  - `F` : Flag for Review
+  - `N` : Next application (saves current, loads next pending)
+  - `Esc` : Back to queue
+
+#### Screen 4: Batch Processing Progress (Modal/Overlay)
+
+Displayed when batch verification is triggered.
+
+**Elements:**
+- Progress bar (e.g., "Processing 7 of 10...")
+- List of applications with status icons
+- Estimated time remaining
+- "Cancel" button (stops remaining verifications)
+- "Close" button (when complete)
+
+#### Screen 5: Audit Log (Admin Only)
+
+Table view of all system actions.
+
+**Columns:**
+- Timestamp
+- User
+- Action
+- Application ID (if applicable)
+- Details (expandable JSON)
+
+**Filters:**
+- Date range
+- User (admin can filter by agent)
+- Action type
+
+### 7.3 Responsive Behavior
+
+The application should be functional on tablet devices (agents may use tablets for field work) but is primarily designed for desktop use. Minimum supported width: 1024px.
+
+### 7.4 Keyboard Shortcuts Legend
+
+The legend button displays this reference card on hover or click:
+
+```
+Keyboard Shortcuts
+
+Dashboard:
+↑ / ↓      Navigate list
+Space      Toggle selection
+Enter      Open application
+Ctrl+A     Select all
+Ctrl+V     Verify selected
+
+Review:
+A          Approve
+R          Reject  
+F          Flag for Review
+N          Next application
+Esc        Back to queue
+
+Images:
++/-        Zoom in/out
+Drag       Pan image
+```
+
+---
+
+## 8. Technical Architecture
+
+### 8.1 System Architecture
+
+The system follows a standard three-tier web architecture:
+
+| Layer | Technology | Deployment | Notes |
+|-------|------------|------------|-------|
+| Frontend | Next.js (React) | Vercel | Static generation where possible, React Context for state |
+| Backend | Next.js API Routes | Railway | RESTful API with OpenAPI docs |
+| Database | SQLite | Railway (persistent volume) | Single file, simple backup |
+| AI Service | OpenAI GPT-4o-mini | External API | Vision model for extraction |
+| File Storage | SQLite BLOB | With database | Label images pre-loaded in DB |
+
+### 8.2 AI Integration Architecture
+
+Label verification uses OpenAI's GPT-4o-mini vision model via direct API integration:
+
+1. **Verification Trigger:** Agent selects application(s) to verify
+2. **Image Retrieval:** Backend retrieves pre-loaded images from SQLite BLOBs
+3. **AI Request:** Backend sends images to GPT-4o-mini with extraction prompt
+4. **Structured Response:** Model returns JSON with extracted fields and confidence scores
+5. **Normalization & Comparison:** Backend normalizes and compares extracted vs. expected data
+6. **Result Storage:** Verification results stored in database (extracted_data and verification_result JSON columns)
+7. **Display:** Frontend shows side-by-side comparison with color-coded indicators
+
+**Parallel Processing:**
+- Batch verification processes up to **10 applications concurrently**
+- Each application makes 2 API calls (front + back images)
+- Total: 20 concurrent OpenAI API requests maximum
+- Processing time target: ~30 seconds for 10 applications
+
+### 8.3 Prompt Engineering
+
+The extraction prompt is tailored to beverage type and requests structured JSON output with confidence scores.
+
+**Prompt Template (Distilled Spirits Example):**
+
+```
+You are analyzing a distilled spirits label image. Extract the following fields and return as JSON:
+
+Required fields:
+- brand_name: The brand name prominently displayed
+- class_type: The type of spirit (e.g., "Bourbon Whiskey", "Vodka", "Gin")
+- alcohol_content: The alcohol percentage (e.g., "45% ABV", "40% Alc./Vol.")
+- net_contents: The volume (e.g., "750 mL", "1 L")
+- producer_name: The distillery or producer name
+- producer_address: The full address of the producer
+- health_warning: The full government health warning text
+- country_of_origin: Country of origin (if shown, especially for imports)
+- age_statement: Age statement if present (e.g., "Aged 12 Years")
+
+For the health_warning field specifically:
+- Extract the full text word-for-word
+- In a separate "formatting" object, indicate:
+  - all_caps: true if "GOVERNMENT WARNING:" appears in all caps
+  - bold: true if "GOVERNMENT WARNING:" appears in bold font
+
+For each field, return:
+{
+  "field_name": {
+    "value": "extracted text or null if not found",
+    "confidence": 0.0 to 1.0 confidence score
+  }
+}
+
+If a field cannot be found or you are uncertain, return null for the value and a low confidence score.
+
+Include a top-level "notes" field for any extraction uncertainties or image quality issues.
+
+Return ONLY valid JSON, no additional text.
+```
+
+**Response Format:**
+```json
+{
+  "brand_name": {"value": "Old Tom Distillery", "confidence": 0.98},
+  "class_type": {"value": "Bourbon Whiskey", "confidence": 0.95},
+  "alcohol_content": {"value": "45% Alc./Vol.", "confidence": 0.97},
+  "net_contents": {"value": "750 mL", "confidence": 0.99},
+  "producer_name": {"value": "Old Tom Distillery LLC", "confidence": 0.92},
+  "producer_address": {"value": "123 Distillery Road, Louisville, KY 40202", "confidence": 0.89},
+  "health_warning": {
+    "value": "GOVERNMENT WARNING: (1) According to the Surgeon General, women should not drink alcoholic beverages during pregnancy because of the risk of birth defects. (2) Consumption of alcoholic beverages impairs your ability to drive a car or operate machinery, and may cause health problems.",
+    "confidence": 0.91,
+    "formatting": {
+      "all_caps": true,
+      "bold": true
+    }
+  },
+  "country_of_origin": {"value": null, "confidence": 0.0},
+  "age_statement": {"value": "Aged 8 Years", "confidence": 0.88},
+  "notes": "Image quality is good. Minor glare on upper right corner did not affect extraction."
+}
+```
+
+### 8.4 Deployment Architecture
+
+| Component | Platform | Configuration |
+|-----------|----------|---------------|
+| Frontend | Vercel | Automatic deployments from Git, edge CDN |
+| Backend + DB | Railway | Single service with persistent volume for SQLite |
+| Environment Variables | Platform secrets | OPENAI_API_KEY, JWT_SECRET, DATABASE_URL |
+
+### 8.5 Technology Stack Summary
+
+**Frontend:**
+- Next.js 14+ (App Router)
+- React 18+
+- TypeScript
+- Tailwind CSS
+- react-medium-image-zoom (for image zoom)
+- React Context (state management)
+
+**Backend:**
+- Next.js API Routes
+- TypeScript
+- SQLite (better-sqlite3 or similar)
+- Bcrypt (password hashing)
+- JWT or session-based auth
+
+**AI:**
+- OpenAI API (GPT-4o-mini vision model)
+- Parallel processing (Promise.allSettled for batch)
+
+---
+
+## 9. Non-Functional Requirements
+
+### 9.1 Performance
+
+| Metric | Target | Measurement Method |
+|--------|--------|-------------------|
+| Single label verification | < 5 seconds | Time from API call to results displayed |
+| Batch processing (10 labels, parallel) | < 30 seconds | Total time for batch to complete |
+| Batch processing (100 labels, queued) | < 5 minutes | Total time for batch to complete |
+| Page load time | < 2 seconds | Time to interactive on dashboard |
+| API response time (non-AI) | < 200ms | 95th percentile latency |
+
+### 9.2 Scalability
+
+The system should support:
+
+- Up to 100 concurrent users (matches agent count)
+- Batch processing of up to 500 applications (50 batches of 10)
+- Database growth of ~150,000 applications/year
+- 10 concurrent OpenAI API calls maximum
+
+### 9.3 Security
+
+- Simple session-based authentication with secure httpOnly cookies
+- Password hashing with bcrypt (cost factor 12)
+- HTTPS enforced for all connections
+- Input validation and sanitization on all endpoints
+- CORS restrictions (frontend domain only)
+
+**Out of Scope for MVP:**
+- API rate limiting
+- PII/GDPR compliance
+- FedRAMP certification
+- Penetration testing
+
+### 9.4 Reliability
+
+- Target uptime: 99.5% during business hours
+- Graceful degradation if OpenAI API is unavailable (show error, allow retry)
+- Automatic retry logic for transient failures (3 retries with exponential backoff)
+- Database backups (SQLite file backup on Railway)
+
+---
+
+## 10. Assumptions & Constraints
+
+### 10.1 Assumptions
+
+- Users have modern web browsers (Chrome, Firefox, Safari, Edge — last 2 versions)
+- Label images are **pre-loaded in the SQLite database** in standard formats (JPEG, PNG) at reasonable quality
+- Images are associated with applications before agents use the system
+- OpenAI API will remain available and pricing will remain stable
+- Database is pre-populated with sample applications, expected label data, and label images for demonstration (user will manually upload real data)
+- This is a prototype; production deployment would require additional security review
+- Beverage type is pre-set in database and is the source of truth
+
+### 10.2 Constraints
+
+- No integration with existing COLA system (standalone prototype)
+- No PII handling or federal compliance requirements for prototype
+- Budget constraints limit cloud infrastructure choices
+- Timeline: Delivery by end of next week
+- SQLite only (no PostgreSQL)
+- No API rate limiting
+- No advanced data retention policies
+
+### 10.3 Technical Constraints
+
+- SQLite chosen for simplicity; production would likely need PostgreSQL
+- Synchronous processing for single verifications; batch uses Promise.allSettled for parallelism
+- Image storage in SQLite BLOB; production might need object storage (S3)
+- 10 concurrent OpenAI API calls maximum (based on rate limits and cost)
+- No image upload feature (images are pre-loaded)
+
+---
+
+## 11. Acceptance Criteria
+
+### 11.1 Core Functionality
+
+| Criterion | Test | Pass Condition |
+|-----------|------|----------------|
+| User can log in | Enter valid username/password | Redirected to dashboard, session created |
+| Dashboard displays applications | Navigate to dashboard | Applications listed with status |
+| Filter works correctly | Select 'Needs Review' filter | Only matching applications shown |
+| Single selection triggers verification | Click on an application row | Review screen opens, verification auto-runs |
+| Verification completes <5s | Time from API call to results | Results displayed within 5 seconds |
+| Results show comparison | View application detail | Side-by-side expected vs extracted |
+| Match status is color-coded | View verification results | Green/Yellow/Red indicators visible |
+| Agent can approve application | Click Approve button or press 'A' | Status updated to 'approved', audit log created |
+| Batch select works | Select multiple applications via checkboxes | Checkboxes reflect selection |
+| Batch verify works (parallel) | Click Verify Selected with 10 applications | All 10 verified concurrently, results stored |
+| Keyboard shortcuts work | Press 'A' on review screen | Application approved |
+| Image zoom works | Click on label image | Image zooms, can pan |
+| Audit log records actions | Perform approval, check audit log | Action logged with timestamp, user, details |
+| Admin can create applications | Log in as admin, create new application | Application appears in queue |
+
+### 11.2 Edge Cases
+
+| Scenario | Expected Behavior |
+|----------|-------------------|
+| Blurry/unreadable image in database | Low confidence score (<0.85), fields marked as SOFT MISMATCH or NOT FOUND |
+| Missing required field on label | Field marked as NOT FOUND with red indicator |
+| Health warning in wrong case | HARD MISMATCH for health_warning field |
+| Health warning not bold | HARD MISMATCH for health_warning field |
+| OpenAI API timeout | Graceful error message: "Verification timed out. Please retry." |
+| OpenAI API error | Graceful error message: "Verification failed due to a technical error. Please retry." |
+| Application has no images in database | Error message: "No label images available for verification. Please contact administrator." |
+| Concurrent batch processing | Both batches process correctly, no data corruption |
+| Invalid image data in database | Error message: "Label image is corrupted or in an unsupported format." Application marked REJECTED |
+| Missing required field in expected_label_data | Error message: "Application data is incomplete. Cannot verify." Block verification |
+| Agent tries to access admin endpoint | 403 Forbidden error |
+| Normalization logic applied | "STONE'S THROW" vs "Stone's Throw" → SOFT MISMATCH (not HARD MISMATCH) |
+| Low confidence extraction (< 0.85) | Field flagged as SOFT MISMATCH even if normalized values match |
+
+### 11.3 Performance Testing
+
+| Test | Target | Method |
+|------|--------|--------|
+| Single verification latency | < 5 seconds | Load test with 10 concurrent users |
+| Batch verification (10 parallel) | < 30 seconds | Measure end-to-end time |
+| Dashboard load | < 2 seconds | Lighthouse / Web Vitals |
+| Image zoom responsiveness | Instant | Manual testing |
+
+---
+
+## 12. Glossary
+
+| Term | Definition |
+|------|------------|
+| TTB | Alcohol and Tobacco Tax and Trade Bureau — federal agency regulating alcohol labeling |
+| COLA | Certificate of Label Approval — the permit required for alcohol beverage labels |
+| ABV | Alcohol By Volume — percentage of alcohol content |
+| Soft Mismatch | A difference that may be acceptable (case, punctuation, low confidence) requiring human review |
+| Hard Mismatch | A material difference that likely requires rejection |
+| Health Warning | Mandatory government warning statement on all alcohol beverages (27 CFR § 16.21) |
+| Vision Model | AI model capable of processing and understanding images |
+| Structured Output | AI response formatted as parseable JSON rather than free text |
+| Normalization | Process of standardizing text (uppercase, remove punctuation, etc.) for comparison |
+| Confidence Score | AI's self-reported certainty (0.0-1.0) about an extracted value |
+| Audit Trail | Immutable log of all system actions for compliance and debugging |
+| Parallel Processing | Running multiple AI verifications concurrently (up to 10) |
+
+---
+
+**End of Document**

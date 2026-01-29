@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeText, verifyApplication, determineApplicationStatus } from '@/lib/verification';
 import { stringsMatch, isSoftMismatch, normalizeString } from '@/lib/validation';
-import { BeverageType } from '@/lib/validation';
+import { BeverageType, OriginType } from '@/lib/validation';
 import type { ExtractedData } from '@/types/database';
 
 describe('Verification Utilities', () => {
@@ -53,7 +53,7 @@ describe('Verification Utilities', () => {
       const applicationData = {
         id: '1',
         beverageType: BeverageType.BEER,
-        originCode: '00',
+        originType: OriginType.DOMESTIC,
         brandName: 'Old Tom',
         producerName: 'Test Brewery',
         producerAddress: { city: 'Test City', state: 'CA' },
@@ -74,7 +74,7 @@ describe('Verification Utilities', () => {
       const applicationData = {
         id: '1',
         beverageType: BeverageType.BEER,
-        originCode: '00',
+        originType: OriginType.DOMESTIC,
         brandName: 'Old Tom',
         producerName: 'Test Brewery',
         producerAddress: { city: 'Test City', state: 'CA' },

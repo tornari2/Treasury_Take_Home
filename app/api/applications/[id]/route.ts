@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/middleware';
 import { applicationHelpers, labelImageHelpers } from '@/lib/db-helpers';
 import { auditLogHelpers } from '@/lib/db-helpers';
 
@@ -7,12 +6,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { user } = authResult;
     const applicationId = parseInt(params.id);
 
     if (isNaN(applicationId)) {
@@ -44,8 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       })),
     };
 
-    // Log view action
-    auditLogHelpers.create(user.id, 'viewed', applicationId);
+    // Skip audit logging since authentication is removed
 
     return NextResponse.json({ application: parsedApplication });
   } catch (error) {
@@ -56,12 +48,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { user } = authResult;
     const applicationId = parseInt(params.id);
 
     if (isNaN(applicationId)) {
@@ -85,15 +71,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (status) {
       applicationHelpers.updateStatus(applicationId, status, review_notes || null);
 
-      // Log status change
-      const action =
-        status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'status_changed';
-      auditLogHelpers.create(
-        user.id,
-        action,
-        applicationId,
-        JSON.stringify({ status, review_notes })
-      );
+      // Skip audit logging since authentication is removed
     }
 
     const updatedApplication = applicationHelpers.findById(applicationId);

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/middleware';
 import { applicationHelpers, labelImageHelpers } from '@/lib/db-helpers';
 import { auditLogHelpers } from '@/lib/db-helpers';
 import { extractLabelData } from '@/lib/openai-service';
@@ -11,12 +10,6 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authResult = await requireAuth(request);
-    if (authResult instanceof NextResponse) {
-      return authResult;
-    }
-
-    const { user } = authResult;
     const applicationId = parseInt(params.id);
 
     if (isNaN(applicationId)) {
@@ -104,13 +97,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const totalProcessingTime = Date.now() - startTime;
 
-    // Log verification action
-    auditLogHelpers.create(
-      user.id,
-      'verified',
-      applicationId,
-      JSON.stringify({ processing_time_ms: totalProcessingTime })
-    );
+    // Skip audit logging since authentication is removed
 
     // Determine overall status from all verification results
     const allResults = Object.values(verificationResults)

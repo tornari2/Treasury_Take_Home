@@ -36,6 +36,7 @@ export enum MatchStatus {
  */
 export interface ApplicationData {
   id: string;
+  ttbId?: string | null; // TTB ID for the application
 
   // Basic Info
   beverageType: BeverageType;

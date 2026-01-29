@@ -241,6 +241,8 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - **Net Contents Validation Enhancement:**
   - Added support for "U.S." or "US" prefix before unit names (gallons, quarts, pints)
   - Patterns now match: "5.16 U.S. Gallons", "1 U.S. quart", "2 US pints", etc.
+  - Added support for "milliliters" and "millilitres" (British spelling) as valid metric units
+  - Now accepts: "750 mL", "750 ml", "750 milliliters", "750 millilitres" as equivalent
 
 - **Producer Name Matching Enhancement:**
   - Added business entity suffix normalization (CO, CO., COMPANY, LLC, INC, INC., INCORPORATED, LTD, LIMITED)

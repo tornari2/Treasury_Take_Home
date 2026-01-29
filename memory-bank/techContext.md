@@ -367,6 +367,10 @@ interface ApplicationData {
 - Brand Name (always required)
 - Fanciful Name (optional)
 - Producer Name & Address (only city and state validated, not full street address)
+  - **Phrase Requirements:** Producer name/address must immediately follow required phrases with no intervening text
+    - Spirits/Wine: Must follow "Bottled By" or "Imported By" → SOFT_MISMATCH if missing
+    - Imported Beer: Must follow "Imported by" or similar phrase → SOFT_MISMATCH if missing
+    - Domestic Beer: No phrase requirement
 - Wine Varietal (if application has varietal, classType must match)
 - Vintage Date (wine, if present)
 - Appellation (wine, if present)
@@ -394,6 +398,11 @@ interface ApplicationData {
 - **State Equivalence:** State names and abbreviations are equivalent (ME = Maine, CA = California)
 - **Standards of Fill:** Wine and spirits must use authorized container sizes (25 standard sizes each, wine allows even liters ≥4L)
 - **Net Contents Format:** Normalized variations accepted (mL/ml./ML, L/litre/liter, fl. oz./fluid ounces)
+- **Producer Name/Address Phrase Requirements:**
+  - Spirits: Name/address must immediately follow "Bottled By" or "Imported By" (SOFT_MISMATCH if missing)
+  - Wine: Name/address must immediately follow "Bottled By" or "Imported By" (SOFT_MISMATCH if missing)
+  - Imported Beer: Importer name/address must immediately follow "Imported by" or similar phrase (SOFT_MISMATCH if missing)
+  - Domestic Beer: No phrase requirement
 
 ## Database Management
 
@@ -443,4 +452,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents with standards of fill, alcohol content rules for beer/wine, producer address city/state only, domestic UI display, Dialog component installed, authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._
+_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents with standards of fill, alcohol content rules for beer/wine, producer address city/state only, producer name/address phrase requirements for spirits/wine/imported beer, domestic UI display, Dialog component installed, authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._

@@ -26,6 +26,13 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 - **Producer Address Validation:**
   - Updated to only validate city and state (not full street address)
   - Improved state extraction logic handles various address formats
+  - **Phrase Requirements Added (January 28, 2025):**
+    - Spirits/Wine: Producer name/address must immediately follow "Bottled By" or "Imported By" with no intervening text
+    - Imported Beer: Importer name/address must immediately follow "Imported by" or similar phrase with no intervening text
+    - Domestic Beer: No phrase requirement
+    - Added `producerNamePhrase` field to extraction types (Beer, Wine, Spirits)
+    - Updated extraction prompts to capture phrase preceding producer name/address
+    - Validation returns SOFT_MISMATCH if required phrase is missing
 - **Alcohol Content Validation Enhancements:**
   - Beer: Missing alcohol content now HARD_MISMATCH (was NOT_FOUND, non-failing)
   - Beer special terms validation (27 CFR 7.65):

@@ -288,6 +288,12 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - **Producer Address Validation:**
   - Updated to only validate city and state (not full street address)
   - Improved state extraction handles various address formats
+  - **Phrase Requirements Added:**
+    - Spirits/Wine: Producer name/address must immediately follow "Bottled By" or "Imported By" (SOFT_MISMATCH if missing)
+    - Imported Beer: Importer name/address must immediately follow "Imported by" or similar phrase (SOFT_MISMATCH if missing)
+    - Domestic Beer: No phrase requirement
+    - Added `producerNamePhrase` field to extraction types and prompts
+    - Validation checks phrase presence and flags as SOFT_MISMATCH if required phrase is missing
 
 - **Alcohol Content Validation:**
   - Beer: Missing alcohol content now causes HARD_MISMATCH (required for all beverages)
@@ -302,4 +308,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents, standards of fill, alcohol content rules, producer address validation, domestic UI display). Ready for production deployment and testing._
+_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents, standards of fill, alcohol content rules, producer address validation with phrase requirements, domestic UI display). Ready for production deployment and testing._

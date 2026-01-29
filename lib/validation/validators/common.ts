@@ -13,6 +13,7 @@ import { OriginType } from '../types';
 import {
   stringsMatch,
   isSoftMismatch,
+  differsOnlyByCase,
   matchesAnyPattern,
   valueExists,
   healthWarningMatchesExact,
@@ -49,6 +50,17 @@ export function validateBrandName(
   }
 
   if (stringsMatch(expected, extracted)) {
+    // Case-only differences are considered equivalent (MATCH)
+    if (differsOnlyByCase(expected, extracted)) {
+      return {
+        field: 'brandName',
+        status: MatchStatus.MATCH,
+        expected,
+        extracted,
+        rule: 'CROSS-CHECK: Brand name must match application',
+      };
+    }
+    // Other formatting differences (punctuation, whitespace) are SOFT_MISMATCH
     if (isSoftMismatch(expected, extracted)) {
       return {
         field: 'brandName',
@@ -56,7 +68,7 @@ export function validateBrandName(
         expected,
         extracted,
         rule: 'CROSS-CHECK: Brand name must match application',
-        details: 'Case or formatting difference detected',
+        details: 'Formatting difference detected (punctuation or whitespace)',
       };
     }
     return {
@@ -656,7 +668,7 @@ export function validateNetContents(
 }
 
 /**
- * Validate Producer Name and Address
+ * Validate Producer Name & Address
  * Only validates producer name, city, and state - does not validate full street address
  *
  * For Spirits and Wine: Name and address must immediately follow "Bottled By" or "Imported By" with no intervening text

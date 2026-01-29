@@ -45,6 +45,9 @@ export default function ReviewPage() {
   const [selectedImageType, setSelectedImageType] = useState<string>('front');
   const [reviewNotes, setReviewNotes] = useState('');
   const [imageZoom, setImageZoom] = useState(1);
+  const [imagePan, setImagePan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   // Batch navigation state
@@ -100,6 +103,11 @@ export default function ReviewPage() {
       }
     }
   }, [params.id, searchParams]);
+
+  // Reset pan when image type changes
+  useEffect(() => {
+    setImagePan({ x: 0, y: 0 });
+  }, [selectedImageType]);
 
   const fetchApplication = async () => {
     try {
@@ -170,11 +178,24 @@ export default function ReviewPage() {
       if (response.ok) {
         await fetchApplication();
       } else {
-        alert('Verification failed');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage =
+          errorData.user_message ||
+          errorData.message ||
+          errorData.error ||
+          'Verification failed. Please try again.';
+
+        alert(`Verification Error: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Verification error:', error);
-      alert('Error during verification');
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert(
+          'Network error: Unable to connect to the server. Please check your connection and try again.'
+        );
+      } else {
+        alert('An unexpected error occurred during verification. Please try again.');
+      }
     } finally {
       setVerifying(false);
     }
@@ -216,14 +237,8 @@ export default function ReviewPage() {
               sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
               router.push(`/review/${nextAppId}?batch=true`);
             } else {
-              // Last application in batch - show completion message
-              if (
-                confirm(
-                  "You've completed reviewing all applications in this batch. Return to dashboard?"
-                )
-              ) {
-                exitBatch();
-              }
+              // Last application in batch - automatically return to dashboard
+              exitBatch();
             }
           } else {
             // Not in batch mode - redirect to dashboard
@@ -339,6 +354,63 @@ export default function ReviewPage() {
 
   const verificationResult = currentImage?.verification_result || {};
 
+  // Handle mouse wheel zoom centered at cursor position
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.05 : 0.05;
+    const container = e.currentTarget;
+    const rect = container.getBoundingClientRect();
+
+    // Get mouse position relative to container
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Calculate zoom point relative to current pan and zoom
+    const zoomPointX = (mouseX - imagePan.x) / imageZoom;
+    const zoomPointY = (mouseY - imagePan.y) / imageZoom;
+
+    setImageZoom((prevZoom) => {
+      const newZoom = Math.max(0.5, Math.min(3, prevZoom + delta));
+
+      // Calculate new pan to keep the zoom point under the cursor
+      const newPanX = mouseX - zoomPointX * newZoom;
+      const newPanY = mouseY - zoomPointY * newZoom;
+
+      setImagePan({ x: newPanX, y: newPanY });
+
+      return newZoom;
+    });
+  };
+
+  // Handle mouse down for panning
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button === 0) {
+      // Left mouse button
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - imagePan.x, y: e.clientY - imagePan.y });
+    }
+  };
+
+  // Handle mouse move for panning
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      setImagePan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+  };
+
+  // Handle mouse up for panning
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Handle mouse leave to stop dragging
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -371,9 +443,6 @@ export default function ReviewPage() {
                   disabled={currentBatchIndex === batchApplications.length - 1}
                 >
                   Next
-                </Button>
-                <Button variant="outline" onClick={exitBatch} className="ml-2">
-                  Exit Batch
                 </Button>
               </div>
             )}
@@ -416,7 +485,13 @@ export default function ReviewPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setImageZoom(Math.max(0.5, imageZoom - 0.1))}
+                      onClick={() => {
+                        setImageZoom(Math.max(0.5, imageZoom - 0.1));
+                        // Reset pan when zooming out significantly
+                        if (imageZoom <= 1) {
+                          setImagePan({ x: 0, y: 0 });
+                        }
+                      }}
                     >
                       -
                     </Button>
@@ -424,19 +499,45 @@ export default function ReviewPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setImageZoom(Math.min(2, imageZoom + 0.1))}
+                      onClick={() => setImageZoom(Math.min(3, imageZoom + 0.1))}
                     >
                       +
                     </Button>
+                    {(imageZoom !== 1 || imagePan.x !== 0 || imagePan.y !== 0) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setImageZoom(1);
+                          setImagePan({ x: 0, y: 0 });
+                        }}
+                        title="Reset zoom and pan"
+                      >
+                        Reset
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="overflow-auto border rounded">
+                <div
+                  className="overflow-hidden border rounded relative cursor-grab active:cursor-grabbing"
+                  style={{ height: '500px' }}
+                  onWheel={handleWheel}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                >
                   {currentImage.image_data_base64 && (
                     <img
                       src={`data:${currentImage.mime_type};base64,${currentImage.image_data_base64}`}
                       alt={currentImage.image_type}
-                      style={{ transform: `scale(${imageZoom})`, transformOrigin: 'top left' }}
-                      className="max-w-full"
+                      style={{
+                        transform: `translate(${imagePan.x}px, ${imagePan.y}px) scale(${imageZoom})`,
+                        transformOrigin: 'top left',
+                        transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                      }}
+                      className="max-w-full select-none"
+                      draggable={false}
                     />
                   )}
                 </div>

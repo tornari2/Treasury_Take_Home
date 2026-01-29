@@ -119,11 +119,22 @@ export default function Dashboard() {
         setSelectedApps(new Set());
         router.push(`/review/${firstAppId}?batch=true`);
       } else {
-        alert('Failed to start batch processing');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage =
+          errorData.message ||
+          errorData.error ||
+          'Failed to start batch processing. Please try again.';
+        alert(`Batch Processing Error: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Batch verify error:', error);
-      alert('Error starting batch processing');
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert(
+          'Network error: Unable to connect to the server. Please check your connection and try again.'
+        );
+      } else {
+        alert('An unexpected error occurred while starting batch processing. Please try again.');
+      }
     } finally {
       setBatchProcessing(false);
     }
@@ -140,13 +151,25 @@ export default function Dashboard() {
         // Redirect directly to review page instead of showing alert
         router.push(`/review/${appId}`);
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        alert(`Verification failed: ${errorData.error || 'Unknown error'}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage =
+          errorData.user_message ||
+          errorData.message ||
+          errorData.error ||
+          'Verification failed. Please try again.';
+
+        alert(`Verification Error: ${errorMessage}`);
         setVerifyingApp(null);
       }
     } catch (error) {
       console.error('Verify error:', error);
-      alert('Error during verification');
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        alert(
+          'Network error: Unable to connect to the server. Please check your connection and try again.'
+        );
+      } else {
+        alert('An unexpected error occurred during verification. Please try again.');
+      }
       setVerifyingApp(null);
     }
   };
@@ -385,31 +408,33 @@ export default function Dashboard() {
         </div>
 
         {/* Action Buttons */}
-        {selectedApps.size > 0 && (
-          <div className="mt-4 flex gap-3 justify-center">
-            <Button
-              onClick={handleReviewSelected}
-              variant="default"
-              disabled={selectedApps.size === 0}
-            >
-              Review ({selectedApps.size})
-            </Button>
-            <Button
-              onClick={handleBatchVerify}
-              variant="default"
-              disabled={batchProcessing || selectedApps.size === 0}
-            >
-              {batchProcessing ? 'Processing...' : `Verify (${selectedApps.size})`}
-            </Button>
-            <Button
-              onClick={handleDeleteSelected}
-              variant="destructive"
-              disabled={deletingApps.size > 0 || selectedApps.size === 0}
-            >
-              {deletingApps.size > 0 ? 'Deleting...' : `Delete (${selectedApps.size})`}
-            </Button>
-          </div>
-        )}
+        <div className="mt-4 flex gap-3 justify-center">
+          <Button
+            onClick={handleReviewSelected}
+            variant="default"
+            disabled={selectedApps.size === 0}
+          >
+            Review{selectedApps.size >= 2 ? ` (${selectedApps.size})` : ''}
+          </Button>
+          <Button
+            onClick={handleBatchVerify}
+            variant="default"
+            disabled={batchProcessing || selectedApps.size === 0}
+          >
+            {batchProcessing
+              ? 'Processing...'
+              : `Verify${selectedApps.size >= 2 ? ` (${selectedApps.size})` : ''}`}
+          </Button>
+          <Button
+            onClick={handleDeleteSelected}
+            variant="destructive"
+            disabled={deletingApps.size > 0 || selectedApps.size === 0}
+          >
+            {deletingApps.size > 0
+              ? 'Deleting...'
+              : `Delete${selectedApps.size >= 2 ? ` (${selectedApps.size})` : ''}`}
+          </Button>
+        </div>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

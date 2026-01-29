@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { applicationHelpers, labelImageHelpers } from '@/lib/db-helpers';
 import { auditLogHelpers } from '@/lib/db-helpers';
-import { extractLabelData } from '@/lib/openai-service';
+import {
+  extractLabelData,
+  validateOpenAIKey,
+  OpenAIAPIKeyError,
+  OpenAITimeoutError,
+  OpenAINetworkError,
+  OpenAIAPIError,
+} from '@/lib/openai-service';
 import { verifyApplication, determineApplicationStatus } from '@/lib/verification';
 import { convertApplicationToApplicationData } from '@/lib/application-converter';
 import type { ExtractedData } from '@/types/database';
@@ -10,6 +17,20 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Validate API key before processing
+    const keyValidation = validateOpenAIKey();
+    if (!keyValidation.valid) {
+      return NextResponse.json(
+        {
+          error: 'Configuration Error',
+          message: keyValidation.error || 'OpenAI API key is not configured',
+          details:
+            'Please configure the OPENAI_API_KEY environment variable to enable verification.',
+        },
+        { status: 503 }
+      );
+    }
+
     const applicationId = parseInt(params.id);
 
     if (isNaN(applicationId)) {
@@ -30,6 +51,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         { error: 'No label images found for this application' },
         { status: 400 }
       );
+    }
+
+    // Reset status to "pending" when re-verifying
+    // This ensures that re-verification starts fresh regardless of previous status
+    if (application.status !== 'pending') {
+      applicationHelpers.updateStatus(applicationId, 'pending', null);
     }
 
     // Convert database Application to ApplicationData format
@@ -77,20 +104,54 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           processing_time_ms: processingTimeMs,
         });
 
-        // Update application status if needed (only if soft mismatch detected)
-        if (newStatus === 'needs_review' && application.status === 'pending') {
+        // Update application status based on verification results
+        // Status was already reset to 'pending' at the start, so we can update it here
+        if (newStatus === 'needs_review') {
           applicationHelpers.updateStatus(applicationId, 'needs_review', null);
         }
       } catch (error) {
         console.error(`Error processing label image ${labelImage.id}:`, error);
+
+        // Determine error type and user-friendly message
+        let errorType = 'Processing Error';
+        let errorMessage = 'Failed to process image';
+        let userMessage = 'Verification failed for this image. Please try again.';
+
+        if (error instanceof OpenAIAPIKeyError) {
+          errorType = 'Configuration Error';
+          errorMessage = error.message;
+          userMessage =
+            'OpenAI API key is not configured or invalid. Please contact administrator.';
+        } else if (error instanceof OpenAITimeoutError) {
+          errorType = 'Timeout Error';
+          errorMessage = error.message;
+          userMessage =
+            'Verification timed out. The image may be too large or the service is busy. Please try again.';
+        } else if (error instanceof OpenAINetworkError) {
+          errorType = 'Network Error';
+          errorMessage = error.message;
+          userMessage = 'Network error occurred. Please check your connection and try again.';
+        } else if (error instanceof OpenAIAPIError) {
+          errorType = 'API Error';
+          errorMessage = error.message;
+          if (error.statusCode === 429) {
+            userMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+          } else {
+            userMessage = 'OpenAI API error occurred. Please try again later.';
+          }
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+
         // Store error results as array too
         if (!verificationResults[labelImage.image_type]) {
           verificationResults[labelImage.image_type] = [];
         }
         verificationResults[labelImage.image_type].push({
           image_id: labelImage.id,
-          error: 'Failed to process image',
-          message: error instanceof Error ? error.message : 'Unknown error',
+          error: errorType,
+          message: errorMessage,
+          user_message: userMessage,
         });
       }
     }
@@ -127,6 +188,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         ? 'needs_review'
         : 'pending';
 
+    // Update application status based on overall verification results
+    // Status was already reset to 'pending' at the start, so update it here
+    applicationHelpers.updateStatus(applicationId, overallStatus, null);
+
     return NextResponse.json({
       application_id: applicationId,
       verification_results: verificationResults,
@@ -135,6 +200,26 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     });
   } catch (error) {
     console.error('Verify application error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+
+    // Handle specific error types
+    if (error instanceof OpenAIAPIKeyError) {
+      return NextResponse.json(
+        {
+          error: 'Configuration Error',
+          message: error.message,
+          details: 'Please configure the OPENAI_API_KEY environment variable.',
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred during verification',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }

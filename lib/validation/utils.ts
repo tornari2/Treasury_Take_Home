@@ -89,7 +89,23 @@ export function producerNamesMatchIgnoringEntitySuffix(
 }
 
 /**
+ * Check if two strings differ only by case (same content, same whitespace, different case)
+ */
+export function differsOnlyByCase(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  if (!a || !b) return false;
+  // Normalize whitespace for both (preserves case)
+  const normalizedA = normalizeWhitespace(a);
+  const normalizedB = normalizeWhitespace(b);
+  // Check if they match case-insensitively but differ in case
+  return normalizedA.toLowerCase() === normalizedB.toLowerCase() && normalizedA !== normalizedB;
+}
+
+/**
  * Check if two strings are a soft mismatch (same when normalized, different in original)
+ * Excludes case-only differences (those are considered equivalent)
  */
 export function isSoftMismatch(
   a: string | null | undefined,
@@ -98,7 +114,9 @@ export function isSoftMismatch(
   if (!a || !b) return false;
   const normalizedMatch = normalizeString(a) === normalizeString(b);
   const exactMatch = normalizeWhitespace(a) === normalizeWhitespace(b);
-  return normalizedMatch && !exactMatch;
+  const caseOnly = differsOnlyByCase(a, b);
+  // Return true if normalized match but not exact match, AND it's not just a case difference
+  return normalizedMatch && !exactMatch && !caseOnly;
 }
 
 /**

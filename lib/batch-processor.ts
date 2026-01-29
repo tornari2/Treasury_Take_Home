@@ -1,5 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
-import { extractLabelData } from './openai-service';
+import {
+  extractLabelData,
+  validateOpenAIKey,
+  OpenAIAPIKeyError,
+  OpenAITimeoutError,
+  OpenAINetworkError,
+  OpenAIAPIError,
+} from './openai-service';
 import { verifyApplication, determineApplicationStatus } from './verification';
 import { applicationHelpers, labelImageHelpers } from './db-helpers';
 import { convertApplicationToApplicationData } from './application-converter';
@@ -30,6 +37,28 @@ const MAX_CONCURRENT = 10;
  * Process a batch of applications with concurrent AI calls
  */
 export async function processBatch(applicationIds: number[]): Promise<string> {
+  // Validate API key before starting batch
+  const keyValidation = validateOpenAIKey();
+  if (!keyValidation.valid) {
+    const batchId = uuidv4();
+    const batchStatus: BatchStatus = {
+      batch_id: batchId,
+      status: 'failed',
+      total_applications: applicationIds.length,
+      processed: 0,
+      successful: 0,
+      failed: applicationIds.length,
+      started_at: new Date().toISOString(),
+      results: applicationIds.map((id) => ({
+        application_id: id,
+        status: 'failed',
+        error: keyValidation.error || 'OpenAI API key is not configured',
+      })),
+    };
+    batchStatuses.set(batchId, batchStatus);
+    return batchId;
+  }
+
   const batchId = uuidv4();
   const startedAt = new Date().toISOString();
 
@@ -60,6 +89,12 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
           throw new Error(`No label images found for application ${appId}`);
         }
 
+        // Reset status to "pending" when re-verifying
+        // This ensures that re-verification starts fresh regardless of previous status
+        if (application.status !== 'pending') {
+          applicationHelpers.updateStatus(appId, 'pending', null);
+        }
+
         // Convert database Application to ApplicationData format
         const applicationData = convertApplicationToApplicationData(
           application,
@@ -67,6 +102,7 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
         );
 
         // Process all label images for this application
+        let finalStatus = 'pending';
         for (const labelImage of labelImages) {
           try {
             const { extractedData, confidence, processingTimeMs } = await extractLabelData(
@@ -87,14 +123,39 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
               processingTimeMs
             );
 
-            if (newStatus === 'needs_review' && application.status === 'pending') {
-              applicationHelpers.updateStatus(appId, 'needs_review', null);
+            // Track the most severe status across all images
+            // needs_review takes precedence over pending
+            if (newStatus === 'needs_review') {
+              finalStatus = 'needs_review';
             }
           } catch (error) {
             console.error(`Error processing label image for app ${appId}:`, error);
-            throw error;
+
+            // Determine user-friendly error message
+            let errorMessage = 'Unknown error';
+            if (error instanceof OpenAIAPIKeyError) {
+              errorMessage = 'OpenAI API key is not configured or invalid';
+            } else if (error instanceof OpenAITimeoutError) {
+              errorMessage = 'Request timed out. Please try again.';
+            } else if (error instanceof OpenAINetworkError) {
+              errorMessage = 'Network error occurred';
+            } else if (error instanceof OpenAIAPIError) {
+              if (error.statusCode === 429) {
+                errorMessage = 'Rate limit exceeded. Please wait and try again.';
+              } else {
+                errorMessage = `OpenAI API error: ${error.message}`;
+              }
+            } else if (error instanceof Error) {
+              errorMessage = error.message;
+            }
+
+            throw new Error(errorMessage);
           }
         }
+
+        // Update application status based on verification results
+        // Status was already reset to 'pending' at the start, so update it here
+        applicationHelpers.updateStatus(appId, finalStatus, null);
 
         batchStatus.results!.push({
           application_id: appId,
@@ -102,10 +163,11 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
         });
         batchStatus.successful++;
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         batchStatus.results!.push({
           application_id: appId,
           status: 'failed',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: errorMessage,
         });
         batchStatus.failed++;
       } finally {

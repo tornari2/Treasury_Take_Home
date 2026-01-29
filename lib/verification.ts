@@ -35,6 +35,7 @@ function convertToAIExtractionResult(
     netContents: getValue('net_contents'),
     producerName: getValue('producer_name'),
     producerAddress: getValue('producer_address'),
+    producerNamePhrase: getValue('producer_name_phrase'),
     healthWarningText: getValue('health_warning'),
     countryOfOrigin: getValue('country_of_origin'),
   };

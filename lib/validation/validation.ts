@@ -89,7 +89,10 @@ export function validateBeerLabel(
   fieldResults.push(validateClassType(extraction.classType));
   fieldResults.push(validateNetContents(extraction.netContents, BeverageType.BEER));
   fieldResults.push(
-    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
+    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress, {
+      beverageType: BeverageType.BEER,
+      producerNamePhrase: extraction.producerNamePhrase,
+    })
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
   fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
@@ -133,7 +136,10 @@ export function validateSpiritsLabel(
   fieldResults.push(validateAlcoholContent(extraction.alcoholContent, BeverageType.SPIRITS));
   fieldResults.push(validateNetContents(extraction.netContents, BeverageType.SPIRITS));
   fieldResults.push(
-    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
+    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress, {
+      beverageType: BeverageType.SPIRITS,
+      producerNamePhrase: extraction.producerNamePhrase,
+    })
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
   fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
@@ -175,7 +181,10 @@ export function validateWineLabel(
   );
   fieldResults.push(validateNetContents(extraction.netContents, BeverageType.WINE));
   fieldResults.push(
-    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress)
+    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress, {
+      beverageType: BeverageType.WINE,
+      producerNamePhrase: extraction.producerNamePhrase,
+    })
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
   fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));

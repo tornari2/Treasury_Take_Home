@@ -24,6 +24,8 @@ import {
   parseAlcoholPercentage,
   detectBeerAlcoholTerms,
   isTableWineOrLightWine,
+  validateBeerNetContentsFormat,
+  validateWineNetContentsFormat,
 } from '../utils';
 
 /**
@@ -520,7 +522,7 @@ export function validateNetContents(
   if (requiresMetric && hasNumberButNoUnit && !matchesMetric && !matchesUSCustomary) {
     return {
       field: 'netContents',
-      status: MatchStatus.SOFT_MISMATCH,
+      status: MatchStatus.HARD_MISMATCH,
       expected: expectedFormat,
       extracted,
       rule: 'FORMAT: Wine and spirits must use metric units (mL, L)',
@@ -533,10 +535,10 @@ export function validateNetContents(
   if (requiresMetric && !matchesMetric) {
     // Wine/Spirits: Metric required
     if (matchesUSCustomary) {
-      // Has US customary but not metric - soft mismatch (optional unit present)
+      // Has US customary but not metric - HARD MISMATCH (wrong unit type)
       return {
         field: 'netContents',
-        status: MatchStatus.SOFT_MISMATCH,
+        status: MatchStatus.HARD_MISMATCH,
         expected: expectedFormat,
         extracted,
         rule: 'FORMAT: Wine and spirits must use metric units (mL, L). U.S. customary units are optional.',
@@ -546,7 +548,7 @@ export function validateNetContents(
     // Neither metric nor US customary - invalid format
     return {
       field: 'netContents',
-      status: MatchStatus.SOFT_MISMATCH,
+      status: MatchStatus.HARD_MISMATCH,
       expected: expectedFormat,
       extracted,
       rule: 'FORMAT: Wine and spirits must use metric units (mL, L)',
@@ -557,10 +559,10 @@ export function validateNetContents(
   if (requiresUSCustomary && !matchesUSCustomary) {
     // Beer: US customary required
     if (matchesMetric) {
-      // Has metric but not US customary - soft mismatch (optional unit present)
+      // Has metric but not US customary - HARD MISMATCH (wrong unit type)
       return {
         field: 'netContents',
-        status: MatchStatus.SOFT_MISMATCH,
+        status: MatchStatus.HARD_MISMATCH,
         expected: expectedFormat,
         extracted,
         rule: 'FORMAT: Beer must use U.S. customary units (fl. oz., pints, quarts, gallons). Metric units are optional.',
@@ -570,7 +572,7 @@ export function validateNetContents(
     // Neither US customary nor metric - invalid format
     return {
       field: 'netContents',
-      status: MatchStatus.SOFT_MISMATCH,
+      status: MatchStatus.HARD_MISMATCH,
       expected: expectedFormat,
       extracted,
       rule: 'FORMAT: Beer must use U.S. customary units (fl. oz., pints, quarts, gallons)',
@@ -578,8 +580,39 @@ export function validateNetContents(
     };
   }
 
+  // Required unit type is present - validate formatting requirements
+  if (requiresUSCustomary && beverageType === BeverageType.BEER) {
+    // Validate beer formatting requirements per 27 CFR 7.70
+    const formatError = validateBeerNetContentsFormat(normalized);
+    if (formatError) {
+      return {
+        field: 'netContents',
+        status: MatchStatus.HARD_MISMATCH,
+        expected: expectedFormat,
+        extracted,
+        rule: 'FORMAT: Beer net contents must follow U.S. standard measure formatting requirements (27 CFR 7.70)',
+        details: formatError,
+      };
+    }
+  }
+
   // Required unit type is present - check standards of fill for spirits and wine
   if (requiresMetric) {
+    // For wine, validate formatting requirements for containers 4L+ per 27 CFR 4.72
+    if (beverageType === BeverageType.WINE) {
+      const formatError = validateWineNetContentsFormat(normalized);
+      if (formatError) {
+        return {
+          field: 'netContents',
+          status: MatchStatus.HARD_MISMATCH,
+          expected: expectedFormat,
+          extracted,
+          rule: 'FORMAT: Wine net contents must follow metric formatting requirements (27 CFR 4.72)',
+          details: formatError,
+        };
+      }
+    }
+
     // For wine and spirits, check if the volume matches authorized standards of fill
     const volumeML = parseNetContentsToML(normalized);
 
@@ -625,11 +658,18 @@ export function validateNetContents(
 /**
  * Validate Producer Name and Address
  * Only validates producer name, city, and state - does not validate full street address
+ *
+ * For Spirits and Wine: Name and address must immediately follow "Bottled By" or "Imported By" with no intervening text
+ * For Imported Beer: Importer name and address must immediately follow "Imported by" or similar phrase with no intervening text
  */
 export function validateProducerNameAddress(
   application: ApplicationData,
   extractedName: string | null,
-  extractedAddress: string | null
+  extractedAddress: string | null,
+  options?: {
+    beverageType?: BeverageType;
+    producerNamePhrase?: string | null;
+  }
 ): FieldValidationResult {
   const expectedName = application.producerName;
   const expectedCity = application.producerAddress.city;
@@ -707,6 +747,50 @@ export function validateProducerNameAddress(
       details:
         'City or state does not match (note: state abbreviations are equivalent to full names, e.g., "ME" = "Maine")',
     };
+  }
+
+  // Validate phrase requirement (Bottled By/Imported By)
+  const beverageType = options?.beverageType;
+  const producerNamePhrase = options?.producerNamePhrase;
+  const isImported = application.originType === OriginType.IMPORTED;
+
+  if (beverageType && extractedName && extractedAddress) {
+    // Check phrase requirement for Spirits and Wine
+    if (beverageType === BeverageType.SPIRITS || beverageType === BeverageType.WINE) {
+      const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
+      const hasBottledBy = /bottled\s+by/i.test(normalizedPhrase);
+      const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
+
+      if (!hasBottledBy && !hasImportedBy) {
+        return {
+          field: 'producerNameAddress',
+          status: MatchStatus.SOFT_MISMATCH,
+          expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+          rule: 'FORMAT: Producer name and address must immediately follow "Bottled By" or "Imported By" with no intervening text',
+          details:
+            'Producer name/address should immediately follow "Bottled By" or "Imported By" phrase. No such phrase detected or intervening text may be present.',
+        };
+      }
+    }
+
+    // Check phrase requirement for Imported Beer
+    if (beverageType === BeverageType.BEER && isImported) {
+      const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
+      const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
+
+      if (!hasImportedBy) {
+        return {
+          field: 'producerNameAddress',
+          status: MatchStatus.SOFT_MISMATCH,
+          expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+          rule: 'FORMAT: Importer name and address must immediately follow "Imported by" or similar phrase with no intervening text',
+          details:
+            'Importer name/address should immediately follow "Imported by" or similar phrase. No such phrase detected or intervening text may be present.',
+        };
+      }
+    }
   }
 
   if (nameSoftMismatch) {

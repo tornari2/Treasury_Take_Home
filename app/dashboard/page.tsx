@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [selectedApps, setSelectedApps] = useState<Set<number>>(new Set());
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [verifyingApp, setVerifyingApp] = useState<number | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -116,6 +117,28 @@ export default function Dashboard() {
       alert('Error starting batch processing');
     } finally {
       setBatchProcessing(false);
+    }
+  };
+
+  const handleVerifySingle = async (appId: number) => {
+    setVerifyingApp(appId);
+    try {
+      const response = await fetch(`/api/applications/${appId}/verify`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        await fetchApplications();
+        alert('Verification completed successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        alert(`Verification failed: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Verify error:', error);
+      alert('Error during verification');
+    } finally {
+      setVerifyingApp(null);
     }
   };
 
@@ -215,7 +238,7 @@ export default function Dashboard() {
                 </TableRow>
               ) : (
                 applications.map((app) => (
-                  <TableRow key={app.id}>
+                  <TableRow key={app.id} className={selectedApps.has(app.id) ? 'bg-blue-50' : ''}>
                     <TableCell>
                       <Checkbox
                         checked={selectedApps.has(app.id)}
@@ -234,11 +257,23 @@ export default function Dashboard() {
                       {new Date(app.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Link href={`/review/${app.id}`}>
-                        <Button variant="link" className="h-auto p-0">
-                          Review
-                        </Button>
-                      </Link>
+                      <div className="flex gap-2 items-center">
+                        <Link href={`/review/${app.id}`}>
+                          <Button variant="link" className="h-auto p-0">
+                            Review
+                          </Button>
+                        </Link>
+                        {selectedApps.has(app.id) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleVerifySingle(app.id)}
+                            disabled={verifyingApp === app.id}
+                          >
+                            {verifyingApp === app.id ? 'Verifying...' : 'Verify'}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

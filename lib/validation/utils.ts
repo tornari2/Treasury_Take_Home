@@ -162,6 +162,229 @@ export function parseNetContentsToML(value: string | null): number | null {
 }
 
 /**
+ * Parse US customary net contents value and convert to fluid ounces for comparison
+ * Returns the volume in fl oz, or null if parsing fails
+ * Handles complex formats like "1 pint 8 fl oz", "2 quarts 1 pint", etc.
+ * Conversion factors:
+ * - 1 pint = 16 fl oz
+ * - 1 quart = 32 fl oz
+ * - 1 gallon = 128 fl oz
+ */
+export function parseNetContentsToFlOz(value: string | null): number | null {
+  if (!value) return null;
+
+  const normalized = value.trim().toLowerCase();
+  let totalFlOz = 0;
+
+  // Parse gallons
+  const gallonMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*gallon(s)?/i);
+  if (gallonMatch) {
+    const numStr = gallonMatch[1];
+    let num: number;
+    if (numStr.includes('/')) {
+      const [n, d] = numStr.split('/').map(Number);
+      if (isNaN(n) || isNaN(d) || d === 0) return null;
+      num = n / d;
+    } else {
+      num = parseFloat(numStr);
+      if (isNaN(num)) return null;
+    }
+    totalFlOz += num * 128;
+  }
+
+  // Parse quarts
+  const quartMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*quart(s)?/i);
+  if (quartMatch) {
+    const numStr = quartMatch[1];
+    let num: number;
+    if (numStr.includes('/')) {
+      const [n, d] = numStr.split('/').map(Number);
+      if (isNaN(n) || isNaN(d) || d === 0) return null;
+      num = n / d;
+    } else {
+      num = parseFloat(numStr);
+      if (isNaN(num)) return null;
+    }
+    totalFlOz += num * 32;
+  }
+
+  // Parse pints
+  const pintMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*pint(s)?/i);
+  if (pintMatch) {
+    const numStr = pintMatch[1];
+    let num: number;
+    if (numStr.includes('/')) {
+      const [n, d] = numStr.split('/').map(Number);
+      if (isNaN(n) || isNaN(d) || d === 0) return null;
+      num = n / d;
+    } else {
+      num = parseFloat(numStr);
+      if (isNaN(num)) return null;
+    }
+    totalFlOz += num * 16;
+  }
+
+  // Parse fluid ounces
+  const flOzMatch = normalized.match(
+    /(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:fl\.?\s*oz\.?|fluid\s+ounce(s)?)/i
+  );
+  if (flOzMatch) {
+    const numStr = flOzMatch[1];
+    let num: number;
+    if (numStr.includes('/')) {
+      const [n, d] = numStr.split('/').map(Number);
+      if (isNaN(n) || isNaN(d) || d === 0) return null;
+      num = n / d;
+    } else {
+      num = parseFloat(numStr);
+      if (isNaN(num)) return null;
+    }
+    totalFlOz += num;
+  }
+
+  // If we found at least one unit, return the total
+  if (gallonMatch || quartMatch || pintMatch || flOzMatch) {
+    return totalFlOz;
+  }
+
+  return null;
+}
+
+/**
+ * Validate beer net contents formatting per 27 CFR 7.70
+ * Returns validation error message or null if valid
+ */
+export function validateBeerNetContentsFormat(value: string | null): string | null {
+  if (!value) return null;
+
+  const volumeFlOz = parseNetContentsToFlOz(value);
+  if (volumeFlOz === null) return null; // Can't parse, will be caught by other validation
+
+  const normalized = value.trim().toLowerCase();
+
+  // Less than 1 pint (16 fl oz): must be in fluid ounces or fractions of a pint
+  if (volumeFlOz < 16) {
+    // Check if it's stated in fluid ounces or fractions of a pint
+    const hasFlOz = /fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce(s)?/i.test(value);
+    const hasPintFraction = /pint/i.test(value) && (/\//.test(value) || /\d+\s*pint/i.test(value));
+
+    if (!hasFlOz && !hasPintFraction) {
+      return 'For volumes less than 1 pint, net contents must be stated in fluid ounces or fractions of a pint';
+    }
+  }
+
+  // Exactly 1 pint, 1 quart, or 1 gallon: must be stated exactly as "1 pint", "1 quart", or "1 gallon"
+  if (Math.abs(volumeFlOz - 16) < 0.01) {
+    // Exactly 1 pint - must be exactly "1 pint" (no fractions, no additional units)
+    if (!/^1\s+pint(?!\s)/i.test(normalized) && !/^1\s+pint\s*$/i.test(normalized)) {
+      return 'For exactly 1 pint, net contents must be stated as "1 pint"';
+    }
+  } else if (Math.abs(volumeFlOz - 32) < 0.01) {
+    // Exactly 1 quart - must be exactly "1 quart"
+    if (!/^1\s+quart(?!\s)/i.test(normalized) && !/^1\s+quart\s*$/i.test(normalized)) {
+      return 'For exactly 1 quart, net contents must be stated as "1 quart"';
+    }
+  } else if (Math.abs(volumeFlOz - 128) < 0.01) {
+    // Exactly 1 gallon - must be exactly "1 gallon"
+    if (!/^1\s+gallon(?!\s)/i.test(normalized) && !/^1\s+gallon\s*$/i.test(normalized)) {
+      return 'For exactly 1 gallon, net contents must be stated as "1 gallon"';
+    }
+  }
+
+  // More than 1 pint but less than 1 quart (16-32 fl oz): fractions of a quart, or pints and fluid ounces
+  if (volumeFlOz > 16 && volumeFlOz < 32) {
+    const hasQuartFraction =
+      /quart/i.test(value) && (/\//.test(value) || /\d+\s*quart/i.test(value));
+    const hasPintsAndFlOz =
+      /pint/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value));
+
+    if (!hasQuartFraction && !hasPintsAndFlOz) {
+      return 'For volumes more than 1 pint but less than 1 quart, net contents must be stated in fractions of a quart, or in pints and fluid ounces';
+    }
+  }
+
+  // More than 1 quart but less than 1 gallon (32-128 fl oz): fractions of a gallon, or quarts, pints, and fluid ounces
+  if (volumeFlOz > 32 && volumeFlOz < 128) {
+    const hasGallonFraction =
+      /gallon/i.test(value) && (/\//.test(value) || /\d+\s*gallon/i.test(value));
+    const hasMultipleUnits =
+      /quart/i.test(value) ||
+      (/pint/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value)));
+
+    if (!hasGallonFraction && !hasMultipleUnits) {
+      return 'For volumes more than 1 quart but less than 1 gallon, net contents must be stated in fractions of a gallon, or in quarts, pints, and fluid ounces';
+    }
+  }
+
+  // More than 1 gallon: gallons and fractions thereof
+  if (volumeFlOz > 128) {
+    if (!/gallon/i.test(value)) {
+      return 'For volumes more than 1 gallon, net contents must be stated in gallons and fractions thereof';
+    }
+  }
+
+  return null; // Valid format
+}
+
+/**
+ * Validate wine net contents formatting per 27 CFR 4.72
+ * Returns validation error message or null if valid
+ *
+ * Rules:
+ * - Containers 4-17 liters: must be expressed in whole liters (4L, 5L, 6L, etc.)
+ * - Containers 18+ liters: must be expressed in liters with decimal portions accurate to nearest one-hundredth
+ */
+export function validateWineNetContentsFormat(value: string | null): string | null {
+  if (!value) return null;
+
+  const volumeML = parseNetContentsToML(value);
+  if (volumeML === null) return null; // Can't parse, will be caught by other validation
+
+  const volumeLiters = volumeML / 1000;
+  const normalized = value.trim().toLowerCase();
+
+  // Only validate formatting for containers 4L and above
+  if (volumeLiters < 4) {
+    return null; // Standard formatting rules apply (handled by standards of fill check)
+  }
+
+  // Containers 4-17 liters: must be expressed in whole liters (4L, 5L, 6L, etc.)
+  // "Even liters" here means whole numbers, not odd/even
+  if (volumeLiters >= 4 && volumeLiters <= 17) {
+    // Check if it's a whole number (integer)
+    if (!Number.isInteger(volumeLiters)) {
+      return 'For containers 4-17 liters, net contents must be expressed in whole liters (e.g., 4 liters, 5 liters, 6 liters). Decimal portions are not allowed.';
+    }
+
+    // Check if format matches "X liters" or "X L" where X is an integer
+    const integerLiters = Math.floor(volumeLiters);
+    // Allow formats like "4 liters", "4 L", "4 liter", "4L", etc.
+    const formatMatch = new RegExp(`^${integerLiters}\\s*(liter(s)?|l\\.?)$`, 'i');
+    if (!formatMatch.test(normalized)) {
+      return `For containers 4-17 liters, net contents must be expressed as "${integerLiters} liters" or "${integerLiters} L" (whole numbers only, no decimals)`;
+    }
+  }
+
+  // Containers 18+ liters: must be expressed in liters and decimal portions accurate to nearest one-hundredth
+  if (volumeLiters >= 18) {
+    // Check if decimal portion is accurate to nearest one-hundredth (max 2 decimal places)
+    const decimalPlaces = (volumeLiters.toString().split('.')[1] || '').length;
+    if (decimalPlaces > 2) {
+      return 'For containers 18 liters or more, net contents must be expressed in liters accurate to the nearest one-hundredth of a liter (maximum 2 decimal places)';
+    }
+
+    // Check if format matches "X.XX liters" or "X.XX L" with up to 2 decimal places
+    // Also allow whole numbers (e.g., "18 liters")
+    const formatMatch = /^\d+(\.\d{1,2})?\s*(liter(s)?|l\\.?)$/i;
+    if (!formatMatch.test(normalized)) {
+      return 'For containers 18 liters or more, net contents must be expressed in liters and decimal portions accurate to the nearest one-hundredth of a liter (e.g., 18.50 liters, 20.25 L)';
+    }
+  }
+
+  return null; // Valid format
+}
+
+/**
  * Check if a volume (in mL) matches authorized standards of fill for spirits
  */
 export function isValidSpiritsStandardOfFill(volumeML: number | null): boolean {

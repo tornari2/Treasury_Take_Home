@@ -72,6 +72,7 @@ export interface BeerExtractionResult {
     netContents: string | null;
     producerName: string | null;
     producerAddress: string | null;
+    producerNamePhrase: string | null; // Phrase preceding producer name (e.g., "Bottled By", "Imported By")
     healthWarningText: string | null;
     countryOfOrigin: string | null;
     alcoholContent: string | null; // Validated with warning if missing (not hard failure)
@@ -105,6 +106,7 @@ export interface SpiritsExtractionResult {
     netContents: string | null;
     producerName: string | null;
     producerAddress: string | null;
+    producerNamePhrase: string | null; // Phrase preceding producer name (e.g., "Bottled By", "Imported By")
     healthWarningText: string | null;
     countryOfOrigin: string | null;
     ageStatement: string | null; // REQUIRED for spirits
@@ -137,6 +139,7 @@ export interface WineExtractionResult {
     netContents: string | null;
     producerName: string | null;
     producerAddress: string | null;
+    producerNamePhrase: string | null; // Phrase preceding producer name (e.g., "Bottled By", "Imported By")
     healthWarningText: string | null;
     countryOfOrigin: string | null;
     appellation: string | null;

@@ -41,6 +41,8 @@ export async function extractLabelData(
     net_contents: 'Net contents (volume)',
     producer_name: 'Producer name',
     producer_address: 'Producer address',
+    producer_name_phrase:
+      'Phrase immediately preceding producer name/address (e.g., "Bottled By", "Imported By", "Imported by", or null if no such phrase)',
     health_warning: 'Government health warning statement (must be exact)',
   };
 

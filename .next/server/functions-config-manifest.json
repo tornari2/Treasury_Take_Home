@@ -1,0 +1,1 @@
+{"version":1,"functions":{"/api/applications/[id]/verify":{},"/api/audit-logs":{},"/api/applications/[id]":{},"/api/batch/verify":{},"/api/health":{},"/api/applications":{},"/api/batch/status/[batchId]":{}}}

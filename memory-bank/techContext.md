@@ -23,18 +23,18 @@ _Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and con
 | shadcn/ui     | Component library (Radix UI + Tailwind) |
 | Radix UI      | Accessible component primitives         |
 | Lucide React  | Icon library                            |
-| React Context | State management (auth, selection)      |
+| React Context | State management (selection)            |
 | Next.js Image | Optimized image rendering               |
 
 ### Backend
 
-| Technology         | Purpose                           |
-| ------------------ | --------------------------------- |
-| Next.js API Routes | RESTful API endpoints             |
-| bcryptjs           | Password hashing (cost factor 10) |
-| better-sqlite3     | Synchronous SQLite driver         |
-| OpenAI Node SDK    | OpenAI API client                 |
-| uuid               | Session ID generation             |
+| Technology         | Purpose                                             |
+| ------------------ | --------------------------------------------------- |
+| Next.js API Routes | RESTful API endpoints                               |
+| bcryptjs           | ~~Password hashing~~ (not used - auth removed)      |
+| better-sqlite3     | Synchronous SQLite driver                           |
+| OpenAI Node SDK    | OpenAI API client                                   |
+| uuid               | ~~Session ID generation~~ (not used - auth removed) |
 
 ### Development Tools
 
@@ -77,10 +77,7 @@ cp .env.example.local .env.local
 # 4. Initialize database (runs automatically on import)
 # Database is created at first import of lib/migrations.ts
 
-# 5. Create test user
-npx tsx scripts/create-test-user.ts
-
-# 6. Start development server
+# 5. Start development server (authentication removed - no test user needed)
 npm run dev
 
 # 7. Open browser
@@ -96,8 +93,8 @@ OPENAI_API_KEY=sk-proj-...           # OpenAI API key
 # Database
 DATABASE_PATH=./data/database.db     # SQLite database path
 
-# Authentication
-SESSION_SECRET=your-secret-here      # Session encryption key
+# Authentication (REMOVED - no longer required)
+# SESSION_SECRET=your-secret-here      # Not needed - authentication removed
 
 # Node Environment
 NODE_ENV=development                 # development | production
@@ -163,7 +160,7 @@ npx tsx scripts/create-test-user.ts # Create test user
 
 ### Security Requirements (Prototype)
 
-- **Authentication:** Session-based with bcrypt password hashing
+- **Authentication:** ~~Session-based with bcrypt password hashing~~ (REMOVED - all endpoints publicly accessible)
 - **HTTPS:** Enforced (Railway provides SSL)
 - **Input validation:** All API inputs sanitized
 - **SQL injection:** Prevented via parameterized queries
@@ -325,6 +322,7 @@ The system now uses `ApplicationData` as the source of truth for application dat
 ```typescript
 interface ApplicationData {
   id: string;
+  ttbId?: string | null; // TTB ID for the application (optional)
   beverageType: BeverageType; // 'beer' | 'wine' | 'spirits'
   originType: OriginType; // 'domestic' | 'imported'
   brandName: string; // Required - must match label
@@ -344,7 +342,9 @@ interface ApplicationData {
 **Key Changes:**
 
 - `originCode: string` replaced with `originType: OriginType` enum (DOMESTIC/IMPORTED)
-- Origin codes infrastructure removed (no longer using TTB origin code mappings)
+- Origin codes infrastructure completely removed (no longer using TTB origin code mappings)
+- All origin code references removed from codebase
+- Application converter uses `inferOriginTypeFromCountry()` instead of origin codes
 
 **Database Storage:** Stored as JSON in `application_data` column (migrated from `expected_label_data`)
 
@@ -377,7 +377,7 @@ interface ApplicationData {
 
 ### Schema
 
-- **users:** User accounts with authentication
+- **users:** User accounts table exists but authentication removed (endpoints are public)
 - **applications:** Application records with `application_data` (JSON, ApplicationData format)
 - **label_images:** Label images with extracted/verification data
 - **audit_logs:** Action tracking for all user activities
@@ -420,4 +420,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 28, 2025 (Replaced origin codes with OriginType enum, updated validation rules for wine varietal/appellation cross-checks, removed country of origin cross-checking). Update when dependencies, tools, or constraints change._
+_Last Updated: January 28, 2025 (Authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._

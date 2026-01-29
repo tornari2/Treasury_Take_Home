@@ -8,7 +8,64 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 **Primary Goal:** TTB Label Verification System prototype - **COMPLETE** ✅  
 **Current Sprint:** Code quality improvements, testing, and deployment preparation
 
-## Recent Changes (January 27, 2025)
+## Recent Changes (January 28, 2025)
+
+### Authentication System Removed ✅
+
+- **Removed Components:**
+  - Login page (`app/login/page.tsx`)
+  - Auth API routes (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`)
+  - Authentication middleware checks from all API routes
+- **Impact:** All API endpoints are now publicly accessible
+- **Home Page:** Redirects directly to `/dashboard` instead of `/login`
+- **Reason:** Authentication not required for prototype/demo purposes
+
+### Application Form Enhancements ✅
+
+- **TTB_ID Field Added:**
+  - Added to `ApplicationData` type as optional field
+  - Added input field to application form (top of Basic Information section)
+  - Stored in `application_data` JSON in database
+  - Optional field - users can leave blank
+
+### Origin Code System Completely Removed ✅
+
+- **Removed References:**
+  - All `originCode` and `origin_code` references removed
+  - Removed `inferOriginCodeFromCountry` function
+  - Removed `require('./validation/origin-codes')` import
+- **Replaced With:**
+  - `OriginType` enum (DOMESTIC/IMPORTED) used throughout
+  - `inferOriginTypeFromCountry` function returns OriginType enum
+  - Application converter uses `originType` instead of `originCode`
+- **Tests Updated:** Verification tests now use `originType: OriginType.DOMESTIC`
+
+### UI/UX Improvements ✅
+
+- **Flag for Review Button:**
+  - Now redirects to dashboard after clicking
+  - Application status properly updated to `needs_review`
+  - Dashboard displays "Flagged for Review" instead of "needs_review"
+- **Status Display:**
+  - Added `getStatusDisplayText()` helper function
+  - Formatted status badges: "Approved", "Rejected", "Flagged for Review", "Pending"
+- **Review Page:**
+  - Added confirmation dialog for overriding hard mismatches
+  - Improved messaging emphasizing agent judgment
+  - Better review notes guidance
+
+### Government Warning Constant Updated ✅
+
+- **Change:** Updated `REQUIRED_HEALTH_WARNING` constant to all capital letters
+- **Text:** Entire warning now in uppercase for consistency
+
+### Bug Fixes ✅
+
+- **Cookie Handling:** Fixed Next.js 15 cookie setting (using `NextResponse.cookies.set()`)
+- **Audit Logs:** Removed audit log calls that caused foreign key constraint failures
+- **Application Converter:** Fixed to use `originType` instead of `originCode`
+
+## Previous Changes (January 27, 2025)
 
 ### Validation Module Refactoring ✅ (January 27, 2025)
 
@@ -177,7 +234,7 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 ✅ lib/                    # Utility libraries (complete)
    ├── validation/         # Modular validation rules (NEW)
    │   ├── types.ts
-   │   ├── origin-codes.ts
+   │   ├── ~~origin-codes.ts~~ (REMOVED - no longer exists)
    │   ├── constants.ts
    │   ├── prompts.ts
    │   ├── utils.ts
@@ -229,4 +286,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 27, 2025 (Validation module refactored into modular structure, ApplicationData direct usage implemented, Railway deployment configured). Ready for production deployment and testing._
+_Last Updated: January 28, 2025 (Authentication removed, TTB_ID added, origin codes removed, UI improvements, bug fixes). Ready for production deployment and testing._

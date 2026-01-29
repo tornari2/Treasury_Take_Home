@@ -135,7 +135,6 @@ export interface WineExtractionResult {
   extraction: {
     // Validated fields
     brandName: string | null;
-    fancifulName: string | null;
     classType: string | null; // Also known as varietal (e.g., "Chardonnay")
     alcoholContent: string | null;
     netContents: string | null;

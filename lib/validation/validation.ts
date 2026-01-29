@@ -171,7 +171,6 @@ export function validateWineLabel(
 
   // Validated fields
   fieldResults.push(validateBrandName(application, extraction.brandName));
-  fieldResults.push(validateFancifulName(application, extraction.fancifulName));
   fieldResults.push(validateWineVarietal(application, extraction.classType)); // Cross-check varietal
   fieldResults.push(
     validateAlcoholContent(extraction.alcoholContent, BeverageType.WINE, {
@@ -234,7 +233,7 @@ export function determineApplicationStatus(
     case MatchStatus.MATCH:
       return 'pending';
     case MatchStatus.SOFT_MISMATCH:
-      return 'needs_review';
+      return 'pending'; // Soft mismatches stay pending (no longer flagged for review)
     case MatchStatus.HARD_MISMATCH:
     case MatchStatus.NOT_FOUND:
       return 'pending';

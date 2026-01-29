@@ -7,7 +7,7 @@ import { MatchStatus, BeverageType } from './types';
 export const FIELD_LABELS: Record<string, string> = {
   brandName: 'Brand Name',
   fancifulName: 'Fanciful Name',
-  classType: 'Class/Type (Varietal)',
+  classType: 'Class/Type',
   alcoholContent: 'Alcohol Content',
   netContents: 'Net Contents',
   producerNameAddress: 'Producer Name & Address',
@@ -23,6 +23,36 @@ export const FIELD_LABELS: Record<string, string> = {
   aspartameDeclaration: 'Aspartame Declaration',
   foreignWinePercentage: 'Foreign Wine Percentage',
 };
+
+/**
+ * Get field label with beverage type-specific overrides
+ */
+export function getFieldLabel(fieldName: string, beverageType?: string | BeverageType): string {
+  // Wine-specific label override for classType
+  if (fieldName === 'classType' || fieldName === 'class_type') {
+    if (beverageType === BeverageType.WINE || beverageType === 'wine') {
+      return 'Varietal (or Class/Type)';
+    }
+  }
+
+  // Convert snake_case to camelCase if needed
+  const camelCaseField = fieldName.includes('_')
+    ? fieldName.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+    : fieldName;
+
+  // Handle special field name mappings
+  if (fieldName === 'appellation_of_origin' || camelCaseField === 'appellationOfOrigin') {
+    return FIELD_LABELS['appellation'] || 'Appellation of Origin';
+  }
+
+  // If found in FIELD_LABELS, return it
+  if (FIELD_LABELS[camelCaseField]) {
+    return FIELD_LABELS[camelCaseField];
+  }
+
+  // Fallback: convert snake_case to title case
+  return fieldName.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 export const STATUS_DISPLAY: Record<MatchStatus, { label: string; color: string; icon: string }> = {
   [MatchStatus.MATCH]: { label: 'Match', color: 'green', icon: '✅' },
@@ -45,7 +75,7 @@ export const REQUIRED_FIELDS = {
       'netContents',
       'producerNameAddress',
       'healthWarning',
-      'countryOfOrigin', // Non-US origins only
+      'countryOfOrigin', // Required if imported
       'alcoholContent', // REQUIRED
     ],
     surfaced: ['colorAdditiveDisclosure', 'sulfiteDeclaration', 'aspartameDeclaration'],
@@ -59,7 +89,7 @@ export const REQUIRED_FIELDS = {
       'netContents',
       'producerNameAddress',
       'healthWarning',
-      'countryOfOrigin', // Non-US origins only
+      'countryOfOrigin', // Required if imported
       'ageStatement', // REQUIRED
     ],
     surfaced: ['colorIngredientDisclosure', 'commodityStatement'],
@@ -67,13 +97,12 @@ export const REQUIRED_FIELDS = {
   [BeverageType.WINE]: {
     validated: [
       'brandName',
-      'fancifulName', // Cross-check only if present
       'classType', // Cross-check varietal if present
       'alcoholContent', // REQUIRED
       'netContents',
       'producerNameAddress',
       'healthWarning',
-      'countryOfOrigin', // Non-US origins only
+      'countryOfOrigin', // Required if imported
       'appellation', // Required if varietal or estate bottled
       'sulfiteDeclaration', // REQUIRED
       'foreignWinePercentage', // Required if label references foreign wine in a blend

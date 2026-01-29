@@ -302,7 +302,8 @@ export default function Dashboard() {
       case 'rejected':
         return 'destructive';
       case 'needs_review':
-        return 'secondary';
+        // Treat needs_review as pending for display purposes
+        return 'outline';
       default:
         return 'outline';
     }
@@ -315,7 +316,8 @@ export default function Dashboard() {
       case 'rejected':
         return 'Rejected';
       case 'needs_review':
-        return 'Flagged for Review';
+        // Display needs_review as pending
+        return 'Pending';
       case 'pending':
         return 'Pending';
       default:

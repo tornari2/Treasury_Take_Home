@@ -216,9 +216,9 @@ export function determineApplicationStatus(
     return 'pending';
   }
 
-  // Soft mismatches - auto-flag for review
+  // Soft mismatches - stays pending (no longer flagged for review)
   if (hasSoftMismatch) {
-    return 'needs_review';
+    return 'pending';
   }
 
   // All match - ready for agent approval (stays pending until agent approves)

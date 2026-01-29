@@ -63,7 +63,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const body = await request.json();
     const { status, review_notes } = body;
 
-    if (status && !['pending', 'needs_review', 'approved', 'rejected'].includes(status)) {
+    if (status && !['pending', 'approved', 'rejected'].includes(status)) {
+      // needs_review is no longer a valid status - treat as invalid
+      if (status === 'needs_review') {
+        return NextResponse.json(
+          { error: 'needs_review status is no longer supported. Use pending instead.' },
+          { status: 400 }
+        );
+      }
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 

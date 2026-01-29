@@ -37,7 +37,6 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
   const [producerState, setProducerState] = useState('');
   const [appellation, setAppellation] = useState('');
   const [varietal, setVarietal] = useState('');
-  const [vintageDate, setVintageDate] = useState('');
   const [images, setImages] = useState<ImageUpload[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,6 +44,8 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
   const handleImageAdd = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
+
+    const imageTypes: ImageType[] = ['front', 'back', 'side', 'neck'];
 
     Array.from(files).forEach((file) => {
       // Validate file type
@@ -68,14 +69,18 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
       // Create preview URL
       const preview = URL.createObjectURL(file);
 
-      setImages((prev) => [
-        ...prev,
-        {
-          file,
-          imageType: 'front',
-          preview,
-        },
-      ]);
+      setImages((prev) => {
+        const currentIndex = prev.length;
+        const imageType = imageTypes[currentIndex % imageTypes.length];
+        return [
+          ...prev,
+          {
+            file,
+            imageType,
+            preview,
+          },
+        ];
+      });
     });
 
     // Clear file input
@@ -149,7 +154,7 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
         beverageType: beverageType as BeverageType,
         originType: originType as OriginType,
         brandName: brandName.trim(),
-        fancifulName: fancifulName.trim() || null,
+        fancifulName: beverageType === BeverageType.WINE ? null : fancifulName.trim() || null,
         producerName: producerName.trim(),
         producerAddress: {
           city: producerCity.trim(),
@@ -158,8 +163,7 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
         appellation:
           beverageType === BeverageType.WINE && appellation.trim() ? appellation.trim() : null,
         varietal: beverageType === BeverageType.WINE && varietal.trim() ? varietal.trim() : null,
-        vintageDate:
-          beverageType === BeverageType.WINE && vintageDate.trim() ? vintageDate.trim() : null,
+        vintageDate: null,
       };
 
       // Create FormData
@@ -222,15 +226,21 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
             </Label>
             <Select
               value={beverageType}
-              onValueChange={(value) => setBeverageType(value as BeverageType)}
+              onValueChange={(value) => {
+                setBeverageType(value as BeverageType);
+                // Clear fanciful name when switching to wine
+                if (value === BeverageType.WINE) {
+                  setFancifulName('');
+                }
+              }}
             >
               <SelectTrigger id="beverageType">
                 <SelectValue placeholder="Select beverage type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={BeverageType.BEER}>Beer</SelectItem>
+                <SelectItem value={BeverageType.BEER}>Malt Beverage</SelectItem>
                 <SelectItem value={BeverageType.WINE}>Wine</SelectItem>
-                <SelectItem value={BeverageType.SPIRITS}>Spirits</SelectItem>
+                <SelectItem value={BeverageType.SPIRITS}>Distilled Spirits</SelectItem>
               </SelectContent>
             </Select>
             {errors.beverageType && <p className="text-sm text-red-500">{errors.beverageType}</p>}
@@ -274,15 +284,17 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
           {errors.brandName && <p className="text-sm text-red-500">{errors.brandName}</p>}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="fancifulName">Fanciful Name (Optional)</Label>
-          <Input
-            id="fancifulName"
-            value={fancifulName}
-            onChange={(e) => setFancifulName(e.target.value)}
-            placeholder="Enter fanciful name"
-          />
-        </div>
+        {beverageType !== BeverageType.WINE && (
+          <div className="space-y-2">
+            <Label htmlFor="fancifulName">Fanciful Name (Optional)</Label>
+            <Input
+              id="fancifulName"
+              value={fancifulName}
+              onChange={(e) => setFancifulName(e.target.value)}
+              placeholder="Enter fanciful name"
+            />
+          </div>
+        )}
       </div>
 
       {/* Producer Information */}
@@ -353,16 +365,6 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
               value={varietal}
               onChange={(e) => setVarietal(e.target.value)}
               placeholder="e.g., Chardonnay, Cabernet Sauvignon"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vintageDate">Vintage Date</Label>
-            <Input
-              id="vintageDate"
-              value={vintageDate}
-              onChange={(e) => setVintageDate(e.target.value)}
-              placeholder="e.g., 2019, 2021"
             />
           </div>
         </div>

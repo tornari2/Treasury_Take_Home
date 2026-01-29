@@ -132,8 +132,10 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
           }
 
           // Track the most severe status
+          // Note: needs_review is no longer used - soft mismatches stay as pending
           if (newStatus === 'needs_review') {
-            finalStatus = 'needs_review';
+            // Convert needs_review to pending
+            finalStatus = 'pending';
           }
         } catch (error) {
           console.error(`Error processing label images for app ${appId}:`, error);

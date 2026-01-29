@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react';
+import { getFieldLabel } from '@/lib/validation/display';
 import {
   Dialog,
   DialogContent,
@@ -249,7 +250,7 @@ export default function ReviewPage() {
       if (response.ok) {
         await fetchApplication();
         // Handle batch navigation or redirect to dashboard
-        if (status === 'approved' || status === 'rejected' || status === 'needs_review') {
+        if (status === 'approved' || status === 'rejected') {
           if (isInBatch && batchApplications && currentBatchIndex !== null) {
             // Check if there's a next application in the batch
             if (currentBatchIndex < batchApplications.length - 1) {
@@ -579,8 +580,8 @@ export default function ReviewPage() {
                     <div className="flex items-start gap-2">
                       {getFieldStatusIcon(result)}
                       <div className="flex-1">
-                        <div className="font-semibold capitalize">
-                          {fieldName.replace(/_/g, ' ')}
+                        <div className="font-semibold">
+                          {getFieldLabel(fieldName, application?.beverage_type)}
                         </div>
                         {result.type === 'not_applicable' ? (
                           <div className="text-sm mt-1 text-muted-foreground">
@@ -588,9 +589,10 @@ export default function ReviewPage() {
                           </div>
                         ) : (
                           <>
-                            {result.expected && (
+                            {(result.expected || result.extracted) && (
                               <div className="text-sm mt-1">
-                                <span className="font-medium">Expected:</span> {result.expected}
+                                <span className="font-medium">Expected:</span>{' '}
+                                {result.expected || 'None'}
                               </div>
                             )}
                             {result.extracted && (

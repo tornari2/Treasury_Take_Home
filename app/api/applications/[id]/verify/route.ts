@@ -111,8 +111,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
 
       // Update application status based on verification results
+      // Note: needs_review status is no longer used - soft mismatches stay as pending
       if (newStatus === 'needs_review') {
-        applicationHelpers.updateStatus(applicationId, 'needs_review', null);
+        // Convert needs_review to pending
+        applicationHelpers.updateStatus(applicationId, 'pending', null);
       }
     } catch (error) {
       console.error(`Error processing label images for application ${applicationId}:`, error);
@@ -190,7 +192,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const overallStatus = hasHardMismatch
       ? 'pending'
       : hasSoftMismatch
-        ? 'needs_review'
+        ? 'pending' // Soft mismatches stay as pending (needs_review no longer used)
         : 'pending';
 
     // Update application status based on overall verification results

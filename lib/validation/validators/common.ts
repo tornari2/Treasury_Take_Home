@@ -784,13 +784,35 @@ export function validateProducerNameAddress(
   const isImported = application.originType === OriginType.IMPORTED;
 
   if (beverageType && extractedName && extractedAddress) {
+    // For imported beverages, enforce that extracted name/address must follow "Imported By"
+    if (isImported) {
+      const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
+      const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
+
+      if (!hasImportedBy) {
+        // Imported beverage but no "Imported By" phrase detected
+        // This means we may have extracted the producer instead of the importer
+        return {
+          field: 'producerNameAddress',
+          status: MatchStatus.HARD_MISMATCH,
+          expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+          rule: 'CROSS-CHECK: For imported beverages, must extract the importer name/address that follows "Imported By"',
+          details:
+            'This appears to be an imported beverage, but the extracted name/address does not follow "Imported By". For imported beverages, extract the importer name/address (following "Imported By"), not the producer name/address.',
+        };
+      }
+      // If "Imported By" is present, continue with validation (name/address should match importer)
+    }
+
     // Check phrase requirement for Spirits and Wine
     if (beverageType === BeverageType.SPIRITS || beverageType === BeverageType.WINE) {
       const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
       const hasBottledBy = /bottled\s+by/i.test(normalizedPhrase);
       const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
 
-      if (!hasBottledBy && !hasImportedBy) {
+      // For domestic beverages, require "Bottled By" phrase
+      if (!isImported && !hasBottledBy && !hasImportedBy) {
         return {
           field: 'producerNameAddress',
           status: MatchStatus.SOFT_MISMATCH,
@@ -958,7 +980,7 @@ export function validateHealthWarning(
 
 /**
  * Validate Country of Origin
- * Required for imported products. No cross-checking - filled in by TTB agents.
+ * Required for ALL imported beverages (beer, wine, spirits). No cross-checking - filled in by TTB agents.
  */
 export function validateCountryOfOrigin(
   originType: OriginType,
@@ -975,22 +997,23 @@ export function validateCountryOfOrigin(
     };
   }
 
-  // Imported products require country of origin
+  // Imported products require country of origin (applies to all beverage types: beer, wine, spirits)
   if (!extracted) {
     return {
       field: 'countryOfOrigin',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
+      expected: 'Required for imported beverages',
       extracted: null,
-      rule: 'PRESENCE: Country of origin must appear on label for imported products',
+      rule: 'PRESENCE: Country of origin must appear on label for all imported beverages',
     };
   }
 
   // Country of origin is present - no cross-checking needed (filled by TTB agents)
+  // For imported products, show that it's required even though we don't cross-check the specific value
   return {
     field: 'countryOfOrigin',
     status: MatchStatus.MATCH,
-    expected: null,
+    expected: 'Required (not cross-checked)',
     extracted,
     rule: 'PRESENCE: Country of origin present on label',
   };

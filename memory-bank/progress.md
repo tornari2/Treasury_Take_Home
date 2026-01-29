@@ -421,4 +421,36 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 29, 2025 (UI/UX improvements: removed vintage field, auto-assign image types, updated beverage labels; Review page: improved field display and capitalization; Validation: removed needs_review status, enhanced country of origin and producer validation for imports, wine varietal priority; Extraction: strengthened alcohol content and varietal extraction). Ready for production deployment and testing._
+### Latest Improvements (January 29, 2025 - Continued)
+
+- **Confidence Score Removal:**
+  - Removed all confidence score calculations and UI displays
+  - Confidence_score column remains in database for backward compatibility but is set to null
+
+- **Review Page Cleanup:**
+  - Removed "Your Decision" informational window
+
+- **Extraction Accuracy Improvements:**
+  - Wine varietal priority: strengthened instructions to extract varietal over class/type
+  - Importer extraction: handle "DISTRIBUTED AND IMPORTED BY" and other variations
+  - Alcohol content: require complete text including prefixes (ALC., ALCOHOL, ABV)
+  - Producer matching: handle punctuation differences and zip codes in addresses
+  - Brand name: treat articles (THE, A, AN) as optional
+
+- **Validation Enhancements:**
+  - Alcohol content: show expected format even when validation passes
+  - Producer name/address: improved matching with punctuation normalization
+  - State matching: extract state from addresses with zip codes
+  - Brand name: normalize articles for comparison
+
+- **Dashboard Enhancements:**
+  - Added Product Type column (beverage type)
+  - Added Product Source column (domestic/imported)
+
+- **Code Architecture:**
+  - Refactored extraction prompts to use beverage-specific instruction functions
+  - Better separation of concerns and maintainability
+
+---
+
+_Last Updated: January 29, 2025 (Validation improvements: removed confidence scores, improved extraction accuracy for varietals, importers, alcohol content, producer addresses, brand names; UI: removed decision window, added dashboard columns; Architecture: refactored prompts to use beverage-specific functions). Ready for production deployment and testing._

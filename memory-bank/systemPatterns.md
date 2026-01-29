@@ -62,15 +62,15 @@ _Derives from [projectbrief.md](./projectbrief.md). Captures architecture and de
 - No async queue infrastructure needed (simpler)
   **Performance:** 100 apps = 10 iterations of 10 parallel calls at ~2s each
 
-### 4. Confidence Threshold: 0.85 ✅
+### 4. Confidence Scores: REMOVED ✅
 
-**Decision:** Fields with confidence < 0.85 → automatic SOFT MISMATCH  
+**Decision:** Removed confidence score calculations and UI display  
 **Rationale:**
 
-- Low confidence indicates AI uncertainty (requires human review)
-- Even if normalized values match, low confidence is risky
-- Yellow flag (not red) because it might still be acceptable
-  **Implementation:** Stored per-field in `extracted_data` JSON column
+- Confidence scores were not providing useful information
+- Simplified codebase by removing unused calculations
+- Database column remains for backward compatibility but is set to null
+  **Implementation:** No longer calculated in `lib/openai-service.ts`, not displayed in UI
 
 ### 5. Normalization Algorithm (5-Step) ✅
 
@@ -138,6 +138,14 @@ _Derives from [projectbrief.md](./projectbrief.md). Captures architecture and de
   - Common validators shared across all beverage types
 - **ApplicationData Direct Usage:** No conversion layer - database Application converted to ApplicationData format
 - **Validation Pipeline:** `ApplicationData` → `AIExtractionResult` → `ValidationResult` → `VerificationResult` (legacy format for API)
+
+**Advanced Matching Patterns:**
+
+- **Brand Name Articles:** Leading articles (THE, A, AN) are normalized and treated as optional - "INFAMOUS GOOSE" matches "THE INFAMOUS GOOSE"
+- **Producer Name Punctuation:** Punctuation differences normalized before comparison - "Geo US Trading, Inc" matches "Geo US Trading Inc"
+- **State with Zip Codes:** State extraction handles zip codes - "IL 60148-1215" extracts state as "IL"
+- **Alcohol Content Prefixes:** Complete text including prefixes required - "ALC. 12.5% BY VOL." not "12.5% BY VOL."
+- **Importer Extraction:** Handles variations like "DISTRIBUTED AND IMPORTED BY" - extracts US importer, not foreign producer
 
 ## Component / Module Relationships
 
@@ -227,4 +235,4 @@ User + Application → AuditLog (all actions)
 
 ---
 
-_Last Updated: January 27, 2025 (Validation module refactored into modular structure, ApplicationData direct usage implemented, Railway deployment configured). Update when major design decisions change or patterns emerge._
+_Last Updated: January 29, 2025 (Removed confidence scores, improved validation matching patterns for brand names, producer addresses, states, alcohol content, and importer extraction. Refactored extraction prompts to use beverage-specific functions. Added dashboard columns for Product Type and Product Source). Update when major design decisions change or patterns emerge._

@@ -10,7 +10,61 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### UI/UX Improvements & Validation Refinements ✅ (Latest - January 29, 2025)
+### Validation & Extraction Accuracy Improvements ✅ (Latest - January 29, 2025)
+
+- **Confidence Score Removal:**
+  - Removed confidence score calculations from extraction service (`lib/openai-service.ts`)
+  - Removed confidence score display from review page UI (`app/review/[id]/page.tsx`)
+  - Updated database operations to pass `null` for confidence_score (kept column for backward compatibility)
+  - Updated tests to use 0 for confidence values (type still requires it but values aren't used)
+
+- **Review Page UI Cleanup:**
+  - Removed "Your Decision" informational alert window from review page
+  - Simplified review interface while keeping review notes and approve/reject buttons
+
+- **Wine Varietal Extraction Enhancement:**
+  - Strengthened wine varietal priority rule in extraction prompts
+  - Added explicit instructions: if both varietal (e.g., "Khikhvi") and class/type (e.g., "White Dry Wine") appear, extract the VARIETAL
+  - Updated generic extraction prompt to include wine-specific varietal priority instructions
+  - Refactored prompts to use beverage-specific instruction functions (`getBeverageSpecificInstructions`, `getClassTypeFieldDescription`)
+
+- **Importer Extraction Improvement:**
+  - Enhanced instructions to handle variations: "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", etc.
+  - Added explicit rule: extract US importer/distributor name/address, NOT foreign producer
+  - Added example showing correct extraction (Geo US Trading vs LTD WINIVERIA)
+  - Updated field definitions to include phrase variations
+
+- **Alcohol Content Extraction Enhancement:**
+  - Added critical instructions to extract COMPLETE text including prefixes (ALC., ALCOHOL, ABV)
+  - Updated field definition to emphasize prefix requirement
+  - Added examples showing correct vs incorrect extraction
+  - Updated validation to show expected format even when validation passes (for required field clarity)
+
+- **Producer Name/Address Matching Improvements:**
+  - Updated `stringsMatch` to normalize punctuation differences (handles "Geo US Trading, Inc" vs "Geo US Trading Inc")
+  - Updated `producerNamesMatchIgnoringEntitySuffix` to normalize punctuation before removing entity suffixes
+  - Updated `normalizeState` to extract state part when zip code follows (handles "IL 60148-1215" → "IL")
+  - Now correctly matches producer names with punctuation differences and addresses with zip codes
+
+- **Brand Name Validation Enhancement:**
+  - Added `normalizeBrandNameArticles` function to remove leading articles (THE, A, AN)
+  - Updated brand name validation to treat articles as optional
+  - "INFAMOUS GOOSE" now matches "THE INFAMOUS GOOSE"
+  - Handles all article variations: THE, A, AN (case-insensitive)
+
+- **Dashboard Table Enhancements:**
+  - Added "Product Type" column after "Brand Name" (shows capitalized beverage type: Beer, Wine, Spirits)
+  - Added "Product Source" column after "Product Type" (shows Domestic or Imported from originType)
+  - Updated table colspan for "No applications found" message
+
+- **Prompt Architecture Refactoring:**
+  - Moved beverage-specific instructions to dedicated functions in `lib/validation/prompts.ts`
+  - Created `getBeverageSpecificInstructions()` for wine, beer, spirits-specific rules
+  - Created `getClassTypeFieldDescription()` for beverage-specific class_type descriptions
+  - Generic prompt now uses these functions instead of inline conditional logic
+  - Better separation of concerns and maintainability
+
+### UI/UX Improvements & Validation Refinements ✅ (January 29, 2025)
 
 - **Application Form Enhancements:**
   - Removed vintage field from wine applications (no longer in use)

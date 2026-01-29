@@ -226,6 +226,44 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Recent Updates (January 28, 2025)
 
+### Validation UX Improvements ✅ (Latest)
+
+- **Improved Error Messages:**
+  - All validation functions show "Field not found" instead of format strings when fields are missing
+  - Applies to all fields across all beverage types
+  - More user-friendly error messages
+
+- **Net Contents Validation Enhancement:**
+  - Added support for "U.S." or "US" prefix before unit names (gallons, quarts, pints)
+  - Patterns now match: "5.16 U.S. Gallons", "1 U.S. quart", "2 US pints", etc.
+
+- **Producer Name Matching Enhancement:**
+  - Added business entity suffix normalization (CO, CO., COMPANY, LLC, INC, INC., INCORPORATED, LTD, LIMITED)
+  - Core business name matching ignores entity suffixes
+  - Entity suffix differences result in SOFT_MISMATCH instead of HARD_MISMATCH
+
+- **Health Warning Validation Enhancement:**
+  - Added validation rule: Only "GOVERNMENT WARNING" must be bold
+  - Remainder of warning statement must NOT be bold
+  - Added `remainderBold` field to formatChecks in all extraction result types
+
+### UI/UX Enhancements ✅ (Latest)
+
+- **Dashboard Improvements:**
+  - ID column displays TTB_ID from application_data instead of database ID
+  - Added delete button for each application with confirmation dialog
+  - Delete operation cascades to associated label images
+  - Added DELETE endpoint at `/api/applications/[id]`
+
+- **Verification Flow:**
+  - Removed "verification completed successfully" alert
+  - Verification now redirects directly to review page
+
+- **Review Page:**
+  - Removed title "Review Application #{id}" and applicant name from top of page
+
+## Previous Updates (January 28, 2025)
+
 ### New Application Form Feature ✅
 
 - **Manual Application Creation:** Added "New Application" button in dashboard upper right corner
@@ -308,4 +346,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents, standards of fill, alcohol content rules, producer address validation with phrase requirements, domestic UI display). Ready for production deployment and testing._
+_Last Updated: January 28, 2025 (Validation UX improvements: "Field not found" messages, U.S. prefix support for net contents, business entity suffix normalization, health warning remainder bold validation, dashboard TTB_ID display and delete functionality, verification redirect, review page title removal). Ready for production deployment and testing._

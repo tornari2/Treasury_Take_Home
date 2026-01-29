@@ -74,8 +74,7 @@ export const REQUIRED_FIELDS = {
       'producerNameAddress',
       'healthWarning',
       'countryOfOrigin', // Non-US origins only
-      'appellation', // Required if varietal, vintage, or estate bottled
-      'vintageDate', // Cross-check if present
+      'appellation', // Required if varietal or estate bottled
       'sulfiteDeclaration', // REQUIRED
       'foreignWinePercentage', // Required if label references foreign wine in a blend
     ],

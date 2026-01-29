@@ -79,7 +79,7 @@ function convertToAIExtractionResult(
         extraction: {
           ...baseExtraction,
           appellation: getValue('appellation_of_origin'),
-          vintageDate: getValue('vintage_date'),
+          vintageDate: null, // Vintage no longer extracted from labels
           sulfiteDeclaration: getValue('sulfite_declaration'),
           foreignWinePercentage: getValue('foreign_wine_percentage'),
           isEstateBottled: null, // Not in current extraction

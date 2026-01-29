@@ -27,7 +27,6 @@ import { validateAgeStatement } from './validators/spirits';
 import {
   validateAppellation,
   validateWineVarietal,
-  validateVintageDate,
   validateSulfiteDeclaration,
   validateForeignWinePercentage,
 } from './validators/wine';
@@ -189,7 +188,6 @@ export function validateWineLabel(
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
   fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
   fieldResults.push(validateAppellation(application, extraction)); // Now takes full extraction for context
-  fieldResults.push(validateVintageDate(application, extraction.vintageDate)); // Cross-check vintage
   fieldResults.push(validateSulfiteDeclaration(extraction.sulfiteDeclaration)); // REQUIRED for wine
   fieldResults.push(validateForeignWinePercentage(extraction)); // Required if label references foreign wine
 

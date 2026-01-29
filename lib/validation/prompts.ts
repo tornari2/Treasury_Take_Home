@@ -30,6 +30,9 @@ EXTRACTION RULES:
    - "X.X% ALC/VOL" or "X.X% ALC./VOL."
    - "ALC. X.X% BY VOL." or "ALCOHOL X.X% BY VOLUME"
    - "ABV X.X%" or "X.X% ABV"
+   - CRITICAL: Extract the COMPLETE text exactly as shown, including any prefix words like "ALCOHOL", "ALC.", or "ABV"
+   - If the label says "ALCOHOL 14% BY VOLUME", extract it as "ALCOHOL 14% BY VOLUME" (not just "14% BY VOLUME")
+   - If the label says "ALC. 5.0% BY VOL.", extract it as "ALC. 5.0% BY VOL." (not just "5.0% BY VOL.")
    - Read the number carefully - distinguish 5 from 6, 4 from 9, etc.
 3. For NET CONTENTS: Usually formatted as:
    - "12 FL OZ" or "12 fl oz" or "12 FL. OZ."
@@ -45,7 +48,7 @@ Return a JSON object with this exact structure:
     "fancifulName": "exact text or null (optional - many beers don't have one)",
     "classType": "exact beer style text (e.g., 'Ale', 'Lager', 'India Pale Ale', 'Stout') or null",
     "netContents": "exact text (e.g., '12 FL OZ', '16 fl oz', '355 mL') or null",
-    "alcoholContent": "exact text (e.g., '5.0% ALC/VOL', 'ABV 4.5%') or null - READ CAREFULLY, this is often small",
+    "alcoholContent": "exact COMPLETE text including any prefix words (e.g., '5.0% ALC/VOL', 'ALCOHOL 14% BY VOLUME', 'ALC. 5.0% BY VOL.', 'ABV 4.5%') or null - READ CAREFULLY, this is often small. Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present",
     "producerName": "exact text of brewer/bottler name or null",
     "producerAddress": "exact text (city, state format) or null",
     "producerNamePhrase": "exact text of the phrase immediately preceding producer name/address. IMPORTANT: For IMPORTED beers only, extract 'Imported by' or similar phrase if present. For domestic beers, this field should be null (no phrase requirement). Extract the phrase only if the beer appears to be imported.",
@@ -112,6 +115,8 @@ EXTRACTION RULES:
    - Brand: "Jack Daniel's" / Producer: "Jack Daniel Distillery"
    - Brand: "Johnnie Walker" / Producer: "John Walker & Sons"
 3. For ALCOHOL CONTENT: Spirits are typically 35-50% ABV (70-100 proof)
+   - CRITICAL: Extract the COMPLETE text exactly as shown, including any prefix words like "ALCOHOL", "ALC.", or "ABV"
+   - If the label says "ALCOHOL 40% BY VOLUME", extract it as "ALCOHOL 40% BY VOLUME" (not just "40% BY VOLUME")
    - Read numbers carefully: distinguish 40 vs 45, 80 vs 86
    - May show % only, proof only, or both
 4. For AGE STATEMENT: Only extract if explicitly stated
@@ -129,7 +134,7 @@ Return a JSON object with this exact structure:
     "brandName": "exact text or null",
     "fancifulName": "exact text or null",
     "classType": "exact spirit type designation or null",
-    "alcoholContent": "exact text including % and/or proof or null",
+    "alcoholContent": "exact COMPLETE text including any prefix words and % and/or proof (e.g., 'ALCOHOL 40% BY VOLUME', '40% ALC/VOL', 'ALC. 45% BY VOL.') or null - Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present",
     "netContents": "exact text (e.g., '750 mL') or null",
     "producerName": "exact text or null",
     "producerAddress": "exact text (city, state/country) or null",
@@ -178,8 +183,6 @@ LABEL ANATOMY - Where to find each field:
   Varietals: "Chardonnay", "Cabernet Sauvignon", "Pinot Noir", "Merlot", "Sauvignon Blanc"
   Types: "Red Wine", "White Wine", "Rosé", "Sparkling Wine", "Dessert Wine"
   European style: "Chianti", "Bordeaux", "Burgundy", "Champagne"
-- VINTAGE DATE: Four-digit year (e.g., "2019", "2021") - often prominent
-  "NV" = Non-Vintage (no year shown)
 - APPELLATION: Geographic origin - can be very specific
   US: "Napa Valley", "Sonoma Coast", "Willamette Valley", "Finger Lakes"
   European: "Bordeaux AOC", "Chianti Classico DOCG", "Rioja DOCa", "Mosel"
@@ -194,7 +197,7 @@ LABEL ANATOMY - Where to find each field:
 - ESTATE BOTTLED: Special designation - look for exact phrase "Estate Bottled"
 
 WINE LABEL STRUCTURE:
-Front label typically shows: Brand, Varietal, Vintage, Appellation
+Front label typically shows: Brand, Varietal, Appellation
 Back label typically shows: Health Warning, Sulfites, Producer details, Alcohol %
 
 EXTRACTION RULES:
@@ -210,9 +213,9 @@ EXTRACTION RULES:
 3. VARIETAL vs APPELLATION - these are different:
    - Varietal: "Cabernet Sauvignon" (grape type)
    - Appellation: "Napa Valley" (where grapes are from)
-4. VINTAGE DATE: Just the year, e.g., "2019" not "Vintage 2019"
-   - If no year visible, use null (not "NV" unless "NV" is printed)
-5. ALCOHOL CONTENT: Wines typically 5.5-24% depending on type
+4. ALCOHOL CONTENT: Wines typically 5.5-24% depending on type
+   - CRITICAL: Extract the COMPLETE text exactly as shown, including any prefix words like "ALCOHOL", "ALC.", or "ABV"
+   - If the label says "ALCOHOL 14% BY VOLUME", extract it as "ALCOHOL 14% BY VOLUME" (not just "14% BY VOLUME")
    - Table wine: 11-14.5%
    - High alcohol: 14.5-16%
    - Fortified (Port, Sherry): 17-24%
@@ -233,9 +236,8 @@ Return a JSON object with this exact structure:
     "brandName": "exact winery/brand name or null",
     "fancifulName": "exact secondary wine name or null",
     "classType": "exact varietal or wine type or null",
-    "vintageDate": "four-digit year as shown, or null if none",
     "appellation": "exact geographic designation with any qualifiers (AOC, DOCG, etc.) or null",
-    "alcoholContent": "exact text (e.g., '13.5% Alc/Vol') or null",
+    "alcoholContent": "exact COMPLETE text including any prefix words (e.g., '13.5% Alc/Vol', 'ALCOHOL 14% BY VOLUME', 'ALC. 13.5% BY VOL.') or null - Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present",
     "netContents": "exact text (e.g., '750 mL') or null",
     "producerName": "exact winery/bottler name or null",
     "producerAddress": "exact text (city, state/region, country) or null",
@@ -274,7 +276,6 @@ NOTE on isEstateBottled:
 
 IMPORTANT:
 - VARIETAL (classType) ≠ APPELLATION - don't confuse grape variety with region
-- VINTAGE DATE should be just the year ("2019"), not "Vintage 2019"
 - Double-check ALCOHOL CONTENT - common misreads: 13.5↔14.5, 12.5↔13.5
 - SULFITE DECLARATION is almost always present - look carefully on back label
 - BRAND NAME ≠ FANCIFUL NAME ≠ PRODUCER NAME (three separate fields)

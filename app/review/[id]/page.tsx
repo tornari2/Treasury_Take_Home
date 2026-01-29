@@ -40,7 +40,8 @@ export default function ReviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [application, setApplication] = useState<Application | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize loading to false - we'll set it to true only if needed (prevents flicker when navigating between screens)
+  const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [imageZooms, setImageZooms] = useState<Record<number, number>>({});
@@ -56,6 +57,13 @@ export default function ReviewPage() {
 
   useEffect(() => {
     if (params.id) {
+      // Only show loading screen if we're not navigating within a batch
+      const inBatchMode =
+        searchParams?.get('batch') === 'true' ||
+        (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
+      if (!inBatchMode && !application) {
+        setLoading(true);
+      }
       fetchApplication();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,7 +127,13 @@ export default function ReviewPage() {
 
   const fetchApplication = async () => {
     try {
-      setLoading(true);
+      // Only show loading screen if we don't have application data and we're not in batch mode
+      const inBatchMode =
+        searchParams?.get('batch') === 'true' ||
+        (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
+      if (!application && !inBatchMode) {
+        setLoading(true);
+      }
       const response = await fetch(`/api/applications/${params.id}`);
 
       if (!response.ok) {
@@ -342,7 +356,11 @@ export default function ReviewPage() {
     }
   };
 
-  if (loading) {
+  // Only show loading screen if we're not navigating within a batch
+  const inBatchMode =
+    searchParams?.get('batch') === 'true' ||
+    (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
+  if (loading && !application && !inBatchMode) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading application...</div>

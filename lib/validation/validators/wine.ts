@@ -12,7 +12,7 @@ import { stringsMatch, isSoftMismatch, valueExists, normalizeString } from '../u
 
 /**
  * Validate Appellation of Origin (wine only)
- * Required if label contains: varietal, vintage date, semi-generic type, or "Estate Bottled"
+ * Required if label contains: varietal, semi-generic type, or "Estate Bottled"
  */
 export function validateAppellation(
   application: ApplicationData,
@@ -23,17 +23,15 @@ export function validateAppellation(
 
   // Determine if appellation is required based on what's on the label
   const hasVarietal = valueExists(extraction.classType);
-  const hasVintageDate = valueExists(extraction.vintageDate);
   const isEstateBottled = extraction.isEstateBottled === true;
 
   // Appellation is required if any of these conditions are met
-  const appellationRequired = hasVarietal || hasVintageDate || isEstateBottled;
+  const appellationRequired = hasVarietal || isEstateBottled;
 
   // If appellation is required but not present on label
   if (appellationRequired && !valueExists(extracted)) {
     const reasons: string[] = [];
     if (hasVarietal) reasons.push('varietal designation');
-    if (hasVintageDate) reasons.push('vintage date');
     if (isEstateBottled) reasons.push('estate bottled');
 
     // Show expected appellation if it exists in application, otherwise show requirement message
@@ -44,7 +42,7 @@ export function validateAppellation(
       status: MatchStatus.NOT_FOUND,
       expected: expectedValue,
       extracted: 'Field not found',
-      rule: 'PRESENCE: Appellation required when label contains varietal, vintage, or estate bottled',
+      rule: 'PRESENCE: Appellation required when label contains varietal or estate bottled',
       details: `Appellation required because label contains: ${reasons.join(', ')}`,
     };
   }

@@ -17,7 +17,7 @@ _Derives from [projectbrief.md](./projectbrief.md). Captures architecture and de
 │  └─────────────────────────────────┘   │
 └─────────────────────────────────────────┘
               ↓
-    OpenAI API (GPT-4o-mini)
+    OpenAI API (GPT-4o)
 ```
 
 **Rationale:** Simplified single-service deployment meets tight timeline, avoids CORS issues, single environment configuration.
@@ -203,7 +203,7 @@ User + Application → AuditLog (all actions)
 
 - **Image pre-loading:** All images in database before agent access (no upload flow)
 - **Beverage type:** Pre-set in application row (source of truth, not inferred)
-- **Status values:** `pending`, `needs_review`, `approved`, `rejected` (lowercase snake_case)
+- **Status values:** `pending`, `approved`, `rejected` (lowercase snake_case) - `needs_review` removed from UI but still supported in database
 - **Match statuses:** `match`, `soft_mismatch`, `hard_mismatch`, `not_found`, `not_applicable`, `surfaced`
 - **ApplicationData Format:** camelCase field names (brandName, fancifulName, producerAddress, etc.)
 - **Database Storage:** `application_data` column stores ApplicationData as JSON (migrated from `expected_label_data`)
@@ -220,7 +220,8 @@ User + Application → AuditLog (all actions)
 ### Performance Conventions
 
 - **5-second hard limit:** Any verification taking >5s needs optimization
-- **Parallel processing:** Front + back labels processed simultaneously (not sequential)
+- **Multi-image processing:** All label images (front, back, neck, side) processed together in single API call
+- **AI extraction:** Looks across all images to extract all fields - information may be spread across different label panels
 - **Database indexing:** Index on `status`, `assigned_agent_id`, `beverage_type`
 - **Image optimization:** Images should be <500KB each (if larger, resize on seed)
 

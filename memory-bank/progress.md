@@ -57,8 +57,9 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 #### Task 5: AI Verification Service ✅
 
-- OpenAI GPT-4o-mini integration
-- Image processing and data extraction
+- OpenAI GPT-4o integration (upgraded from GPT-4o-mini)
+- Multi-image processing: All label images processed together in single API call
+- AI looks across all images (front, back, neck, side) to extract all fields
 - Verification logic with soft/hard mismatch detection
 - Strict health warning validation
 - Results stored in database with confidence scores
@@ -83,10 +84,9 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - Side-by-side comparison view
 - Label image display with zoom controls
 - Color-coded verification indicators
-- Action buttons (Approve, Reject, Flag for Review)
+- Action buttons (Approve, Reject)
 - Review notes field with helpful guidance
 - Auto-triggered verification
-- "Flag for Review" redirects to dashboard with updated status
 - Confirmation dialog for overriding hard mismatches
 - **shadcn/ui components:** Button, Textarea, Alert, Label, Dialog with Lucide icons
 

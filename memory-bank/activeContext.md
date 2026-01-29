@@ -10,7 +10,24 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Error Handling & Resilience ✅ (Latest)
+### Multi-Image Processing Enhancement ✅ (Latest)
+
+- **Unified Image Extraction:**
+  - Modified `extractLabelData` to accept array of images instead of single image
+  - All label images (front, back, neck, side) now processed together in single OpenAI API call
+  - AI looks across ALL images to extract all fields - information may be spread across different label panels
+  - Updated verify route to pass all images at once instead of processing individually
+  - Updated batch processor to use new multi-image extraction
+  - Timeout scales with number of images (30s per image, max 2 minutes)
+  - Same extracted data stored for all images since extraction is done together
+
+- **Status UI Simplification:**
+  - Removed "needs_review" option from status dropdown in dashboard
+  - Removed "Flag for Review" button from review page
+  - Users now only have "Pending", "Approved", and "Rejected" status options
+  - Existing applications with "needs_review" status still display correctly ("Flagged for Review")
+
+### Error Handling & Resilience ✅
 
 - **Comprehensive OpenAI API Error Handling:**
   - Custom error types: `OpenAIAPIKeyError`, `OpenAITimeoutError`, `OpenAINetworkError`, `OpenAIAPIError`

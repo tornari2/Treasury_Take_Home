@@ -31,6 +31,7 @@ _Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and con
 | Technology         | Purpose                                             |
 | ------------------ | --------------------------------------------------- |
 | Next.js API Routes | RESTful API endpoints                               |
+| FormData API       | Multipart form data parsing for file uploads        |
 | bcryptjs           | ~~Password hashing~~ (not used - auth removed)      |
 | better-sqlite3     | Synchronous SQLite driver                           |
 | OpenAI Node SDK    | OpenAI API client                                   |
@@ -348,6 +349,15 @@ interface ApplicationData {
 
 **Database Storage:** Stored as JSON in `application_data` column (migrated from `expected_label_data`)
 
+**Manual Application Creation:** Users can create applications via a form dialog accessible from the dashboard. The form:
+
+- Matches the ApplicationData structure exactly
+- Supports all fields including conditional wine-specific fields
+- Allows multiple image uploads with type selection (front/back/side/neck)
+- Validates input client-side and server-side
+- Stores images as BLOBs in `label_images` table
+- Updates ApplicationData with image IDs after creation
+
 **Conversion:** `lib/application-converter.ts` converts database `Application` records to `ApplicationData` format
 
 ### Validation Rules Summary
@@ -413,6 +423,7 @@ The project uses **shadcn/ui** as the primary component library, providing:
 - **Textarea** - Multi-line text input
 - **Checkbox** - Accessible checkbox inputs
 - **Label** - Form labels with proper associations
+- **Dialog** - Modal dialogs for forms and overlays (January 28, 2025)
 
 ### Component Location
 
@@ -420,4 +431,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 28, 2025 (Authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._
+_Last Updated: January 28, 2025 (New application form feature added, Dialog component installed, authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._

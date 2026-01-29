@@ -51,8 +51,9 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - GET /api/applications/:id (single with images)
 - PATCH /api/applications/:id (update status/notes)
 - POST /api/applications/:id/verify (trigger AI verification)
-- POST /api/applications (create new application with TTB_ID field)
+- POST /api/applications (create new application with form data and images)
 - All endpoints publicly accessible (authentication removed)
+- **New Feature:** Manual application creation form with image upload support
 
 #### Task 5: AI Verification Service ✅
 
@@ -69,7 +70,13 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - Batch verification UI
 - Responsive design with Tailwind CSS
 - Real-time status updates
-- **shadcn/ui components:** Table, Select, Button, Badge, Checkbox
+- **New Application Form:** Dialog-based form for manual application creation
+  - All ApplicationData fields supported (beverageType, originType, brandName, producerName, etc.)
+  - Conditional wine-specific fields (appellation, varietal, vintageDate)
+  - Multiple image upload with type selection (front/back/side/neck)
+  - Image preview thumbnails
+  - Form validation and error handling
+- **shadcn/ui components:** Table, Select, Button, Badge, Checkbox, Dialog, Input, Label
 
 #### Task 7: Application Review Interface ✅
 
@@ -219,18 +226,30 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Recent Updates (January 28, 2025)
 
+### New Application Form Feature ✅
+
+- **Manual Application Creation:** Added "New Application" button in dashboard upper right corner
+- **Form Dialog:** Complete form matching ApplicationData structure
+  - Basic info: beverageType, originType
+  - Brand info: brandName, fancifulName (optional)
+  - Producer info: producerName, producerAddress (city, state)
+  - Wine-specific fields: appellation, varietal, vintageDate (conditional)
+  - Image upload: Multiple images with type selection (front/back/side/neck)
+  - Image previews with remove functionality
+- **API Endpoint:** POST /api/applications handles multipart/form-data
+  - Validates ApplicationData structure
+  - Processes and stores images as BLOBs in label_images table
+  - Updates ApplicationData with image IDs
+  - Creates audit log entry with 'created' action
+- **Database Updates:** Added 'created' to AuditAction type and migrations
+- **Components:** Created ApplicationForm component, added Dialog component from shadcn/ui
+
 ### Authentication System Removed ✅
 
 - Login page and auth routes removed
 - All API endpoints now publicly accessible
 - Removed authentication middleware checks
 - Home page redirects directly to dashboard
-
-### Application Form Enhancements ✅
-
-- Added TTB_ID field to application form
-- TTB_ID stored in application_data JSON
-- Field appears at top of Basic Information section
 
 ### Origin Code System Removed ✅
 
@@ -254,4 +273,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 28, 2025 (Authentication removed, TTB_ID added, origin codes removed, UI improvements). Ready for production deployment and testing._
+_Last Updated: January 28, 2025 (New application form feature added, authentication removed, TTB_ID added, origin codes removed, UI improvements). Ready for production deployment and testing._

@@ -366,7 +366,7 @@ interface ApplicationData {
 
 - Brand Name (always required)
 - Fanciful Name (optional)
-- Producer Name & Address
+- Producer Name & Address (only city and state validated, not full street address)
 - Wine Varietal (if application has varietal, classType must match)
 - Vintage Date (wine, if present)
 - Appellation (wine, if present)
@@ -375,13 +375,25 @@ interface ApplicationData {
 
 - Class/Type designation (all beverages)
 - Net Contents (all beverages)
+  - Beer: U.S. customary units REQUIRED (fl. oz., pints, quarts, gallons), metric optional
+  - Wine/Spirits: Metric units REQUIRED (mL, L), U.S. customary optional
+  - Wine/Spirits: Must match authorized standards of fill (SOFT_MISMATCH if non-standard)
 - Health Warning (all beverages, exact text + formatting)
-- Alcohol Content (wine, spirits; beer surfaced if missing)
-- Country of Origin (required if `originType === IMPORTED`, no cross-checking)
+- Alcohol Content (all beverages - REQUIRED)
+  - Beer: Required, special terms validated (low/reduced alcohol < 2.5%, non-alcoholic requires statement, alcohol free = 0%)
+  - Wine: > 14% ABV requires numerical statement, 7-14% ABV optional if "table wine" or "light wine"
+  - Spirits: Standard format validation
+- Country of Origin (required if `originType === IMPORTED`, shows "N/A - Domestic" for domestic)
 - Age Statement (spirits only)
 - Sulfite Declaration (wine only)
 - Appellation (wine, conditionally required if varietal/vintage/estate bottled present)
 - Foreign Wine Percentage (wine, required if foreign wine referenced)
+
+**Special Validation Rules:**
+
+- **State Equivalence:** State names and abbreviations are equivalent (ME = Maine, CA = California)
+- **Standards of Fill:** Wine and spirits must use authorized container sizes (25 standard sizes each, wine allows even liters ≥4L)
+- **Net Contents Format:** Normalized variations accepted (mL/ml./ML, L/litre/liter, fl. oz./fluid ounces)
 
 ## Database Management
 
@@ -431,4 +443,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 28, 2025 (New application form feature added, Dialog component installed, authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._
+_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents with standards of fill, alcohol content rules for beer/wine, producer address city/state only, domestic UI display, Dialog component installed, authentication removed, TTB_ID field added, origin codes completely removed, government warning constant updated to all caps). Update when dependencies, tools, or constraints change._

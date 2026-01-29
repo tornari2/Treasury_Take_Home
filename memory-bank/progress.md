@@ -271,6 +271,35 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - Removed audit log calls that caused foreign key constraint failures
 - Fixed application converter to use originType instead of originCode
 
+### Enhanced Validation Rules ✅ (January 28, 2025)
+
+- **State Name/Abbreviation Equivalence:**
+  - Added US_STATE_MAP and US_STATE_REVERSE_MAP constants
+  - Created `normalizeState()` and `statesMatch()` utility functions
+  - Producer address validation now treats state names and abbreviations as equivalent
+
+- **Net Contents Validation:**
+  - Beverage-specific unit requirements implemented
+  - Enhanced format normalization for various unit formats
+  - Standards of fill validation for wine (25 authorized sizes + even liters ≥4L)
+  - Standards of fill validation for spirits (25 authorized sizes)
+  - Non-standard sizes flagged as SOFT_MISMATCH (review warning)
+
+- **Producer Address Validation:**
+  - Updated to only validate city and state (not full street address)
+  - Improved state extraction handles various address formats
+
+- **Alcohol Content Validation:**
+  - Beer: Missing alcohol content now causes HARD_MISMATCH (required for all beverages)
+  - Beer special terms: Low/reduced alcohol, non-alcoholic, alcohol free rules enforced
+  - Wine: Percentage-based requirements (> 14% mandatory, 7-14% optional if table/light wine)
+  - All format patterns properly enforced
+
+- **UI Enhancements:**
+  - Domestic beverages display "N/A - Domestic" for country of origin
+  - Net contents shows beverage-specific expected formats
+  - Added `not_applicable` type support in verification results
+
 ---
 
-_Last Updated: January 28, 2025 (New application form feature added, authentication removed, TTB_ID added, origin codes removed, UI improvements). Ready for production deployment and testing._
+_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents, standards of fill, alcohol content rules, producer address validation, domestic UI display). Ready for production deployment and testing._

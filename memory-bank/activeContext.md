@@ -10,6 +10,36 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 28, 2025)
 
+### Enhanced Validation Rules ✅ (Latest)
+
+- **State Name/Abbreviation Equivalence:**
+  - State names and two-letter abbreviations are now treated as equivalent
+  - Example: "ME" = "Maine", "California" = "CA"
+  - Updated producer address validation to use `statesMatch()` utility
+- **Net Contents Validation Enhancements:**
+  - Beverage-specific unit requirements:
+    - Beer: U.S. customary units REQUIRED (fl. oz., pints, quarts, gallons), metric optional
+    - Wine/Spirits: Metric units REQUIRED (mL, L), U.S. customary optional
+  - Enhanced format normalization: mL/ml./ML → metric, L/litre/liter → liters, fl. oz./fluid ounces → U.S. units
+  - Standards of fill validation for wine and spirits (SOFT_MISMATCH for non-standard container sizes)
+  - UI now displays beverage-specific expected formats
+- **Producer Address Validation:**
+  - Updated to only validate city and state (not full street address)
+  - Improved state extraction logic handles various address formats
+- **Alcohol Content Validation Enhancements:**
+  - Beer: Missing alcohol content now HARD_MISMATCH (was NOT_FOUND, non-failing)
+  - Beer special terms validation (27 CFR 7.65):
+    - "Low alcohol" or "Reduced alcohol": Only allowed if < 2.5% ABV
+    - "Non-alcoholic": Requires adjacent statement "contains less than 0.5% alcohol by volume"
+    - "Alcohol free": Only allowed if 0% ABV
+  - Wine-specific rules:
+    - Wines > 14% ABV: Numerical alcohol content statement mandatory
+    - Wines 7-14% ABV: Numerical statement optional if "table wine" or "light wine" appears
+- **UI Improvements:**
+  - Domestic beverages show "N/A - Domestic" for country of origin
+  - Net contents expected format shows beverage-specific requirements
+  - Added `not_applicable` type support in verification results
+
 ### Authentication System Removed ✅
 
 - **Removed Components:**
@@ -286,4 +316,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 28, 2025 (Authentication removed, TTB_ID added, origin codes removed, UI improvements, bug fixes). Ready for production deployment and testing._
+_Last Updated: January 28, 2025 (Enhanced validation rules: state equivalence, beverage-specific net contents, standards of fill, alcohol content rules for beer/wine, producer address city/state only, domestic UI display). Ready for production deployment and testing._

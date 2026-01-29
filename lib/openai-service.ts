@@ -20,7 +20,7 @@ function getOpenAIClient(): OpenAI {
 }
 
 /**
- * Extract label data from an image using GPT-4o-mini vision
+ * Extract label data from an image using GPT-4o vision
  */
 export async function extractLabelData(
   imageBuffer: Buffer,
@@ -65,11 +65,11 @@ export async function extractLabelData(
   try {
     const client = getOpenAIClient();
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label image and return them as JSON with confidence scores (0-1) for each field. If a field is not found, omit it from the response. For the health_warning field, extract the EXACT text including case and formatting.
+          content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label image and return them as JSON with confidence scores (0-1) for each field. If a field is not found, omit it from the response. For the health_warning field, extract the EXACT text as it appears on the label.
 
 Fields to extract:
 ${fieldsList}
@@ -86,7 +86,7 @@ Return JSON in this format:
           content: [
             {
               type: 'text',
-              text: 'Extract all label information from this image. Pay special attention to the health warning - it must be extracted exactly as shown, including all caps and formatting.',
+              text: 'Extract all label information from this image. Pay special attention to the health warning - extract it exactly as shown on the label, preserving the capitalization and formatting as it appears.',
             },
             {
               type: 'image_url',

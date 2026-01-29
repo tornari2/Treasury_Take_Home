@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -38,6 +38,7 @@ interface Application {
 export default function ReviewPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [application, setApplication] = useState<Application | null>(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
@@ -46,6 +47,10 @@ export default function ReviewPage() {
   const [imageZoom, setImageZoom] = useState(1);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  // Batch navigation state
+  const [batchApplications, setBatchApplications] = useState<number[] | null>(null);
+  const [currentBatchIndex, setCurrentBatchIndex] = useState<number | null>(null);
+  const [isInBatch, setIsInBatch] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -54,10 +59,88 @@ export default function ReviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
+  // Initialize batch navigation state
+  useEffect(() => {
+    const batchParam = searchParams?.get('batch');
+    const storedBatchApps = sessionStorage.getItem('batchApplications');
+    const storedBatchIndex = sessionStorage.getItem('batchCurrentIndex');
+
+    if (batchParam === 'true' || storedBatchApps) {
+      try {
+        const appIds = storedBatchApps ? JSON.parse(storedBatchApps) : null;
+        if (appIds && Array.isArray(appIds) && appIds.length > 0) {
+          const currentAppId = Number(params.id);
+          const index = appIds.indexOf(currentAppId);
+
+          if (index !== -1) {
+            // Current app is in batch
+            setBatchApplications(appIds);
+            setCurrentBatchIndex(index);
+            setIsInBatch(true);
+            // Update sessionStorage with current index
+            sessionStorage.setItem('batchCurrentIndex', index.toString());
+          } else if (batchParam === 'true') {
+            // Batch param is true but current app not in batch - might be direct navigation
+            // Still show batch navigation but use stored index
+            setBatchApplications(appIds);
+            setCurrentBatchIndex(storedBatchIndex ? Number(storedBatchIndex) : 0);
+            setIsInBatch(true);
+          }
+          // If no batch param and app not in stored batch, don't enable batch mode
+        } else if (storedBatchApps) {
+          // Invalid or empty batch data - clear it
+          sessionStorage.removeItem('batchApplications');
+          sessionStorage.removeItem('batchCurrentIndex');
+        }
+      } catch (error) {
+        console.error('Error parsing batch applications from sessionStorage:', error);
+        // Clear invalid data
+        sessionStorage.removeItem('batchApplications');
+        sessionStorage.removeItem('batchCurrentIndex');
+      }
+    }
+  }, [params.id, searchParams]);
+
   const fetchApplication = async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/applications/${params.id}`);
+
+      if (!response.ok) {
+        // Application not found - handle batch navigation if in batch mode
+        // Check sessionStorage directly in case state hasn't been set yet
+        const storedBatchApps = sessionStorage.getItem('batchApplications');
+        if (storedBatchApps) {
+          try {
+            const appIds = JSON.parse(storedBatchApps);
+            if (Array.isArray(appIds) && appIds.length > 0) {
+              // Remove invalid application from batch and try next
+              const updatedBatch = appIds.filter((id: number) => id !== Number(params.id));
+              if (updatedBatch.length > 0) {
+                sessionStorage.setItem('batchApplications', JSON.stringify(updatedBatch));
+                const storedIndex = sessionStorage.getItem('batchCurrentIndex');
+                const currentIdx = storedIndex ? Number(storedIndex) : 0;
+                const nextIndex =
+                  currentIdx < updatedBatch.length ? currentIdx : updatedBatch.length - 1;
+                const nextAppId = updatedBatch[nextIndex];
+                sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
+                router.push(`/review/${nextAppId}?batch=true`);
+                return;
+              } else {
+                // No more valid applications in batch - clear and go to dashboard
+                sessionStorage.removeItem('batchApplications');
+                sessionStorage.removeItem('batchCurrentIndex');
+                router.push('/dashboard');
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('Error handling batch navigation:', error);
+          }
+        }
+        throw new Error('Application not found');
+      }
+
       const data = await response.json();
       setApplication(data.application);
 
@@ -122,9 +205,30 @@ export default function ReviewPage() {
 
       if (response.ok) {
         await fetchApplication();
-        // Redirect to dashboard for approved, rejected, or needs_review
+        // Handle batch navigation or redirect to dashboard
         if (status === 'approved' || status === 'rejected' || status === 'needs_review') {
-          router.push('/dashboard');
+          if (isInBatch && batchApplications && currentBatchIndex !== null) {
+            // Check if there's a next application in the batch
+            if (currentBatchIndex < batchApplications.length - 1) {
+              // Auto-navigate to next application
+              const nextIndex = currentBatchIndex + 1;
+              const nextAppId = batchApplications[nextIndex];
+              sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
+              router.push(`/review/${nextAppId}?batch=true`);
+            } else {
+              // Last application in batch - show completion message
+              if (
+                confirm(
+                  "You've completed reviewing all applications in this batch. Return to dashboard?"
+                )
+              ) {
+                exitBatch();
+              }
+            }
+          } else {
+            // Not in batch mode - redirect to dashboard
+            router.push('/dashboard');
+          }
         }
       } else {
         alert('Failed to update status');
@@ -141,6 +245,42 @@ export default function ReviewPage() {
       setShowConfirmDialog(false);
       setPendingStatus(null);
     }
+  };
+
+  // Batch navigation functions
+  const goToPrevious = () => {
+    if (batchApplications && currentBatchIndex !== null && currentBatchIndex > 0) {
+      const prevIndex = currentBatchIndex - 1;
+      const prevAppId = batchApplications[prevIndex];
+      if (prevAppId) {
+        sessionStorage.setItem('batchCurrentIndex', prevIndex.toString());
+        router.push(`/review/${prevAppId}?batch=true`);
+      }
+    }
+  };
+
+  const goToNext = () => {
+    if (
+      batchApplications &&
+      currentBatchIndex !== null &&
+      currentBatchIndex < batchApplications.length - 1
+    ) {
+      const nextIndex = currentBatchIndex + 1;
+      const nextAppId = batchApplications[nextIndex];
+      if (nextAppId) {
+        sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
+        router.push(`/review/${nextAppId}?batch=true`);
+      }
+    }
+  };
+
+  const exitBatch = () => {
+    sessionStorage.removeItem('batchApplications');
+    sessionStorage.removeItem('batchCurrentIndex');
+    setBatchApplications(null);
+    setCurrentBatchIndex(null);
+    setIsInBatch(false);
+    router.push('/dashboard');
   };
 
   const getFieldStatusVariant = (
@@ -203,9 +343,41 @@ export default function ReviewPage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <Button variant="ghost" onClick={() => router.push('/dashboard')} className="mb-4">
-            ← Back to Dashboard
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                // Clear batch context when going back to dashboard
+                if (isInBatch) {
+                  sessionStorage.removeItem('batchApplications');
+                  sessionStorage.removeItem('batchCurrentIndex');
+                }
+                router.push('/dashboard');
+              }}
+            >
+              ← Back to Dashboard
+            </Button>
+            {isInBatch && batchApplications && currentBatchIndex !== null && (
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={goToPrevious} disabled={currentBatchIndex === 0}>
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Application {currentBatchIndex + 1} of {batchApplications.length}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={goToNext}
+                  disabled={currentBatchIndex === batchApplications.length - 1}
+                >
+                  Next
+                </Button>
+                <Button variant="outline" onClick={exitBatch} className="ml-2">
+                  Exit Batch
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {verifying && (

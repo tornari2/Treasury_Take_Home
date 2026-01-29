@@ -117,12 +117,38 @@ export function valueExists(value: string | null | undefined): boolean {
 }
 
 /**
- * Check if health warning text matches EXACTLY (with whitespace flexibility only)
- * The ENTIRE government warning must appear exactly on the label
+ * Normalize health warning for comparison
+ * Only "GOVERNMENT WARNING:" must match case-sensitively; remainder is case-insensitive
+ */
+function normalizeHealthWarningForComparison(text: string): string {
+  const normalized = normalizeWhitespace(text);
+  // Split at "GOVERNMENT WARNING:" to separate prefix from remainder
+  // Use case-sensitive match to ensure prefix is exactly "GOVERNMENT WARNING:"
+  const match = normalized.match(/^(GOVERNMENT WARNING:)(.*)$/);
+  if (match) {
+    // Prefix must be exactly "GOVERNMENT WARNING:" (case-sensitive)
+    // Normalize remainder to lowercase for case-insensitive comparison
+    const prefix = match[1]; // Keep as-is (should be "GOVERNMENT WARNING:")
+    const remainder = match[2].toLowerCase();
+    return prefix + remainder;
+  }
+  // If pattern doesn't match (prefix not in correct case), return a value that won't match
+  // This ensures "Government Warning:" or "government warning:" won't match
+  return normalized.toLowerCase() + '_PREFIX_MISMATCH';
+}
+
+/**
+ * Check if health warning text matches EXACTLY (with whitespace flexibility)
+ * Only "GOVERNMENT WARNING:" must be in ALL CAPS; remainder can have normal capitalization
  */
 export function healthWarningMatchesExact(extracted: string | null | undefined): boolean {
   if (!extracted) return false;
-  return normalizeWhitespace(extracted) === normalizeWhitespace(REQUIRED_HEALTH_WARNING);
+
+  // Normalize both strings for comparison
+  const normalizedExtracted = normalizeHealthWarningForComparison(extracted);
+  const normalizedRequired = normalizeHealthWarningForComparison(REQUIRED_HEALTH_WARNING);
+
+  return normalizedExtracted === normalizedRequired;
 }
 
 /**

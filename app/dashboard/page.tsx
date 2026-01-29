@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +43,7 @@ export default function Dashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [verifyingApp, setVerifyingApp] = useState<number | null>(null);
   const [deletingApp, setDeletingApp] = useState<number | null>(null);
+  const [deletingApps, setDeletingApps] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchApplications();
@@ -100,19 +100,24 @@ export default function Dashboard() {
 
     setBatchProcessing(true);
     try {
+      const applicationIds = Array.from(selectedApps);
       const response = await fetch('/api/batch/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          application_ids: Array.from(selectedApps),
+          application_ids: applicationIds,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Batch processing started. Batch ID: ${data.batch_id}`);
+        // Store batch application IDs in sessionStorage for sequential navigation
+        sessionStorage.setItem('batchApplications', JSON.stringify(applicationIds));
+        sessionStorage.setItem('batchCurrentIndex', '0');
+        // Redirect to first application's review page
+        const firstAppId = applicationIds[0];
         setSelectedApps(new Set());
-        fetchApplications();
+        router.push(`/review/${firstAppId}?batch=true`);
       } else {
         alert('Failed to start batch processing');
       }
@@ -177,12 +182,92 @@ export default function Dashboard() {
     }
   };
 
+  const handleReviewSelected = () => {
+    if (selectedApps.size === 0) return;
+
+    const applicationIds = Array.from(selectedApps);
+    // Store selected application IDs in sessionStorage for sequential navigation
+    sessionStorage.setItem('batchApplications', JSON.stringify(applicationIds));
+    sessionStorage.setItem('batchCurrentIndex', '0');
+    // Redirect to first application's review page
+    const firstAppId = applicationIds[0];
+    setSelectedApps(new Set());
+    router.push(`/review/${firstAppId}?batch=true`);
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedApps.size === 0) return;
+
+    const count = selectedApps.size;
+    const message =
+      count === 1
+        ? 'Are you sure you want to delete this application? This action cannot be undone.'
+        : `Are you sure you want to delete ${count} applications? This action cannot be undone.`;
+
+    if (!confirm(message)) {
+      return;
+    }
+
+    setDeletingApps(new Set(selectedApps));
+    const appIds = Array.from(selectedApps);
+    const results = { success: 0, failed: 0 };
+
+    try {
+      // Delete applications in parallel
+      const deletePromises = appIds.map(async (appId) => {
+        try {
+          const response = await fetch(`/api/applications/${appId}`, {
+            method: 'DELETE',
+          });
+          if (response.ok) {
+            results.success++;
+            return { appId, success: true };
+          } else {
+            results.failed++;
+            return { appId, success: false };
+          }
+        } catch (error) {
+          results.failed++;
+          return { appId, success: false };
+        }
+      });
+
+      await Promise.all(deletePromises);
+
+      // Refresh applications list
+      await fetchApplications();
+
+      // Clear selection
+      setSelectedApps(new Set());
+
+      // Show results
+      if (results.failed === 0) {
+        alert(`Successfully deleted ${results.success} application(s).`);
+      } else {
+        alert(
+          `Deleted ${results.success} application(s). Failed to delete ${results.failed} application(s).`
+        );
+      }
+    } catch (error) {
+      console.error('Batch delete error:', error);
+      alert('Error deleting applications');
+    } finally {
+      setDeletingApps(new Set());
+    }
+  };
+
   const getTtbId = (app: Application): string => {
     const appData = app.application_data || app.expected_label_data;
     if (appData?.ttbId) {
       return appData.ttbId;
     }
     return `#${app.id}`;
+  };
+
+  const getBrandName = (app: Application): string => {
+    const appData = app.application_data || app.expected_label_data;
+    // Check both new format (brandName) and legacy format (brand_name)
+    return appData?.brandName || appData?.brand_name || '—';
   };
 
   const getStatusVariant = (
@@ -245,12 +330,6 @@ export default function Dashboard() {
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
-
-            {selectedApps.size > 0 && (
-              <Button onClick={handleBatchVerify} disabled={batchProcessing}>
-                {batchProcessing ? 'Processing...' : `Verify Selected (${selectedApps.size})`}
-              </Button>
-            )}
           </div>
         </div>
 
@@ -266,16 +345,15 @@ export default function Dashboard() {
                 </TableHead>
                 <TableHead>ID</TableHead>
                 <TableHead>Applicant</TableHead>
-                <TableHead>Beverage Type</TableHead>
+                <TableHead>Brand Name</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {applications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                     No applications found
                   </TableCell>
                 </TableRow>
@@ -290,7 +368,7 @@ export default function Dashboard() {
                     </TableCell>
                     <TableCell className="font-medium">{getTtbId(app)}</TableCell>
                     <TableCell>{app.applicant_name}</TableCell>
-                    <TableCell className="text-muted-foreground">{app.beverage_type}</TableCell>
+                    <TableCell>{getBrandName(app)}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(app.status)}>
                         {getStatusDisplayText(app.status)}
@@ -299,39 +377,39 @@ export default function Dashboard() {
                     <TableCell className="text-muted-foreground">
                       {new Date(app.created_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2 items-center">
-                        <Link href={`/review/${app.id}`}>
-                          <Button variant="link" className="h-auto p-0">
-                            Review
-                          </Button>
-                        </Link>
-                        {selectedApps.has(app.id) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleVerifySingle(app.id)}
-                            disabled={verifyingApp === app.id}
-                          >
-                            {verifyingApp === app.id ? 'Verifying...' : 'Verify'}
-                          </Button>
-                        )}
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(app.id)}
-                          disabled={deletingApp === app.id}
-                        >
-                          {deletingApp === app.id ? 'Deleting...' : 'Delete'}
-                        </Button>
-                      </div>
-                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
         </div>
+
+        {/* Action Buttons */}
+        {selectedApps.size > 0 && (
+          <div className="mt-4 flex gap-3 justify-center">
+            <Button
+              onClick={handleReviewSelected}
+              variant="default"
+              disabled={selectedApps.size === 0}
+            >
+              Review ({selectedApps.size})
+            </Button>
+            <Button
+              onClick={handleBatchVerify}
+              variant="default"
+              disabled={batchProcessing || selectedApps.size === 0}
+            >
+              {batchProcessing ? 'Processing...' : `Verify (${selectedApps.size})`}
+            </Button>
+            <Button
+              onClick={handleDeleteSelected}
+              variant="destructive"
+              disabled={deletingApps.size > 0 || selectedApps.size === 0}
+            >
+              {deletingApps.size > 0 ? 'Deleting...' : `Delete (${selectedApps.size})`}
+            </Button>
+          </div>
+        )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

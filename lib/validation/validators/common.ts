@@ -42,8 +42,8 @@ export function validateBrandName(
     return {
       field: 'brandName',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
-      extracted: null,
+      expected: expected,
+      extracted: 'Field not found',
       rule: 'PRESENCE: Brand name must appear on label',
     };
   }
@@ -104,8 +104,8 @@ export function validateFancifulName(
     return {
       field: 'fancifulName',
       status: MatchStatus.HARD_MISMATCH,
-      expected: 'Field not found',
-      extracted: null,
+      expected: expected!,
+      extracted: 'Field not found',
       rule: 'CROSS-CHECK: Fanciful name in application must appear on label',
       details: 'Application specifies a fanciful name but it was not found on the label',
     };
@@ -679,8 +679,8 @@ export function validateProducerNameAddress(
     return {
       field: 'producerNameAddress',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
-      extracted: null,
+      expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+      extracted: 'Field not found',
       rule: 'PRESENCE: Producer name and location (city, state) must appear on label',
     };
   }
@@ -692,10 +692,14 @@ export function validateProducerNameAddress(
   const exactNameMatches = extractedName && stringsMatch(expectedName, extractedName);
   const nameSoftMismatch = extractedName && isSoftMismatch(expectedName, extractedName);
 
-  // If core name matches but exact match doesn't, it's likely an entity suffix difference (soft mismatch)
-  // If exact match, it's a full match
+  // If names match when normalized (case-insensitive), treat as MATCH regardless of case differences
+  // Case-only differences (e.g., "BREWERY" vs "Brewery") should be MATCH, not SOFT_MISMATCH
   const nameMatches = exactNameMatches;
   const hasEntitySuffixDifference = coreNameMatches && !exactNameMatches;
+  // Only treat as soft mismatch if there are formatting differences (punctuation/whitespace)
+  // AND names don't match exactly when normalized (case differences alone don't count)
+  // If exactNameMatches is true, we skip soft mismatch check (case differences are acceptable)
+  const hasNonCaseFormattingDifference = nameSoftMismatch && !exactNameMatches;
 
   // Only validate city and state from the address, not the full street address
   const addressContainsCity =
@@ -807,7 +811,11 @@ export function validateProducerNameAddress(
   }
 
   // Check for soft mismatches (formatting differences or entity suffix differences)
-  if (nameSoftMismatch || hasEntitySuffixDifference) {
+  // Only flag as soft mismatch if:
+  // 1. Entity suffix difference (e.g., "CO." vs "LLC") - core name matches but suffix differs
+  // 2. Non-case formatting differences (punctuation, whitespace) - but NOT case-only differences
+  // Case-only differences (e.g., "BREWERY" vs "Brewery") are treated as MATCH above
+  if (hasEntitySuffixDifference || hasNonCaseFormattingDifference) {
     return {
       field: 'producerNameAddress',
       status: MatchStatus.SOFT_MISMATCH,
@@ -816,7 +824,7 @@ export function validateProducerNameAddress(
       rule: 'CROSS-CHECK: Producer name, city, and state must match application',
       details: hasEntitySuffixDifference
         ? 'Business entity suffix difference (e.g., "CO." vs "LLC") - core business name matches'
-        : 'Minor formatting difference in name',
+        : 'Minor formatting difference in name (punctuation or whitespace)',
     };
   }
 
@@ -848,8 +856,8 @@ export function validateHealthWarning(
     return {
       field: 'healthWarning',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
-      extracted: null,
+      expected: REQUIRED_HEALTH_WARNING,
+      extracted: 'Field not found',
       rule: 'PRESENCE: Health warning statement must appear on label',
     };
   }

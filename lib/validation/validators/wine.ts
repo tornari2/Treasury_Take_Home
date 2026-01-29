@@ -36,11 +36,14 @@ export function validateAppellation(
     if (hasVintageDate) reasons.push('vintage date');
     if (isEstateBottled) reasons.push('estate bottled');
 
+    // Show expected appellation if it exists in application, otherwise show requirement message
+    const expectedValue = valueExists(expected) ? expected! : 'Required (see details)';
+
     return {
       field: 'appellation',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
-      extracted: null,
+      expected: expectedValue,
+      extracted: 'Field not found',
       rule: 'PRESENCE: Appellation required when label contains varietal, vintage, or estate bottled',
       details: `Appellation required because label contains: ${reasons.join(', ')}`,
     };
@@ -62,8 +65,8 @@ export function validateAppellation(
     return {
       field: 'appellation',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
-      extracted: null,
+      expected: expected!,
+      extracted: 'Field not found',
       rule: 'CROSS-CHECK: Appellation in application must appear on label',
     };
   }
@@ -124,11 +127,16 @@ export function validateWineVarietal(
 
   // Class/Type is REQUIRED on wine labels
   if (!extracted) {
+    // If application has varietal, show it as expected; otherwise show requirement message
+    const expectedValue = valueExists(expectedVarietal)
+      ? expectedVarietal!
+      : 'Required (see details)';
+
     return {
       field: 'classType',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
-      extracted: null,
+      expected: expectedValue,
+      extracted: 'Field not found',
       rule: 'PRESENCE: Class/type designation must appear on wine label',
       details: 'Class/type designation is required on the label',
     };
@@ -206,8 +214,8 @@ export function validateVintageDate(
     return {
       field: 'vintageDate',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
-      extracted: null,
+      expected: expected!,
+      extracted: 'Field not found',
       rule: 'CROSS-CHECK: Vintage date in application must appear on label',
       details: 'Application specifies a vintage date but it was not found on the label',
     };

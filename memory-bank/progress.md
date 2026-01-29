@@ -60,6 +60,8 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - OpenAI GPT-4o integration (upgraded from GPT-4o-mini)
 - Multi-image processing: All label images processed together in single API call
 - AI looks across all images (front, back, neck, side) to extract all fields
+- **Capitalization Preservation:** All fields preserve exact capitalization as shown on label (ALL CAPS extracted as ALL CAPS)
+- **Case-Insensitive Validation:** Fields match regardless of capitalization (e.g., "FAR MOUNTAIN" matches "Far Mountain")
 - Verification logic with soft/hard mismatch detection
 - Strict health warning validation
 - Results stored in database with confidence scores
@@ -68,6 +70,7 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 - Application queue with status filtering
 - Checkbox selection for batch operations
+- **Clickable Rows:** Clicking anywhere on an application row selects/deselects the checkbox
 - Batch verification UI
 - Responsive design with Tailwind CSS
 - Real-time status updates
@@ -82,7 +85,9 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 #### Task 7: Application Review Interface ✅
 
 - Side-by-side comparison view
-- Label image display with zoom controls
+- **All Images Display:** All label images displayed vertically stacked simultaneously
+- **Independent Controls:** Each image has its own zoom (+/-) and pan (drag) controls
+- **No Mouse Wheel Zoom:** Removed mouse wheel zoom (use +/- buttons instead)
 - Color-coded verification indicators
 - Action buttons (Approve, Reject)
 - Review notes field with helpful guidance

@@ -10,7 +10,34 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Multi-Image Processing Enhancement ✅ (Latest)
+### UX and Extraction Accuracy Improvements ✅ (Latest - January 29, 2025)
+
+- **Dashboard Row Selection:**
+  - Application rows are now clickable - clicking anywhere on a row selects/deselects the checkbox
+  - Added cursor pointer styling to indicate rows are interactive
+  - Improved user experience for batch selection operations
+
+- **Review Page Image Display:**
+  - All label images now displayed vertically stacked on review page
+  - Removed image type selector buttons (no longer needed)
+  - Each image has independent zoom and pan controls
+  - Removed mouse wheel zoom functionality (users can still use +/- buttons)
+  - Images displayed simultaneously for easier comparison
+
+- **Capitalization Preservation:**
+  - Updated all extraction prompts (Beer, Spirits, Wine) to preserve exact capitalization for ALL fields
+  - If ANY field appears in ALL CAPS on the label, it will be extracted as ALL CAPS
+  - Applies to: brand name, fanciful name, class type, producer name, producer address, appellation, country of origin, and all other fields
+  - Validation still uses case-insensitive matching, so "FAR MOUNTAIN" matches "Far Mountain"
+  - Updated both detailed prompts (`lib/validation/prompts.ts`) and OpenAI service prompt (`lib/openai-service.ts`)
+
+- **Net Contents Validation Enhancement:**
+  - Added support for "milliliters" and "millilitres" (British spelling) as valid metric units
+  - Updated `NET_CONTENTS_PATTERNS.metric` to recognize full word forms
+  - Updated `parseNetContentsToML()` to parse "milliliters" correctly
+  - Now accepts: "750 mL", "750 ml", "750 milliliters", "750 millilitres" as equivalent
+
+### Multi-Image Processing Enhancement ✅
 
 - **Unified Image Extraction:**
   - Modified `extractLabelData` to accept array of images instead of single image
@@ -496,4 +523,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (Dashboard UI improvements: Brand Name column, sequential batch navigation, action buttons; Validation enhancements: health warning capitalization fix, producer name case matching, improved field not found display; AI model update: GPT-4o-mini → GPT-4o). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (UX improvements: clickable rows, vertical image display, removed wheel zoom; Extraction accuracy: preserve ALL CAPS for all fields, support milliliters/millilitres; Validation: case-insensitive matching maintained). Ready for production deployment and testing._

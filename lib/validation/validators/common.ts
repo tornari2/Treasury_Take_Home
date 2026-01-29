@@ -26,6 +26,7 @@ import {
   isTableWineOrLightWine,
   validateBeerNetContentsFormat,
   validateWineNetContentsFormat,
+  producerNamesMatchIgnoringEntitySuffix,
 } from '../utils';
 
 /**
@@ -41,7 +42,7 @@ export function validateBrandName(
     return {
       field: 'brandName',
       status: MatchStatus.NOT_FOUND,
-      expected,
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Brand name must appear on label',
     };
@@ -103,7 +104,7 @@ export function validateFancifulName(
     return {
       field: 'fancifulName',
       status: MatchStatus.HARD_MISMATCH,
-      expected: expected!,
+      expected: 'Field not found',
       extracted: null,
       rule: 'CROSS-CHECK: Fanciful name in application must appear on label',
       details: 'Application specifies a fanciful name but it was not found on the label',
@@ -159,7 +160,7 @@ export function validateClassType(extracted: string | null): FieldValidationResu
     return {
       field: 'classType',
       status: MatchStatus.NOT_FOUND,
-      expected: null,
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Class/type designation must appear on label',
     };
@@ -209,7 +210,7 @@ export function validateAlcoholContent(
       return {
         field: 'alcoholContent',
         status: MatchStatus.HARD_MISMATCH,
-        expected: expectedFormat,
+        expected: 'Field not found',
         extracted: null,
         rule: 'PRESENCE: Alcohol content must appear on label',
         details: 'Alcohol content is required for beer/malt beverages',
@@ -338,8 +339,7 @@ export function validateAlcoholContent(
         return {
           field: 'alcoholContent',
           status: MatchStatus.HARD_MISMATCH,
-          expected:
-            'Numerical alcohol content statement required. For wines 7-14% ABV, statement is optional if "table wine" or "light wine" appears as class/type designation.',
+          expected: 'Field not found',
           extracted: null,
           rule: 'WINE RULE: Wines over 14% ABV require numerical alcohol content statement',
           details:
@@ -443,7 +443,7 @@ export function validateAlcoholContent(
       return {
         field: 'alcoholContent',
         status: MatchStatus.HARD_MISMATCH,
-        expected: expectedFormat,
+        expected: 'Field not found',
         extracted: null,
         rule: 'PRESENCE: Alcohol content must appear on label',
         details: 'Alcohol content is required for spirits',
@@ -503,7 +503,7 @@ export function validateNetContents(
     return {
       field: 'netContents',
       status: MatchStatus.NOT_FOUND,
-      expected: expectedFormat,
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Net contents must appear on label',
     };
@@ -679,14 +679,23 @@ export function validateProducerNameAddress(
     return {
       field: 'producerNameAddress',
       status: MatchStatus.NOT_FOUND,
-      expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Producer name and location (city, state) must appear on label',
     };
   }
 
-  const nameMatches = extractedName && stringsMatch(expectedName, extractedName);
+  // Compare producer names - check if core name matches (ignoring entity suffixes)
+  // This allows "CO." vs "LLC" to be considered a soft mismatch if core name matches
+  const coreNameMatches =
+    extractedName && producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName);
+  const exactNameMatches = extractedName && stringsMatch(expectedName, extractedName);
   const nameSoftMismatch = extractedName && isSoftMismatch(expectedName, extractedName);
+
+  // If core name matches but exact match doesn't, it's likely an entity suffix difference (soft mismatch)
+  // If exact match, it's a full match
+  const nameMatches = exactNameMatches;
+  const hasEntitySuffixDifference = coreNameMatches && !exactNameMatches;
 
   // Only validate city and state from the address, not the full street address
   const addressContainsCity =
@@ -726,7 +735,8 @@ export function validateProducerNameAddress(
     }
   }
 
-  if (!nameMatches && extractedName) {
+  // If core name doesn't match at all, it's a hard mismatch
+  if (!coreNameMatches && extractedName) {
     return {
       field: 'producerNameAddress',
       status: MatchStatus.HARD_MISMATCH,
@@ -736,6 +746,9 @@ export function validateProducerNameAddress(
       details: 'Producer name does not match',
     };
   }
+
+  // If core name matches but exact doesn't (entity suffix difference), continue validation
+  // but we'll flag it as soft mismatch later if city/state also match
 
   if (!addressContainsCity || !addressContainsState) {
     return {
@@ -793,14 +806,17 @@ export function validateProducerNameAddress(
     }
   }
 
-  if (nameSoftMismatch) {
+  // Check for soft mismatches (formatting differences or entity suffix differences)
+  if (nameSoftMismatch || hasEntitySuffixDifference) {
     return {
       field: 'producerNameAddress',
       status: MatchStatus.SOFT_MISMATCH,
       expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
       extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
       rule: 'CROSS-CHECK: Producer name, city, and state must match application',
-      details: 'Minor formatting difference in name',
+      details: hasEntitySuffixDifference
+        ? 'Business entity suffix difference (e.g., "CO." vs "LLC") - core business name matches'
+        : 'Minor formatting difference in name',
     };
   }
 
@@ -822,6 +838,7 @@ export function validateHealthWarning(
   formatChecks: {
     governmentWarningAllCaps: boolean | null;
     governmentWarningBold: boolean | null;
+    remainderBold: boolean | null;
     surgeonCapitalized: boolean | null;
     generalCapitalized: boolean | null;
   }
@@ -831,7 +848,7 @@ export function validateHealthWarning(
     return {
       field: 'healthWarning',
       status: MatchStatus.NOT_FOUND,
-      expected: REQUIRED_HEALTH_WARNING,
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Health warning statement must appear on label',
     };
@@ -870,6 +887,19 @@ export function validateHealthWarning(
       extracted: extractedText,
       rule: 'FORMAT: "GOVERNMENT WARNING" must be in bold type',
       details: '"GOVERNMENT WARNING" is not bold',
+    };
+  }
+
+  // Check remainder of warning is NOT bold (only "GOVERNMENT WARNING" should be bold)
+  if (formatChecks.remainderBold === true) {
+    return {
+      field: 'healthWarning',
+      status: MatchStatus.HARD_MISMATCH,
+      expected: 'Only "GOVERNMENT WARNING" must be bold; remainder of warning must NOT be bold',
+      extracted: extractedText,
+      rule: 'FORMAT: Remainder of warning statement may not appear in bold type',
+      details:
+        'The remainder of the warning statement after "GOVERNMENT WARNING:" appears in bold type, but it should not be bold',
     };
   }
 
@@ -930,7 +960,7 @@ export function validateCountryOfOrigin(
     return {
       field: 'countryOfOrigin',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Country of origin required for imported products',
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Country of origin must appear on label for imported products',
     };

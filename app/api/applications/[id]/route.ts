@@ -92,3 +92,35 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const applicationId = parseInt(params.id);
+
+    if (isNaN(applicationId)) {
+      return NextResponse.json({ error: 'Invalid application ID' }, { status: 400 });
+    }
+
+    const application = applicationHelpers.findById(applicationId);
+
+    if (!application) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+    }
+
+    // Delete associated label images first (cascade delete)
+    const labelImages = labelImageHelpers.findByApplicationId(applicationId);
+    for (const image of labelImages) {
+      labelImageHelpers.delete(image.id);
+    }
+
+    // Delete the application
+    applicationHelpers.delete(applicationId);
+
+    // Skip audit logging since authentication is removed
+
+    return NextResponse.json({ message: 'Application deleted successfully' });
+  } catch (error) {
+    console.error('Delete application error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

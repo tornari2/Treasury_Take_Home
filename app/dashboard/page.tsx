@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -30,9 +31,11 @@ interface Application {
   status: string;
   created_at: string;
   expected_label_data: any;
+  application_data?: any;
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -40,6 +43,7 @@ export default function Dashboard() {
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [verifyingApp, setVerifyingApp] = useState<number | null>(null);
+  const [deletingApp, setDeletingApp] = useState<number | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -128,18 +132,57 @@ export default function Dashboard() {
       });
 
       if (response.ok) {
-        await fetchApplications();
-        alert('Verification completed successfully');
+        // Redirect directly to review page instead of showing alert
+        router.push(`/review/${appId}`);
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         alert(`Verification failed: ${errorData.error || 'Unknown error'}`);
+        setVerifyingApp(null);
       }
     } catch (error) {
       console.error('Verify error:', error);
       alert('Error during verification');
-    } finally {
       setVerifyingApp(null);
     }
+  };
+
+  const handleDelete = async (appId: number) => {
+    if (
+      !confirm('Are you sure you want to delete this application? This action cannot be undone.')
+    ) {
+      return;
+    }
+
+    setDeletingApp(appId);
+    try {
+      const response = await fetch(`/api/applications/${appId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchApplications();
+        // Remove from selected apps if it was selected
+        const newSelected = new Set(selectedApps);
+        newSelected.delete(appId);
+        setSelectedApps(newSelected);
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        alert(`Failed to delete application: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Error deleting application');
+    } finally {
+      setDeletingApp(null);
+    }
+  };
+
+  const getTtbId = (app: Application): string => {
+    const appData = app.application_data || app.expected_label_data;
+    if (appData?.ttbId) {
+      return appData.ttbId;
+    }
+    return `#${app.id}`;
   };
 
   const getStatusVariant = (
@@ -245,7 +288,7 @@ export default function Dashboard() {
                         onCheckedChange={() => handleSelectApp(app.id)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{app.id}</TableCell>
+                    <TableCell className="font-medium">{getTtbId(app)}</TableCell>
                     <TableCell>{app.applicant_name}</TableCell>
                     <TableCell className="text-muted-foreground">{app.beverage_type}</TableCell>
                     <TableCell>
@@ -273,6 +316,14 @@ export default function Dashboard() {
                             {verifyingApp === app.id ? 'Verifying...' : 'Verify'}
                           </Button>
                         )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(app.id)}
+                          disabled={deletingApp === app.id}
+                        >
+                          {deletingApp === app.id ? 'Deleting...' : 'Delete'}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

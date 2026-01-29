@@ -74,6 +74,11 @@ export const applicationHelpers = {
     `);
     return stmt.run(status, reviewNotes, id);
   },
+
+  delete: (id: number) => {
+    const stmt = db.prepare('DELETE FROM applications WHERE id = ?');
+    return stmt.run(id);
+  },
 };
 
 // Label Image helpers
@@ -110,6 +115,11 @@ export const labelImageHelpers = {
       WHERE id = ?
     `);
     return stmt.run(extractedData, verificationResult, confidenceScore, processingTimeMs, id);
+  },
+
+  delete: (id: number) => {
+    const stmt = db.prepare('DELETE FROM label_images WHERE id = ?');
+    return stmt.run(id);
   },
 };
 

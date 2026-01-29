@@ -86,6 +86,7 @@ export interface BeerExtractionResult {
   formatChecks: {
     governmentWarningAllCaps: boolean | null;
     governmentWarningBold: boolean | null;
+    remainderBold: boolean | null; // Remainder of warning (after "GOVERNMENT WARNING:") should NOT be bold
     surgeonCapitalized: boolean | null;
     generalCapitalized: boolean | null;
   };
@@ -119,6 +120,7 @@ export interface SpiritsExtractionResult {
   formatChecks: {
     governmentWarningAllCaps: boolean | null;
     governmentWarningBold: boolean | null;
+    remainderBold: boolean | null; // Remainder of warning (after "GOVERNMENT WARNING:") should NOT be bold
     surgeonCapitalized: boolean | null;
     generalCapitalized: boolean | null;
   };
@@ -157,6 +159,7 @@ export interface WineExtractionResult {
   formatChecks: {
     governmentWarningAllCaps: boolean | null;
     governmentWarningBold: boolean | null;
+    remainderBold: boolean | null; // Remainder of warning (after "GOVERNMENT WARNING:") should NOT be bold
     surgeonCapitalized: boolean | null;
     generalCapitalized: boolean | null;
   };

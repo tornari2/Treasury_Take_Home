@@ -39,9 +39,9 @@ export const NET_CONTENTS_PATTERNS = {
   usCustomary: [
     /^\d+(\.\d+)?\s*fl\.?\s*oz\.?$/i, // fl oz, fl. oz., fl oz., fl. oz
     /^\d+(\.\d+)?\s*fluid\s+ounce(s)?$/i, // fluid ounce, fluid ounces
-    /^\d+(\.\d+)?\s*pint(s)?$/i, // pint, pints
-    /^\d+(\.\d+)?\s*quart(s)?$/i, // quart, quarts
-    /^\d+(\.\d+)?\s*gallon(s)?$/i, // gallon, gallons
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*pint(s)?$/i, // pint, pints, U.S. pint, US pint
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*quart(s)?$/i, // quart, quarts, U.S. quart, US quart
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*gallon(s)?$/i, // gallon, gallons, U.S. gallon, US gallon, U.S. gallons, US gallons
   ],
 };
 

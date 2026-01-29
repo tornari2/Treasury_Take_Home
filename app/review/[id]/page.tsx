@@ -206,8 +206,6 @@ export default function ReviewPage() {
           <Button variant="ghost" onClick={() => router.push('/dashboard')} className="mb-4">
             ← Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Review Application #{application.id}</h1>
-          <p className="text-gray-600 mt-2">{application.applicant_name}</p>
         </div>
 
         {verifying && (

@@ -12,7 +12,7 @@ export function validateAgeStatement(extracted: string | null): FieldValidationR
     return {
       field: 'ageStatement',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Age statement required on spirits labels',
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Age statement must appear on spirits label',
     };

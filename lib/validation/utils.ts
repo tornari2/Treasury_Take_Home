@@ -27,10 +27,65 @@ export function normalizeWhitespace(str: string | null | undefined): string {
 }
 
 /**
- * Check if two strings match (case-insensitive, normalized)
+ * Normalize business entity suffixes for comparison
+ * Removes common business entity suffixes: CO, CO., COMPANY, LLC, INC, INC., INCORPORATED, LTD, LIMITED
+ * Handles multiple suffixes (e.g., "Co LLC" -> removes both)
  */
-export function stringsMatch(a: string | null | undefined, b: string | null | undefined): boolean {
-  return normalizeString(a) === normalizeString(b);
+function normalizeBusinessEntitySuffix(str: string): string {
+  // Remove all common business entity suffixes (case-insensitive, can be multiple)
+  // Keep removing until no more suffixes found
+  let result = str.trim();
+  let previousResult = '';
+
+  while (result !== previousResult) {
+    previousResult = result;
+    result = result
+      .replace(/\s*(co\.?|company|llc|inc\.?|incorporated|ltd\.?|limited)\s*$/i, '')
+      .trim();
+  }
+
+  return result;
+}
+
+/**
+ * Check if two strings match (case-insensitive, normalized)
+ * For producer names, also normalizes business entity suffixes
+ */
+export function stringsMatch(
+  a: string | null | undefined,
+  b: string | null | undefined,
+  options?: { normalizeEntitySuffix?: boolean }
+): boolean {
+  const normalizedA = normalizeString(a);
+  const normalizedB = normalizeString(b);
+
+  // If entity suffix normalization is requested, compare without suffixes
+  if (options?.normalizeEntitySuffix && a && b) {
+    const aWithoutSuffix = normalizeBusinessEntitySuffix(normalizedA);
+    const bWithoutSuffix = normalizeBusinessEntitySuffix(normalizedB);
+    return aWithoutSuffix === bWithoutSuffix;
+  }
+
+  return normalizedA === normalizedB;
+}
+
+/**
+ * Check if two producer names match when ignoring entity suffixes
+ * Returns true if the core business name matches (ignoring entity type suffixes)
+ */
+export function producerNamesMatchIgnoringEntitySuffix(
+  expected: string | null | undefined,
+  extracted: string | null | undefined
+): boolean {
+  if (!expected || !extracted) return false;
+
+  const normalizedExpected = normalizeString(expected);
+  const normalizedExtracted = normalizeString(extracted);
+
+  const expectedWithoutSuffix = normalizeBusinessEntitySuffix(normalizedExpected);
+  const extractedWithoutSuffix = normalizeBusinessEntitySuffix(normalizedExtracted);
+
+  return expectedWithoutSuffix === extractedWithoutSuffix;
 }
 
 /**
@@ -176,8 +231,8 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
   const normalized = value.trim().toLowerCase();
   let totalFlOz = 0;
 
-  // Parse gallons
-  const gallonMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*gallon(s)?/i);
+  // Parse gallons (allow optional U.S. or US prefix)
+  const gallonMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*gallon(s)?/i);
   if (gallonMatch) {
     const numStr = gallonMatch[1];
     let num: number;
@@ -192,8 +247,8 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
     totalFlOz += num * 128;
   }
 
-  // Parse quarts
-  const quartMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*quart(s)?/i);
+  // Parse quarts (allow optional U.S. or US prefix)
+  const quartMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*quart(s)?/i);
   if (quartMatch) {
     const numStr = quartMatch[1];
     let num: number;
@@ -208,8 +263,8 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
     totalFlOz += num * 32;
   }
 
-  // Parse pints
-  const pintMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*pint(s)?/i);
+  // Parse pints (allow optional U.S. or US prefix)
+  const pintMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*pint(s)?/i);
   if (pintMatch) {
     const numStr = pintMatch[1];
     let num: number;
@@ -274,19 +329,29 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
   }
 
   // Exactly 1 pint, 1 quart, or 1 gallon: must be stated exactly as "1 pint", "1 quart", or "1 gallon"
+  // Allow optional "U.S." or "US" prefix
   if (Math.abs(volumeFlOz - 16) < 0.01) {
-    // Exactly 1 pint - must be exactly "1 pint" (no fractions, no additional units)
-    if (!/^1\s+pint(?!\s)/i.test(normalized) && !/^1\s+pint\s*$/i.test(normalized)) {
+    // Exactly 1 pint - must be exactly "1 pint" or "1 U.S. pint" (no fractions, no additional units)
+    if (
+      !/^1\s+(?:U\.?S\.?)?\s*pint(?!\s)/i.test(normalized) &&
+      !/^1\s+(?:U\.?S\.?)?\s*pint\s*$/i.test(normalized)
+    ) {
       return 'For exactly 1 pint, net contents must be stated as "1 pint"';
     }
   } else if (Math.abs(volumeFlOz - 32) < 0.01) {
-    // Exactly 1 quart - must be exactly "1 quart"
-    if (!/^1\s+quart(?!\s)/i.test(normalized) && !/^1\s+quart\s*$/i.test(normalized)) {
+    // Exactly 1 quart - must be exactly "1 quart" or "1 U.S. quart"
+    if (
+      !/^1\s+(?:U\.?S\.?)?\s*quart(?!\s)/i.test(normalized) &&
+      !/^1\s+(?:U\.?S\.?)?\s*quart\s*$/i.test(normalized)
+    ) {
       return 'For exactly 1 quart, net contents must be stated as "1 quart"';
     }
   } else if (Math.abs(volumeFlOz - 128) < 0.01) {
-    // Exactly 1 gallon - must be exactly "1 gallon"
-    if (!/^1\s+gallon(?!\s)/i.test(normalized) && !/^1\s+gallon\s*$/i.test(normalized)) {
+    // Exactly 1 gallon - must be exactly "1 gallon" or "1 U.S. gallon"
+    if (
+      !/^1\s+(?:U\.?S\.?)?\s*gallon(?!\s)/i.test(normalized) &&
+      !/^1\s+(?:U\.?S\.?)?\s*gallon\s*$/i.test(normalized)
+    ) {
       return 'For exactly 1 gallon, net contents must be stated as "1 gallon"';
     }
   }

@@ -31,6 +31,7 @@ Return a JSON object with this exact structure:
   "formatChecks": {
     "governmentWarningAllCaps": true/false/null (is "GOVERNMENT WARNING" in all capital letters?),
     "governmentWarningBold": true/false/null (does "GOVERNMENT WARNING" appear in bold/heavier weight than surrounding text?),
+    "remainderBold": true/false/null (does the remainder of the warning statement after "GOVERNMENT WARNING:" appear in bold type? It should NOT be bold),
     "surgeonCapitalized": true/false/null (is the "S" in "Surgeon" capitalized?),
     "generalCapitalized": true/false/null (is the "G" in "General" capitalized?)
   },
@@ -71,6 +72,7 @@ Return a JSON object with this exact structure:
   "formatChecks": {
     "governmentWarningAllCaps": true/false/null (is "GOVERNMENT WARNING" in all capital letters?),
     "governmentWarningBold": true/false/null (does "GOVERNMENT WARNING" appear in bold/heavier weight than surrounding text?),
+    "remainderBold": true/false/null (does the remainder of the warning statement after "GOVERNMENT WARNING:" appear in bold type? It should NOT be bold),
     "surgeonCapitalized": true/false/null (is the "S" in "Surgeon" capitalized?),
     "generalCapitalized": true/false/null (is the "G" in "General" capitalized?)
   },
@@ -114,6 +116,7 @@ Return a JSON object with this exact structure:
   "formatChecks": {
     "governmentWarningAllCaps": true/false/null (is "GOVERNMENT WARNING" in all capital letters?),
     "governmentWarningBold": true/false/null (does "GOVERNMENT WARNING" appear in bold/heavier weight than surrounding text?),
+    "remainderBold": true/false/null (does the remainder of the warning statement after "GOVERNMENT WARNING:" appear in bold type? It should NOT be bold),
     "surgeonCapitalized": true/false/null (is the "S" in "Surgeon" capitalized?),
     "generalCapitalized": true/false/null (is the "G" in "General" capitalized?)
   },

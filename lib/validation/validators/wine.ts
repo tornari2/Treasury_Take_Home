@@ -39,7 +39,7 @@ export function validateAppellation(
     return {
       field: 'appellation',
       status: MatchStatus.NOT_FOUND,
-      expected: expected || 'Appellation required',
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Appellation required when label contains varietal, vintage, or estate bottled',
       details: `Appellation required because label contains: ${reasons.join(', ')}`,
@@ -62,7 +62,7 @@ export function validateAppellation(
     return {
       field: 'appellation',
       status: MatchStatus.NOT_FOUND,
-      expected: expected!,
+      expected: 'Field not found',
       extracted: null,
       rule: 'CROSS-CHECK: Appellation in application must appear on label',
     };
@@ -127,7 +127,7 @@ export function validateWineVarietal(
     return {
       field: 'classType',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Class/type designation required on wine label',
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Class/type designation must appear on wine label',
       details: 'Class/type designation is required on the label',
@@ -206,7 +206,7 @@ export function validateVintageDate(
     return {
       field: 'vintageDate',
       status: MatchStatus.NOT_FOUND,
-      expected: expected!,
+      expected: 'Field not found',
       extracted: null,
       rule: 'CROSS-CHECK: Vintage date in application must appear on label',
       details: 'Application specifies a vintage date but it was not found on the label',
@@ -264,7 +264,7 @@ export function validateSulfiteDeclaration(extracted: string | null): FieldValid
     return {
       field: 'sulfiteDeclaration',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Contains Sulfites',
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Sulfite declaration must appear on wine label',
     };
@@ -307,7 +307,7 @@ export function validateForeignWinePercentage(
     return {
       field: 'foreignWinePercentage',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Percentage and origin of foreign wine (e.g., "30% Grape Wine from Italy")',
+      expected: 'Field not found',
       extracted: null,
       rule: 'PRESENCE: Foreign wine percentage required when label references foreign wine',
       details: 'Label appears to reference foreign wine but no percentage statement was found',

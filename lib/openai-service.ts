@@ -178,7 +178,7 @@ export async function extractLabelData(
     fieldDefinitions.age_statement = 'Age statement (if applicable)';
     fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
   } else if (beverageType === 'wine') {
-    fieldDefinitions.appellation_of_origin = 'Appellation of origin - ⚠️ CRITICAL: Extract GEOGRAPHIC LOCATIONS ONLY here (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"). These are WHERE THE GRAPES ARE FROM, NOT grape variety names. DO NOT confuse with varietals - geographic locations go here, grape names go in class_type field. EXAMPLE: If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY", extract "MOON MOUNTAIN DISTRICT SONOMA COUNTY" here (NOT "CABERNET SAUVIGNON").';
+    fieldDefinitions.appellation_of_origin = '🚨 Appellation of origin - GEOGRAPHIC LOCATIONS ONLY (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"). This field is FOR LOCATIONS ONLY, NOT grape names. If you see "CABERNET SAUVIGNON" (grape name) and "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location), put ONLY "MOON MOUNTAIN DISTRICT SONOMA COUNTY" here. DO NOT put "CABERNET SAUVIGNON" here - that goes in class_type.';
     fieldDefinitions.sulfite_declaration = 'Sulfite declaration';
     fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
   } else if (beverageType === 'beer') {
@@ -228,12 +228,20 @@ export async function extractLabelData(
         messages: [
           {
             role: 'system',
-            content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label images and return them as JSON. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response.
+            content: `You are an expert at extracting structured data from alcohol beverage labels.
 
-⚠️ CRITICAL WARNING FOR WINE LABELS - DO NOT SWAP VARIETAL AND APPELLATION:
-- VARIETAL (class_type field) = GRAPE NAMES like "CABERNET SAUVIGNON", "Chardonnay", "Pinot Noir"
-- APPELLATION (appellation_of_origin field) = GEOGRAPHIC LOCATIONS like "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "California"
-- These are COMPLETELY DIFFERENT - DO NOT swap them. Grape names go in class_type, geographic locations go in appellation_of_origin.
+🚨🚨🚨 CRITICAL RULE FOR WINE LABELS - READ THIS FIRST 🚨🚨🚨:
+IF THIS IS A WINE LABEL:
+- The "class_type" field MUST contain GRAPE NAMES ONLY (e.g., "CABERNET SAUVIGNON", "Chardonnay", "Pinot Noir")
+- The "appellation_of_origin" field MUST contain GEOGRAPHIC LOCATIONS ONLY (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "California")
+- THESE ARE NEVER THE SAME THING - DO NOT PUT GRAPE NAMES IN appellation_of_origin
+- THESE ARE NEVER THE SAME THING - DO NOT PUT LOCATIONS IN class_type
+- EXAMPLE: If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY":
+  * class_type = "CABERNET SAUVIGNON" (grape name)
+  * appellation_of_origin = "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location)
+  * DO NOT SWAP THESE
+
+Extract the following fields from the label images and return them as JSON. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response.
 
 IMPORTANT - Preserve exact capitalization for ALL fields:
 - CRITICAL: For EVERY field (brand_name, fanciful_name, class_type, producer_name, producer_address, appellation_of_origin, country_of_origin, etc.), preserve the exact capitalization as it appears on the label
@@ -289,13 +297,15 @@ Return JSON in this format:
   ...
 }
 
-⚠️ FOR WINE LABELS - Example JSON structure:
+🚨 FOR WINE LABELS - REQUIRED JSON STRUCTURE EXAMPLE:
 If label shows "CABERNET SAUVIGNON" (grape name) and "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location):
 {
   "class_type": "CABERNET SAUVIGNON",
   "appellation_of_origin": "MOON MOUNTAIN DISTRICT SONOMA COUNTY"
 }
-DO NOT swap these values - grape names go in class_type, locations go in appellation_of_origin.
+🚨 DO NOT SWAP THESE VALUES 🚨
+- "CABERNET SAUVIGNON" is a GRAPE NAME → MUST go in "class_type"
+- "MOON MOUNTAIN DISTRICT SONOMA COUNTY" is a LOCATION → MUST go in "appellation_of_origin"
 
 Fields to extract:
 ${fieldsList}
@@ -344,6 +354,45 @@ ${beverageSpecificInstructions}`,
             value: String(value),
             confidence: 0, // Default confidence, not used
           };
+        }
+      }
+
+      // 🚨 SAFETY CHECK: Detect and fix swapped varietal/appellation for wine labels
+      if (beverageType === 'wine') {
+        const classType = extractedData.class_type?.value?.toUpperCase() || '';
+        const appellation = extractedData.appellation_of_origin?.value?.toUpperCase() || '';
+        
+        // Common grape names (varietals) - if these appear in appellation, they're swapped
+        const commonGrapes = [
+          'CABERNET SAUVIGNON', 'CABERNET', 'SAUVIGNON', 'CHARDONNAY', 'PINOT NOIR', 'PINOT',
+          'MERLOT', 'SYRAH', 'SHIRAZ', 'RIESLING', 'GEWURZTRAMINER', 'SAUVIGNON BLANC',
+          'PINOT GRIGIO', 'PINOT GRIS', 'MALBEC', 'TEMPRANILLO', 'SANGIOVESE', 'NEBBIOLO',
+          'BARBERA', 'DOLCETTO', 'GRENACHE', 'MOURVEDRE', 'CARMENERE', 'ZINFANDEL',
+          'PETITE SIRAH', 'PETIT VERDOT', 'CABERNET FRANC', 'GAMAY', 'VIOGNIER',
+          'KHIKHVI', 'RKATSITELI', 'SAPERAVI', 'MTSVANE', 'ALEXANDROULI'
+        ];
+        
+        // Common appellations (locations) - if these appear in class_type, they're swapped
+        const commonAppellations = [
+          'NAPA VALLEY', 'SONOMA', 'SONOMA COUNTY', 'SONOMA COAST', 'MOON MOUNTAIN DISTRICT',
+          'MOON MOUNTAIN DISTRICT SONOMA COUNTY', 'WILLAMETTE VALLEY', 'FINGER LAKES',
+          'VIRGINIA', 'CALIFORNIA', 'OREGON', 'NEW YORK', 'WASHINGTON', 'TEXAS',
+          'BORDEAUX', 'BURGUNDY', 'CHAMPAGNE', 'CHIANTI', 'RIOJA', 'MOSEL', 'RHINE',
+          'TUSCANY', 'PIEDMONT', 'VENETO', 'LOIRE', 'RHONE', 'ALSACE', 'PROVENCE'
+        ];
+        
+        const classTypeIsGrape = commonGrapes.some(grape => classType.includes(grape));
+        const classTypeIsLocation = commonAppellations.some(loc => classType.includes(loc));
+        const appellationIsGrape = commonGrapes.some(grape => appellation.includes(grape));
+        const appellationIsLocation = commonAppellations.some(loc => appellation.includes(loc));
+        
+        // If we detect a swap (grape in appellation OR location in class_type), fix it
+        if ((appellationIsGrape && !appellationIsLocation) || (classTypeIsLocation && !classTypeIsGrape)) {
+          // Swap the values
+          const temp = extractedData.class_type;
+          extractedData.class_type = extractedData.appellation_of_origin;
+          extractedData.appellation_of_origin = temp;
+          console.warn('⚠️ Detected swapped varietal/appellation fields - auto-corrected');
         }
       }
 

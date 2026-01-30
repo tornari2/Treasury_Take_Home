@@ -512,7 +512,7 @@ CRITICAL SPIRITS-SPECIFIC RULES:
 export function getClassTypeFieldDescription(beverageType: 'spirits' | 'wine' | 'beer'): string {
   switch (beverageType) {
     case 'wine':
-      return 'Varietal (grape name like "CABERNET SAUVIGNON", "Khikhvi", "Chardonnay", "Pinot Noir") OR class/type (like "White Wine") - ⚠️ CRITICAL: Extract GRAPE VARIETY NAMES ONLY here. These are GRAPE NAMES (what type of grape), NOT geographic locations. If both varietal (grape name) and class/type appear, extract the VARIETAL, not the class/type. DO NOT confuse with appellation_of_origin - grape names go here, geographic locations go in appellation_of_origin field. EXAMPLE: If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY", extract "CABERNET SAUVIGNON" here (NOT "MOON MOUNTAIN DISTRICT SONOMA COUNTY").';
+      return '🚨 Varietal (grape name like "CABERNET SAUVIGNON", "Khikhvi", "Chardonnay", "Pinot Noir") OR class/type (like "White Wine") - GRAPE NAMES ONLY. This field is FOR GRAPE NAMES ONLY, NOT locations. If you see "CABERNET SAUVIGNON" (grape name) and "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location), put ONLY "CABERNET SAUVIGNON" here. DO NOT put "MOON MOUNTAIN DISTRICT SONOMA COUNTY" here - that goes in appellation_of_origin. If both varietal and class/type appear, extract the VARIETAL.';
     case 'beer':
       return 'Beer style (e.g., "Ale", "Lager", "India Pale Ale", "Stout")';
     case 'spirits':

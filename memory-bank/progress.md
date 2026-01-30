@@ -611,6 +611,26 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
   - Batch verify uses asynchronous API for multiple applications
   - Scrollable application list instead of pagination controls
 
+### Latest Improvements (January 30, 2025 - Appellation Extraction & Display)
+
+- **Appellation Display Fix:**
+  - Show expected appellation value even when field is NOT_FOUND
+  - Previously only showed "Field not found" without expected value
+  - Now displays "Expected: VIRGINIA" even when appellation isn't found on label
+- **Appellation Extraction Prompt Improvements:**
+  - Strengthened prompt to extract state names even if they also appear in producer address
+  - Removed overly restrictive "separate from producer address" requirement
+  - State names can now be extracted as appellations if they appear anywhere on label as geographic designations
+  - Should improve extraction of appellations like "VIRGINIA", "CALIFORNIA", "OREGON"
+- **Image Preprocessing Improvements:**
+  - Made preprocessing more conservative to preserve text readability
+  - Reduced brightness adjustment from 10% to 5% (less aggressive)
+  - Reduced saturation boost from 5% to 2% (preserves text contrast)
+  - More conservative normalization (1-99 percentile instead of full range)
+  - Reduced sharpening intensity (sigma 0.5 instead of 1.0)
+  - Added `ENABLE_IMAGE_PREPROCESSING` flag to disable preprocessing for testing
+  - Preprocessing could potentially affect small text extraction, so made it less aggressive
+
 ### Latest Improvements (January 30, 2025 - Navigation UX)
 
 - **Eliminated Loading Screen Flicker:**

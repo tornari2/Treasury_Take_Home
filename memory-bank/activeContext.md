@@ -10,7 +10,42 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Critical Verification Fix and Batch Testing Infrastructure ✅ (Latest - January 29, 2025)
+### Validation Display Improvements and UX Enhancements ✅ (Latest - January 29, 2025)
+
+- **Validation Error Display Fix:**
+  - NOT_FOUND fields now show only "Field not found" without Expected/Extracted format
+  - Expected/Extracted format only shown for cross-checked fields (match, soft_mismatch, hard_mismatch)
+  - Updated review page display logic to wrap Expected/Extracted section with `result.type !== 'not_found'` check
+  - Changed "Field not found on label" to just "Field not found" for cleaner display
+
+- **Alcohol Content Validator Fix:**
+  - Changed from HARD_MISMATCH to NOT_FOUND when alcohol content is missing
+  - Alcohol content is a presence field (always required), so missing should be NOT_FOUND, not HARD_MISMATCH
+  - Updated for all beverage types (beer, wine, spirits)
+  - Now correctly shows "Field not found" instead of "Expected: Field not found / Extracted: null"
+
+- **Net Contents Validator Enhancement:**
+  - Fixed pattern matching to recognize US customary units when they appear after metric units
+  - Created `containsNetContentsPattern()` helper function that removes regex anchors (^ and $)
+  - Now correctly validates labels like "710 ML / 1 PINT 8 FL OZ" for beer (has both required US customary and optional metric)
+  - Patterns now match anywhere in the string, not just at start/end
+
+- **Producer/Importer Label Updates:**
+  - Application form now shows "Importer Name" instead of "Producer Name" when `originType === IMPORTED`
+  - Section header changes from "Producer Information" to "Importer Information" for imported beverages
+  - Review page shows "Importer Name & Address" instead of "Producer Name & Address" for imported beverages
+  - Updated `getFieldLabel()` function to accept `originType` parameter and conditionally return importer labels
+  - Updated error messages to use "Importer" terminology when applicable
+  - Works for both `expected_label_data` and `application_data` formats
+
+- **UX Improvement - Removed Loading Screen:**
+  - Removed "Loading application..." screen when switching between individual applications
+  - Page now shows current application content until new one loads (no flicker)
+  - Only shows "Application not found" error after failed fetch attempt
+  - Removed `loading` state variable entirely
+  - Much smoother navigation experience
+
+### Critical Verification Fix and Batch Testing Infrastructure ✅ (January 29, 2025)
 
 - **Verification Function Export Fix:**
   - Fixed `normalizeBusinessEntitySuffix` function in `lib/validation/utils.ts` - was defined but not exported

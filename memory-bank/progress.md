@@ -229,9 +229,36 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-## Recent Updates (January 28, 2025)
+## Recent Updates (January 29, 2025)
 
-### Validation UX Improvements ✅ (Latest)
+### Validation Display and UX Improvements ✅ (Latest - January 29, 2025)
+
+- **Validation Error Display Fix:**
+  - NOT_FOUND fields now show only "Field not found" without Expected/Extracted format
+  - Expected/Extracted format only shown for cross-checked fields (match, soft_mismatch, hard_mismatch)
+  - Changed "Field not found on label" to just "Field not found" for cleaner display
+
+- **Alcohol Content Validator Fix:**
+  - Changed from HARD_MISMATCH to NOT_FOUND when alcohol content is missing
+  - Alcohol content is a presence field (always required), so missing should be NOT_FOUND, not HARD_MISMATCH
+  - Updated for all beverage types (beer, wine, spirits)
+
+- **Net Contents Validator Enhancement:**
+  - Fixed pattern matching to recognize US customary units when they appear after metric units
+  - Created `containsNetContentsPattern()` helper function that removes regex anchors
+  - Now correctly validates labels like "710 ML / 1 PINT 8 FL OZ" for beer
+
+- **Producer/Importer Label Updates:**
+  - Application form shows "Importer Name" instead of "Producer Name" when imported
+  - Review page shows "Importer Name & Address" for imported beverages
+  - Updated `getFieldLabel()` function to accept `originType` parameter
+
+- **UX Improvement - Removed Loading Screen:**
+  - Removed "Loading application..." screen when switching between individual applications
+  - Page shows current application content until new one loads (no flicker)
+  - Much smoother navigation experience
+
+### Validation UX Improvements ✅ (January 28, 2025)
 
 - **Improved Error Messages:**
   - All validation functions show "Field not found" instead of format strings when fields are missing

@@ -10,7 +10,71 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-### Railway Deployment ✅ (Latest - January 30, 2026)
+### Edit Functionality & Deployment Stability ✅ (Latest - January 30, 2026)
+
+- **Application Edit Feature:**
+  - Added edit icon (pencil) to each row in application queue dashboard
+  - Implemented PUT endpoint at `/api/applications/[id]` for full application updates
+  - Updated ApplicationForm component to support edit mode:
+    - Accepts `applicationId` and `initialData` props for pre-population
+    - Form fields auto-fill with existing application data
+    - Images optional when editing (only required for new applications)
+    - Button text changes to "Update Application" in edit mode
+  - Edit dialog opens when clicking pencil icon, fetches full application data
+  - Supports updating: application data, applicant name, beverage type, and images
+  - Old images are deleted when new ones are uploaded during edit
+
+- **Deployment Stability:**
+  - Fixed blank white screen issue with comprehensive error boundaries
+  - Added `app/error.tsx` and `app/dashboard/error.tsx` for error handling
+  - Added `app/dashboard/loading.tsx` for loading states
+  - Simplified health check endpoint (removed slow database initialization)
+  - Increased Railway health check timeout from 10s to 30s
+  - Added 60-second start period to prevent premature health check failures
+  - Improved API error handling to return empty arrays instead of crashing
+
+- **Security & Documentation:**
+  - Created `SECURITY_GUIDE.md` documenting API key security and recommendations
+  - Verified OpenAI API key is secure (server-side only, not exposed)
+  - Documented security concerns: authentication disabled, no rate limiting
+  - Created `RAILWAY_ENV_TROUBLESHOOTING.md` for environment variable debugging
+  - Created `QUICK_USER_SETUP.md` for user creation instructions
+  - Added `scripts/create-test-user-quick.ts` for quick test user creation
+  - Added debug endpoint `/api/debug/env` (disabled in production by default)
+
+### Review Page UI Updates & TypeScript Configuration ✅ (January 30, 2026)
+
+- **Alcohol Content Field Display Fix:**
+  - Fixed alcohol content field to show "Alcohol Content" as the label with "Field not found" appearing underneath in smaller gray text
+  - Previously showed "Field not found" as the entire cell name
+  - Updated display logic to always show the field label first, then show "Field not found" below for PRESENCE fields that are not found
+
+- **Banner Simplification:**
+  - Removed TTB logo from review page banner
+  - Removed "Alcohol Label Verifier" title from banner
+  - Removed "PROTOTYPE — NOT AN OFFICIAL TTB SYSTEM" message from banner
+  - Banner now overlays navigation elements ("Back to Dashboard" and "Application X of Y") at the same horizontal level
+  - Banner positioned absolutely behind navigation with proper z-index layering
+  - Navigation text appears in white on blue banner background for readability
+
+- **Verification Spinner Position:**
+  - Moved "Verifying application with AI..." spinner bar to appear under the blue banner
+  - Previously appeared before the navigation section
+  - Now positioned correctly below the banner for better visual hierarchy
+
+- **TypeScript Path Alias Configuration:**
+  - Added `baseUrl: "."` to `tsconfig.json` for module resolution
+  - Added `paths: { "@/*": ["./*"] }` configuration for `@/` alias support
+  - Fixes module resolution errors for UI component imports
+  - Resolves build errors related to `@/components/ui/*` imports
+
+- **Database Query Script:**
+  - Created `scripts/query-beer-application.ts` to query and display beer application data
+  - Shows all database table fields and parsed application_data JSON
+  - Displays label images and their verification status
+  - Useful for debugging and data inspection
+
+### Railway Deployment ✅ (January 30, 2026)
 
 - **Deployment Status:** Successfully deployed to Railway production
 - **Production URL:** `https://treasurytakehome-production.up.railway.app`
@@ -1221,4 +1285,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (Critical verification fixes: resolved prefilled AI recommendations issue by clearing old results before processing, fixed verification hanging with client/server timeouts. Dashboard enhancements: added Review Notes column with hover tooltip. Previous: Review notes persistence, confirmation dialog removal, verification clearing fixes, navigation improvements, UI enhancements. Ready for production deployment and testing.)_
+_Last Updated: January 30, 2026 (Review page UI updates: fixed alcohol content field display to show field name with "Field not found" underneath, simplified banner by removing logo/title/prototype message, repositioned banner to overlay navigation elements, moved verification spinner under banner. TypeScript configuration: added path alias support for @/ imports. Database query script created for beer application inspection. Previous: Railway deployment, codebase cleanup, UI improvements, batch verification fixes. Ready for production deployment and testing.)_

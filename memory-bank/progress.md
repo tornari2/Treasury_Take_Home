@@ -4,7 +4,60 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
-### Railway Deployment ✅ (Latest - January 30, 2026)
+### Edit Functionality & Deployment Stability ✅ (Latest - January 30, 2026)
+
+- **Application Edit Feature:**
+  - Added edit icon (pencil) to each row in application queue
+  - Implemented PUT endpoint (`/api/applications/[id]`) for full application updates
+  - Updated ApplicationForm component to support edit mode with pre-populated data
+  - Edit dialog opens with existing application data filled in
+  - Images are optional when editing (only required for new applications)
+  - Supports updating application data, applicant name, beverage type, and images
+
+- **Deployment Stability Improvements:**
+  - Simplified health check endpoint to prevent container restarts
+  - Removed slow database initialization from health check
+  - Increased Railway health check timeout from 10s to 30s
+  - Added 60-second start period to allow app time to initialize
+  - Fixed blank white screen issue with error boundaries and improved error handling
+
+- **Documentation & Tools:**
+  - Added `SECURITY_GUIDE.md` with security best practices and API key protection info
+  - Added `RAILWAY_ENV_TROUBLESHOOTING.md` for environment variable debugging
+  - Added `QUICK_USER_SETUP.md` for user creation instructions
+  - Created `scripts/create-test-user-quick.ts` for quick test user creation
+  - Added debug endpoint `/api/debug/env` (disabled in production by default)
+
+- **Security:**
+  - Verified OpenAI API key is secure (server-side only, not exposed)
+  - Documented security concerns (authentication disabled, no rate limiting)
+  - Provided recommendations for enabling authentication and rate limiting
+
+### Review Page UI Updates & TypeScript Configuration ✅ (January 30, 2026)
+
+- **Alcohol Content Field Display:**
+  - Fixed to show field name ("Alcohol Content") with "Field not found" underneath when field is missing
+  - Improved visual clarity for PRESENCE fields that are not found
+
+- **Banner Simplification:**
+  - Removed TTB logo, title, and prototype message from review page banner
+  - Banner now overlays navigation elements at same horizontal level
+  - Cleaner, more minimal design
+
+- **Verification Spinner:**
+  - Repositioned to appear under blue banner instead of above it
+  - Better visual hierarchy and flow
+
+- **TypeScript Configuration:**
+  - Added path alias support (`@/*`) to `tsconfig.json`
+  - Fixed module resolution for UI component imports
+  - Resolves build errors
+
+- **Database Query Tools:**
+  - Created script to query and display beer application records
+  - Useful for debugging and data inspection
+
+### Railway Deployment ✅ (January 30, 2026)
 
 - **Deployment Platform:** Railway (Nixpacks builder)
 - **Production URL:** `https://treasurytakehome-production.up.railway.app`
@@ -774,4 +827,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 30, 2026 (UI & Validation improvements: Added blue/red gradient banner to dashboard. Removed duplicate verification status messages. Enhanced network error handling with firewall guidance. Made image preprocessing more conservative (only extreme cases). Implemented formatChecks extraction for government warning bold validation. Previous: Navigation UX improvements: eliminated all loading screen flicker during navigation. Review page uses in-memory refs to preserve previous application data. Dashboard uses module-level cache to persist across remounts. Previous content stays visible during transitions for smooth UX. Ready for production deployment and testing.)_
+_Last Updated: January 30, 2026 (Edit functionality: Added edit icon to application queue rows with PUT endpoint for full application updates. ApplicationForm now supports edit mode with pre-populated data. Deployment stability: Fixed blank white screen with error boundaries, simplified health check, increased Railway timeout. Security: Verified API key security, added security documentation and troubleshooting guides. Previous: UI & Validation improvements: Added blue/red gradient banner to dashboard. Removed duplicate verification status messages. Enhanced network error handling with firewall guidance. Made image preprocessing more conservative. Implemented formatChecks extraction for government warning bold validation. Navigation UX improvements: eliminated all loading screen flicker during navigation. Ready for production deployment and testing.)_

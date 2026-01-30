@@ -1173,7 +1173,7 @@ export function validateCountryOfOrigin(
   return {
     field: 'countryOfOrigin',
     status: MatchStatus.MATCH,
-    expected: 'Required (not cross-checked)',
+    expected: 'Required for imported beverages',
     extracted,
     rule: 'PRESENCE: Country of origin present on label',
   };

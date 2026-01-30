@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,6 +43,8 @@ export default function ReviewPage() {
   const searchParams = useSearchParams();
   const [application, setApplication] = useState<Application | null>(null);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const [fetchError, setFetchError] = useState<'not_found' | 'error' | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [imageZooms, setImageZooms] = useState<Record<number, number>>({});
@@ -55,10 +57,37 @@ export default function ReviewPage() {
   const [batchApplications, setBatchApplications] = useState<number[] | null>(null);
   const [currentBatchIndex, setCurrentBatchIndex] = useState<number | null>(null);
   const [isInBatch, setIsInBatch] = useState(false);
+  // Ref to track the current fetch ID to prevent race conditions
+  const currentFetchIdRef = useRef<string | null>(null);
+  // Ref to prevent infinite loop when clearing verification results
+  const isVerifyingRef = useRef(false);
 
   useEffect(() => {
     if (params.id) {
-      setHasAttemptedFetch(false); // Reset when ID changes
+      const newId = Number(params.id);
+
+      // Skip fetch if we already have the correct application loaded
+      if (application && application.id === newId) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Only clear application if we're switching to a different application
+      // This keeps the previous app visible during transitions
+      if (application && application.id !== newId) {
+        // ID changed to a different app - keep previous app visible, show loading overlay
+        setHasAttemptedFetch(false);
+        setFetchError(null);
+        setIsLoading(true);
+      } else if (!application) {
+        // No application loaded yet - reset fetch state
+        setHasAttemptedFetch(false);
+        setFetchError(null);
+        setIsLoading(true);
+      }
+
+      // Update the ref to track which ID we're fetching
+      currentFetchIdRef.current = params.id as string;
       fetchApplication();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,68 +149,170 @@ export default function ReviewPage() {
     }
   }, [application]);
 
+  // Set verifying state immediately if verify=true param is present (before app loads)
+  useEffect(() => {
+    const shouldVerify = searchParams?.get('verify') === 'true';
+    if (shouldVerify && !verifying) {
+      setVerifying(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Auto-trigger verification when application loads
+  useEffect(() => {
+    if (!application || !params.id) return;
+
+    // Don't auto-trigger if we're already verifying (prevents infinite loop)
+    if (isVerifyingRef.current || verifying) return;
+
+    // Check if verify=true param is present (user clicked Verify from dashboard)
+    const shouldVerify = searchParams?.get('verify') === 'true';
+
+    // Check if application has verification results
+    const hasVerification = application.label_images.some(
+      (img: LabelImage) =>
+        img.verification_result &&
+        typeof img.verification_result === 'object' &&
+        Object.keys(img.verification_result).length > 0
+    );
+
+    // Trigger verification if:
+    // 1. verify=true param is present (user wants to verify/re-verify), OR
+    // 2. No verification exists yet (first time loading)
+    if (application.label_images.length > 0 && (shouldVerify || !hasVerification)) {
+      // Remove verify param from URL to prevent re-triggering on refresh
+      if (shouldVerify) {
+        router.replace(`/review/${params.id}`, { scroll: false });
+      }
+      triggerVerification();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [application, params.id, searchParams]);
+
   const fetchApplication = async () => {
+    // Capture the ID at the start of the fetch to prevent race conditions
+    const fetchId = params.id as string;
+
+    // Only proceed if this is still the current fetch
+    if (currentFetchIdRef.current !== fetchId) {
+      return; // Another navigation happened, ignore this fetch
+    }
+
     try {
       setHasAttemptedFetch(true);
-      const response = await fetch(`/api/applications/${params.id}`);
+      setIsLoading(true);
+      const response = await fetch(`/api/applications/${fetchId}`);
+
+      // Check again if params.id changed during the fetch
+      if (currentFetchIdRef.current !== fetchId) {
+        return; // Navigation happened during fetch, ignore result
+      }
 
       if (!response.ok) {
-        // Application not found - handle batch navigation if in batch mode
-        // Check sessionStorage directly in case state hasn't been set yet
-        const storedBatchApps = sessionStorage.getItem('batchApplications');
-        if (storedBatchApps) {
-          try {
-            const appIds = JSON.parse(storedBatchApps);
-            if (Array.isArray(appIds) && appIds.length > 0) {
-              // Remove invalid application from batch and try next
-              const updatedBatch = appIds.filter((id: number) => id !== Number(params.id));
-              if (updatedBatch.length > 0) {
-                sessionStorage.setItem('batchApplications', JSON.stringify(updatedBatch));
-                const storedIndex = sessionStorage.getItem('batchCurrentIndex');
-                const currentIdx = storedIndex ? Number(storedIndex) : 0;
-                const nextIndex =
-                  currentIdx < updatedBatch.length ? currentIdx : updatedBatch.length - 1;
-                const nextAppId = updatedBatch[nextIndex];
-                sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
-                router.push(`/review/${nextAppId}?batch=true`);
-                return;
-              } else {
-                // No more valid applications in batch - clear and go to dashboard
-                sessionStorage.removeItem('batchApplications');
-                sessionStorage.removeItem('batchCurrentIndex');
-                router.push('/dashboard');
-                return;
+        // Check one more time before handling error
+        if (currentFetchIdRef.current !== fetchId) {
+          return; // Navigation happened, ignore error handling
+        }
+
+        // Only handle 404 (not found) errors specially
+        if (response.status === 404) {
+          // Application not found - handle batch navigation if in batch mode
+          // Check sessionStorage directly in case state hasn't been set yet
+          const storedBatchApps = sessionStorage.getItem('batchApplications');
+          if (storedBatchApps) {
+            try {
+              const appIds = JSON.parse(storedBatchApps);
+              if (Array.isArray(appIds) && appIds.length > 0) {
+                // Remove invalid application from batch and try next
+                const updatedBatch = appIds.filter((id: number) => id !== Number(fetchId));
+                if (updatedBatch.length > 0) {
+                  sessionStorage.setItem('batchApplications', JSON.stringify(updatedBatch));
+                  const storedIndex = sessionStorage.getItem('batchCurrentIndex');
+                  const currentIdx = storedIndex ? Number(storedIndex) : 0;
+                  const nextIndex =
+                    currentIdx < updatedBatch.length ? currentIdx : updatedBatch.length - 1;
+                  const nextAppId = updatedBatch[nextIndex];
+                  sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
+                  router.push(`/review/${nextAppId}?batch=true`);
+                  return;
+                } else {
+                  // No more valid applications in batch - clear and go to dashboard
+                  sessionStorage.removeItem('batchApplications');
+                  sessionStorage.removeItem('batchCurrentIndex');
+                  router.push('/dashboard');
+                  return;
+                }
               }
+            } catch (error) {
+              console.error('Error handling batch navigation:', error);
             }
-          } catch (error) {
-            console.error('Error handling batch navigation:', error);
+          }
+
+          // Only set error state if this is still the current fetch
+          if (currentFetchIdRef.current === fetchId) {
+            setApplication(null);
+            setFetchError('not_found');
+            setIsLoading(false);
+          }
+        } else {
+          // Other errors (500, network, etc.) - show error but allow retry
+          console.error(`Failed to fetch application: ${response.status} ${response.statusText}`);
+          if (currentFetchIdRef.current === fetchId) {
+            setApplication(null);
+            setFetchError('error');
+            setIsLoading(false);
+            // Keep hasAttemptedFetch true so we show error state
           }
         }
-        throw new Error('Application not found');
+        return;
       }
 
       const data = await response.json();
-      setApplication(data.application);
 
-      // Auto-trigger verification if not already verified
-      if (data.application.label_images.length > 0) {
-        const hasVerification = data.application.label_images.some(
-          (img: LabelImage) =>
-            img.verification_result &&
-            typeof img.verification_result === 'object' &&
-            Object.keys(img.verification_result).length > 0
-        );
-        if (!hasVerification) {
-          triggerVerification();
-        }
+      // Final check before setting state
+      if (currentFetchIdRef.current !== fetchId) {
+        return; // Navigation happened, ignore this result
+      }
+
+      // Only update if this is the application we're currently viewing
+      if (data.application && data.application.id === Number(fetchId)) {
+        setApplication(data.application);
+        setFetchError(null); // Clear any previous errors on successful fetch
+        setIsLoading(false); // Loading complete
       }
     } catch (error) {
-      console.error('Error fetching application:', error);
+      // Only log/update state if this is still the current fetch
+      if (currentFetchIdRef.current === fetchId) {
+        console.error('Error fetching application:', error);
+        setApplication(null);
+        setFetchError('error');
+        setIsLoading(false);
+        // Keep hasAttemptedFetch true so we show error state
+      }
     }
   };
 
   const triggerVerification = async () => {
+    // Prevent multiple simultaneous verifications
+    if (isVerifyingRef.current) {
+      return;
+    }
+
+    isVerifyingRef.current = true;
     setVerifying(true);
+
+    // Clear old verification results immediately so user doesn't see stale data
+    if (application?.label_images) {
+      const clearedApplication = {
+        ...application,
+        label_images: application.label_images.map((img) => ({
+          ...img,
+          verification_result: null, // Clear verification results
+        })),
+      };
+      setApplication(clearedApplication);
+    }
+
     try {
       const response = await fetch(`/api/applications/${params.id}/verify`, {
         method: 'POST',
@@ -210,6 +341,7 @@ export default function ReviewPage() {
       }
     } finally {
       setVerifying(false);
+      isVerifyingRef.current = false;
     }
   };
 
@@ -240,22 +372,35 @@ export default function ReviewPage() {
         await fetchApplication();
         // Handle batch navigation or redirect to dashboard
         if (status === 'approved' || status === 'rejected') {
-          if (isInBatch && batchApplications && currentBatchIndex !== null) {
-            // Check if there's a next application in the batch
-            if (currentBatchIndex < batchApplications.length - 1) {
-              // Auto-navigate to next application
-              const nextIndex = currentBatchIndex + 1;
-              const nextAppId = batchApplications[nextIndex];
-              sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
-              router.push(`/review/${nextAppId}?batch=true`);
-            } else {
-              // Last application in batch - automatically return to dashboard
-              exitBatch();
+          // Read from sessionStorage to ensure we have the latest batch state
+          const storedBatchApps = sessionStorage.getItem('batchApplications');
+          if (storedBatchApps) {
+            try {
+              const appIds = JSON.parse(storedBatchApps);
+              if (Array.isArray(appIds) && appIds.length > 0) {
+                const storedIndex = sessionStorage.getItem('batchCurrentIndex');
+                const currentIdx = storedIndex ? Number(storedIndex) : 0;
+                // Check if there's a next application in the batch
+                if (currentIdx < appIds.length - 1) {
+                  // Auto-navigate to next application
+                  const nextIndex = currentIdx + 1;
+                  const nextAppId = appIds[nextIndex];
+                  if (nextAppId) {
+                    sessionStorage.setItem('batchCurrentIndex', nextIndex.toString());
+                    router.push(`/review/${nextAppId}?batch=true`);
+                    return;
+                  }
+                }
+                // Last application in batch - automatically return to dashboard
+                exitBatch();
+                return;
+              }
+            } catch (error) {
+              console.error('Error reading batch state:', error);
             }
-          } else {
-            // Not in batch mode - redirect to dashboard
-            router.push('/dashboard');
           }
+          // Not in batch mode - redirect to dashboard
+          router.push('/dashboard');
         }
       } else {
         alert('Failed to update status');
@@ -382,18 +527,70 @@ export default function ReviewPage() {
     return <>{text}</>;
   };
 
-  // Only show "not found" if we've attempted to fetch and have no application
-  if (!application && hasAttemptedFetch && params.id) {
+  // Check if user wants to verify (from verify button click)
+  const shouldVerifyOnLoad = searchParams?.get('verify') === 'true';
+
+  // Show loading state only if we have no application and haven't attempted fetch yet
+  if (!application && !hasAttemptedFetch) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg text-red-600">Application not found</div>
+        <div className="text-center space-y-2">
+          <div className="text-lg text-muted-foreground">
+            {shouldVerifyOnLoad
+              ? 'Loading application and starting verification...'
+              : 'Loading application...'}
+          </div>
+          {shouldVerifyOnLoad && (
+            <div className="text-sm text-muted-foreground">This may take a moment</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show error states only if we've attempted to fetch and have no application
+  if (!application && hasAttemptedFetch && params.id) {
+    if (fetchError === 'not_found') {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-lg text-red-600">Application not found</div>
+        </div>
+      );
+    } else if (fetchError === 'error') {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="space-y-2 text-center">
+            <div className="text-lg text-red-600">Error loading application</div>
+            <button
+              onClick={() => {
+                setHasAttemptedFetch(false);
+                setFetchError(null);
+                setIsLoading(true);
+                fetchApplication();
+              }}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    // Fallback to loading if no specific error
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-muted-foreground">Loading application...</div>
       </div>
     );
   }
 
   // Don't render the rest if we don't have application data yet
   if (!application) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-muted-foreground">Loading application...</div>
+      </div>
+    );
   }
 
   // Use the first image's verification result (they should all be the same)
@@ -434,7 +631,13 @@ export default function ReviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-8 relative">
+      {/* Loading overlay - shows during transitions while keeping previous content visible */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="text-lg text-muted-foreground">Loading application...</div>
+        </div>
+      )}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -472,8 +675,12 @@ export default function ReviewPage() {
         </div>
 
         {verifying && (
-          <Alert className="mb-4">
-            <AlertDescription>Verifying application with AI...</AlertDescription>
+          <Alert className="mb-4 border-blue-500 bg-blue-50">
+            <AlertDescription className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span className="font-medium">Verifying application with AI...</span>
+              <span className="text-sm text-muted-foreground">This may take a moment</span>
+            </AlertDescription>
           </Alert>
         )}
 
@@ -499,7 +706,7 @@ export default function ReviewPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const newZoom = Math.max(0.5, imageZoom - 0.1);
+                            const newZoom = Math.max(0.5, imageZoom - 0.25);
                             setImageZooms((prev) => ({ ...prev, [img.id]: newZoom }));
                             // Reset pan when zooming out significantly
                             if (newZoom <= 1) {
@@ -518,25 +725,24 @@ export default function ReviewPage() {
                           onClick={() => {
                             setImageZooms((prev) => ({
                               ...prev,
-                              [img.id]: Math.min(3, imageZoom + 0.1),
+                              [img.id]: Math.min(3, imageZoom + 0.25),
                             }));
                           }}
                         >
                           +
                         </Button>
-                        {(imageZoom !== 1 || imagePan.x !== 0 || imagePan.y !== 0) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setImageZooms((prev) => ({ ...prev, [img.id]: 1 }));
-                              setImagePans((prev) => ({ ...prev, [img.id]: { x: 0, y: 0 } }));
-                            }}
-                            title="Reset zoom and pan"
-                          >
-                            Reset
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setImageZooms((prev) => ({ ...prev, [img.id]: 1 }));
+                            setImagePans((prev) => ({ ...prev, [img.id]: { x: 0, y: 0 } }));
+                          }}
+                          title="Reset zoom and pan"
+                          disabled={imageZoom === 1 && imagePan.x === 0 && imagePan.y === 0}
+                        >
+                          Reset
+                        </Button>
                       </div>
                     </div>
                     <div

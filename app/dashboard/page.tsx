@@ -98,6 +98,13 @@ export default function Dashboard() {
   const handleBatchVerify = async () => {
     if (selectedApps.size === 0) return;
 
+    // For single application, use synchronous verify API
+    if (selectedApps.size === 1) {
+      const appId = Array.from(selectedApps)[0];
+      await handleVerifySingle(appId);
+      return;
+    }
+
     setBatchProcessing(true);
     try {
       const applicationIds = Array.from(selectedApps);
@@ -202,37 +209,9 @@ export default function Dashboard() {
   };
 
   const handleVerifySingle = async (appId: number) => {
-    setVerifyingApp(appId);
-    try {
-      const response = await fetch(`/api/applications/${appId}/verify`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        // Redirect directly to review page instead of showing alert
-        router.push(`/review/${appId}`);
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.user_message ||
-          errorData.message ||
-          errorData.error ||
-          'Verification failed. Please try again.';
-
-        alert(`Verification Error: ${errorMessage}`);
-        setVerifyingApp(null);
-      }
-    } catch (error) {
-      console.error('Verify error:', error);
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        alert(
-          'Network error: Unable to connect to the server. Please check your connection and try again.'
-        );
-      } else {
-        alert('An unexpected error occurred during verification. Please try again.');
-      }
-      setVerifyingApp(null);
-    }
+    // Navigate immediately to review page - verification will happen there
+    // This provides immediate feedback and shows loading state on review page
+    router.push(`/review/${appId}?verify=true`);
   };
 
   const handleDelete = async (appId: number) => {
@@ -425,62 +404,64 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">
-                  <Checkbox
-                    checked={selectedApps.size === applications.length && applications.length > 0}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>ID</TableHead>
-                <TableHead>Applicant</TableHead>
-                <TableHead>Brand Name</TableHead>
-                <TableHead>Product Type</TableHead>
-                <TableHead>Product Source</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {applications.length === 0 ? (
+          <div className="max-h-[600px] overflow-y-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    No applications found
-                  </TableCell>
+                  <TableHead className="w-[50px]">
+                    <Checkbox
+                      checked={selectedApps.size === applications.length && applications.length > 0}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Applicant</TableHead>
+                  <TableHead>Brand Name</TableHead>
+                  <TableHead>Product Type</TableHead>
+                  <TableHead>Product Source</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
-              ) : (
-                applications.map((app) => (
-                  <TableRow
-                    key={app.id}
-                    className={`cursor-pointer ${selectedApps.has(app.id) ? 'bg-blue-50' : ''}`}
-                    onClick={() => handleSelectApp(app.id)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedApps.has(app.id)}
-                        onCheckedChange={() => handleSelectApp(app.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-medium">{getTtbId(app)}</TableCell>
-                    <TableCell>{app.applicant_name}</TableCell>
-                    <TableCell>{getBrandName(app)}</TableCell>
-                    <TableCell>{getProductType(app)}</TableCell>
-                    <TableCell>{getProductSource(app)}</TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(app.status)}>
-                        {getStatusDisplayText(app.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {new Date(app.created_at).toLocaleDateString()}
+              </TableHeader>
+              <TableBody>
+                {applications.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                      No applications found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  applications.map((app) => (
+                    <TableRow
+                      key={app.id}
+                      className={`cursor-pointer ${selectedApps.has(app.id) ? 'bg-blue-50' : ''}`}
+                      onClick={() => handleSelectApp(app.id)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedApps.has(app.id)}
+                          onCheckedChange={() => handleSelectApp(app.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{getTtbId(app)}</TableCell>
+                      <TableCell>{app.applicant_name}</TableCell>
+                      <TableCell>{getBrandName(app)}</TableCell>
+                      <TableCell>{getProductType(app)}</TableCell>
+                      <TableCell>{getProductSource(app)}</TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(app.status)}>
+                          {getStatusDisplayText(app.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(app.created_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {/* Action Buttons */}

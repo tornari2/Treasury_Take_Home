@@ -22,6 +22,7 @@ import {
   healthWarningMatchesExact,
   normalizeString,
   statesMatch,
+  citiesMatch,
   parseNetContentsToML,
   isValidSpiritsStandardOfFill,
   isValidWineStandardOfFill,
@@ -202,7 +203,7 @@ export function validateClassType(extracted: string | null): FieldValidationResu
     return {
       field: 'classType',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
+      expected: null, // Return null so display logic can show requirement message
       extracted: null,
       rule: 'PRESENCE: Class/type designation must appear on label',
     };
@@ -761,7 +762,32 @@ export function validateProducerNameAddress(
     extractedWithoutZip.includes(expectedNameWithoutSuffix) ||
     extractedNameWithoutSuffix === expectedNameWithoutSuffix ||
     (extractedName && producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName));
-  const hasCity = extractedWithoutZip.includes(expectedCityNorm);
+  // Check if city matches - use citiesMatch to handle directional prefixes (e.g., "N. Littleton" = "Littleton")
+  const hasCity = (() => {
+    // Check if city appears in combined string
+    const parts = extractedWithoutZip.split(',').map((p) => p.trim());
+    for (const part of parts) {
+      if (citiesMatch(part, expectedCity)) {
+        return true;
+      }
+    }
+    // Also check if city appears anywhere in the combined string
+    const words = extractedWithoutZip.split(/\s+/);
+    for (let i = 0; i < words.length; i++) {
+      // Check single word
+      if (citiesMatch(words[i], expectedCity)) {
+        return true;
+      }
+      // Check two-word combinations (for cities like "New York")
+      if (i < words.length - 1) {
+        const twoWords = `${words[i]} ${words[i + 1]}`;
+        if (citiesMatch(twoWords, expectedCity)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  })();
   const hasState = (() => {
     // Check state with ZIP code handling - check both address and combined string
     const addressNorm = normalizeString(extractedAddress || '');
@@ -818,7 +844,11 @@ export function validateProducerNameAddress(
         normalizeString(extractedName).includes(expectedNameNorm);
     } else {
       // If no separate name field, check if name appears in combined string
-      nameMatches = extractedWithoutZip.includes(expectedNameNorm);
+      // Also check if name matches ignoring entity suffix
+      const extractedNameFromCombined = extractedWithoutZip.split(',')[0]?.trim() || '';
+      nameMatches = 
+        extractedWithoutZip.includes(expectedNameNorm) ||
+        producerNamesMatchIgnoringEntitySuffix(expectedName, extractedNameFromCombined);
     }
 
     if (nameMatches) {
@@ -850,17 +880,46 @@ export function validateProducerNameAddress(
 
   // Also check if the name field contains address information (combined format)
   // This handles cases where extraction puts everything in one field
+  // Use citiesMatch for city comparison to handle directional prefixes
   const nameContainsAddress =
     extractedName &&
-    (normalizeString(extractedName).includes(normalizeString(expectedCity)) ||
+    (citiesMatch(extractedName, expectedCity) ||
       normalizeString(extractedName).includes(normalizeString(expectedState)));
 
   // If name contains address info, use name for city/state checking too
   const addressToCheck = nameContainsAddress ? extractedName : extractedAddress;
 
   // Only validate city and state from the address, not the full street address
-  const addressContainsCity =
-    addressToCheck && normalizeString(addressToCheck).includes(normalizeString(expectedCity));
+  // Use citiesMatch to handle directional prefixes (e.g., "N. Littleton" = "Littleton")
+  const addressContainsCity = (() => {
+    if (!addressToCheck) return false;
+    
+    // Check if city appears in address parts (split by comma)
+    const parts = normalizeString(addressToCheck).split(',').map((p) => p.trim());
+    for (const part of parts) {
+      if (citiesMatch(part, expectedCity)) {
+        return true;
+      }
+    }
+    
+    // Also check if city appears anywhere in the address string
+    const words = normalizeString(addressToCheck).split(/\s+/);
+    for (let i = 0; i < words.length; i++) {
+      // Check single word
+      if (citiesMatch(words[i], expectedCity)) {
+        return true;
+      }
+      // Check two-word combinations (for cities like "New York")
+      if (i < words.length - 1) {
+        const twoWords = `${words[i]} ${words[i + 1]}`;
+        if (citiesMatch(twoWords, expectedCity)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  })();
 
   // Check if state matches - state names and abbreviations are EQUIVALENT
   // Extract state from address (typically at the end: "City, ST" or "City, State")

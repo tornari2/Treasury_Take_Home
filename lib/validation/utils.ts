@@ -269,18 +269,27 @@ export function valueExists(value: string | null | undefined): boolean {
 /**
  * Normalize health warning for comparison
  * Only "GOVERNMENT WARNING:" must match case-sensitively; remainder is case-insensitive
+ * Normalizes whitespace differences, including spaces after colons
  */
 function normalizeHealthWarningForComparison(text: string): string {
-  const normalized = normalizeWhitespace(text);
+  let normalized = normalizeWhitespace(text);
+  
+  // Normalize spaces after colons - ensure consistent spacing
+  // "GOVERNMENT WARNING:(1)" becomes "GOVERNMENT WARNING: (1)"
+  // "GOVERNMENT WARNING: (1)" stays "GOVERNMENT WARNING: (1)"
+  normalized = normalized.replace(/:\s*/g, ': ');
+  
   // Split at "GOVERNMENT WARNING:" to separate prefix from remainder
   // Use case-sensitive match to ensure prefix is exactly "GOVERNMENT WARNING:"
-  const match = normalized.match(/^(GOVERNMENT WARNING:)(.*)$/);
+  const match = normalized.match(/^(GOVERNMENT WARNING:)\s*(.*)$/);
   if (match) {
     // Prefix must be exactly "GOVERNMENT WARNING:" (case-sensitive)
     // Normalize remainder to lowercase for case-insensitive comparison
+    // Also normalize whitespace in remainder (collapse multiple spaces, trim)
     const prefix = match[1]; // Keep as-is (should be "GOVERNMENT WARNING:")
-    const remainder = match[2].toLowerCase();
-    return prefix + remainder;
+    const remainder = match[2].trim().replace(/\s+/g, ' ').toLowerCase();
+    // Add a single space between prefix and remainder for consistent comparison
+    return prefix + ' ' + remainder;
   }
   // If pattern doesn't match (prefix not in correct case), return a value that won't match
   // This ensures "Government Warning:" or "government warning:" won't match
@@ -317,14 +326,15 @@ export function normalizeState(state: string | null | undefined): string {
   // Extract state part if zip code is present (e.g., "il 60148-1215" -> "il")
   // Zip codes are typically 5 digits, optionally followed by dash and 4 digits
   const statePart = normalized.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
-  const stateToCheck = statePart || normalized;
+  // Remove periods from abbreviations (e.g., "co." -> "co")
+  let stateToCheck = statePart.replace(/\.$/, '') || normalized.replace(/\.$/, '');
 
   // Check if it's already a normalized state name
   if (US_STATE_REVERSE_MAP[stateToCheck]) {
     return stateToCheck; // Already a full state name
   }
 
-  // Check if it's an abbreviation (case-insensitive)
+  // Check if it's an abbreviation (case-insensitive, without period)
   const upperAbbr = stateToCheck.toUpperCase();
   if (US_STATE_MAP[upperAbbr]) {
     return US_STATE_MAP[upperAbbr]; // Convert abbreviation to full name
@@ -361,6 +371,50 @@ export function statesMatch(
   // Check if state2 is abbreviation and matches state1's full name
   if (US_STATE_MAP[upper2] && US_STATE_MAP[upper2] === normalized1) return true;
 
+  return false;
+}
+
+/**
+ * Normalize city name for comparison
+ * Removes directional prefixes (N., S., E., W., North, South, East, West) and normalizes
+ * Example: "N. Littleton" = "Littleton", "North Littleton" = "Littleton"
+ */
+export function normalizeCity(city: string | null | undefined): string {
+  if (!city) return '';
+  
+  let normalized = normalizeString(city);
+  if (!normalized) return '';
+  
+  // Remove directional prefixes (with or without periods)
+  // Patterns: "n.", "s.", "e.", "w.", "north", "south", "east", "west" at the start
+  normalized = normalized.replace(/^(n\.?|s\.?|e\.?|w\.?|north|south|east|west)\s+/i, '').trim();
+  
+  return normalized;
+}
+
+/**
+ * Check if two city values are equivalent
+ * Handles directional prefix differences (e.g., "N. Littleton" = "Littleton")
+ * Also handles punctuation and case differences
+ */
+export function citiesMatch(
+  city1: string | null | undefined,
+  city2: string | null | undefined
+): boolean {
+  if (!city1 || !city2) return false;
+  
+  const normalized1 = normalizeCity(city1);
+  const normalized2 = normalizeCity(city2);
+  
+  // Direct match after normalization
+  if (normalized1 === normalized2) return true;
+  
+  // Also check if one contains the other (handles cases where one has additional words)
+  // This handles cases like "Littleton" matching "N. Littleton" or vice versa
+  if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+    return true;
+  }
+  
   return false;
 }
 
@@ -417,8 +471,8 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
   const normalized = value.trim().toLowerCase();
   let totalFlOz = 0;
 
-  // Parse gallons (allow optional U.S. or US prefix)
-  const gallonMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*gallon(s)?/i);
+  // Parse gallons (allow optional U.S. or US prefix, and abbreviations gal./gal)
+  const gallonMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:gallon(s)?|gal\.?)/i);
   if (gallonMatch) {
     const numStr = gallonMatch[1];
     let num: number;
@@ -433,8 +487,8 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
     totalFlOz += num * 128;
   }
 
-  // Parse quarts (allow optional U.S. or US prefix)
-  const quartMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*quart(s)?/i);
+  // Parse quarts (allow optional U.S. or US prefix, and abbreviations qt./qt)
+  const quartMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:quart(s)?|qt\.?)/i);
   if (quartMatch) {
     const numStr = quartMatch[1];
     let num: number;
@@ -449,8 +503,8 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
     totalFlOz += num * 32;
   }
 
-  // Parse pints (allow optional U.S. or US prefix)
-  const pintMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*pint(s)?/i);
+  // Parse pints (allow optional U.S. or US prefix, and abbreviations pt./pt)
+  const pintMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:pint(s)?|pt\.?)/i);
   if (pintMatch) {
     const numStr = pintMatch[1];
     let num: number;
@@ -507,7 +561,7 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
   if (volumeFlOz < 16) {
     // Check if it's stated in fluid ounces or fractions of a pint
     const hasFlOz = /fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce(s)?/i.test(value);
-    const hasPintFraction = /pint/i.test(value) && (/\//.test(value) || /\d+\s*pint/i.test(value));
+    const hasPintFraction = /(?:pint|pt\.?)/i.test(value) && (/\//.test(value) || /\d+\s*(?:pint|pt\.?)/i.test(value));
 
     if (!hasFlOz && !hasPintFraction) {
       return 'For volumes less than 1 pint, net contents must be stated in fluid ounces or fractions of a pint';
@@ -515,28 +569,28 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
   }
 
   // Exactly 1 pint, 1 quart, or 1 gallon: must be stated exactly as "1 pint", "1 quart", or "1 gallon"
-  // Allow optional "U.S." or "US" prefix
+  // Allow optional "U.S." or "US" prefix, and abbreviations (pt., qt., gal.)
   if (Math.abs(volumeFlOz - 16) < 0.01) {
-    // Exactly 1 pint - must be exactly "1 pint" or "1 U.S. pint" (no fractions, no additional units)
+    // Exactly 1 pint - must be exactly "1 pint" or "1 U.S. pint" or "1 pt." (no fractions, no additional units)
     if (
-      !/^1\s+(?:U\.?S\.?)?\s*pint(?!\s)/i.test(normalized) &&
-      !/^1\s+(?:U\.?S\.?)?\s*pint\s*$/i.test(normalized)
+      !/^1\s+(?:U\.?S\.?)?\s*(?:pint|pt\.?)(?!\s)/i.test(normalized) &&
+      !/^1\s+(?:U\.?S\.?)?\s*(?:pint|pt\.?)\s*$/i.test(normalized)
     ) {
       return 'For exactly 1 pint, net contents must be stated as "1 pint"';
     }
   } else if (Math.abs(volumeFlOz - 32) < 0.01) {
-    // Exactly 1 quart - must be exactly "1 quart" or "1 U.S. quart"
+    // Exactly 1 quart - must be exactly "1 quart" or "1 U.S. quart" or "1 qt."
     if (
-      !/^1\s+(?:U\.?S\.?)?\s*quart(?!\s)/i.test(normalized) &&
-      !/^1\s+(?:U\.?S\.?)?\s*quart\s*$/i.test(normalized)
+      !/^1\s+(?:U\.?S\.?)?\s*(?:quart|qt\.?)(?!\s)/i.test(normalized) &&
+      !/^1\s+(?:U\.?S\.?)?\s*(?:quart|qt\.?)\s*$/i.test(normalized)
     ) {
       return 'For exactly 1 quart, net contents must be stated as "1 quart"';
     }
   } else if (Math.abs(volumeFlOz - 128) < 0.01) {
-    // Exactly 1 gallon - must be exactly "1 gallon" or "1 U.S. gallon"
+    // Exactly 1 gallon - must be exactly "1 gallon" or "1 U.S. gallon" or "1 gal."
     if (
-      !/^1\s+(?:U\.?S\.?)?\s*gallon(?!\s)/i.test(normalized) &&
-      !/^1\s+(?:U\.?S\.?)?\s*gallon\s*$/i.test(normalized)
+      !/^1\s+(?:U\.?S\.?)?\s*(?:gallon|gal\.?)(?!\s)/i.test(normalized) &&
+      !/^1\s+(?:U\.?S\.?)?\s*(?:gallon|gal\.?)\s*$/i.test(normalized)
     ) {
       return 'For exactly 1 gallon, net contents must be stated as "1 gallon"';
     }
@@ -545,9 +599,9 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
   // More than 1 pint but less than 1 quart (16-32 fl oz): fractions of a quart, or pints and fluid ounces
   if (volumeFlOz > 16 && volumeFlOz < 32) {
     const hasQuartFraction =
-      /quart/i.test(value) && (/\//.test(value) || /\d+\s*quart/i.test(value));
+      /(?:quart|qt\.?)/i.test(value) && (/\//.test(value) || /\d+\s*(?:quart|qt\.?)/i.test(value));
     const hasPintsAndFlOz =
-      /pint/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value));
+      /(?:pint|pt\.?)/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value));
 
     if (!hasQuartFraction && !hasPintsAndFlOz) {
       return 'For volumes more than 1 pint but less than 1 quart, net contents must be stated in fractions of a quart, or in pints and fluid ounces';
@@ -557,10 +611,10 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
   // More than 1 quart but less than 1 gallon (32-128 fl oz): fractions of a gallon, or quarts, pints, and fluid ounces
   if (volumeFlOz > 32 && volumeFlOz < 128) {
     const hasGallonFraction =
-      /gallon/i.test(value) && (/\//.test(value) || /\d+\s*gallon/i.test(value));
+      /(?:gallon|gal\.?)/i.test(value) && (/\//.test(value) || /\d+\s*(?:gallon|gal\.?)/i.test(value));
     const hasMultipleUnits =
-      /quart/i.test(value) ||
-      (/pint/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value)));
+      /(?:quart|qt\.?)/i.test(value) ||
+      (/(?:pint|pt\.?)/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value)));
 
     if (!hasGallonFraction && !hasMultipleUnits) {
       return 'For volumes more than 1 quart but less than 1 gallon, net contents must be stated in fractions of a gallon, or in quarts, pints, and fluid ounces';
@@ -569,7 +623,7 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
 
   // More than 1 gallon: gallons and fractions thereof
   if (volumeFlOz > 128) {
-    if (!/gallon/i.test(value)) {
+    if (!/(?:gallon|gal\.?)/i.test(value)) {
       return 'For volumes more than 1 gallon, net contents must be stated in gallons and fractions thereof';
     }
   }

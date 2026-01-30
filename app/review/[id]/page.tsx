@@ -927,14 +927,8 @@ export default function ReviewPage() {
                                       fieldName === 'alcoholContent' ||
                                       fieldName === 'alcohol_content';
 
-                                    // For PRESENCE fields that are not found, don't show anything here
-                                    // (field label already shows "Field not found" above)
-                                    if (isPresenceField && result.type === 'not_found' && !result.expected) {
-                                      return null;
-                                    }
-
-                                    // For wine classType with null expected, show requirement statement after "Expected:"
-                                    if (isWineClassType && !result.expected) {
+                                    // For wine classType with null expected or NOT_FOUND, show requirement statement after "Expected:"
+                                    if (isWineClassType && (!result.expected || result.type === 'not_found')) {
                                       return (
                                         <div className="text-sm mt-1 text-foreground">
                                           <span className="font-medium">Expected:</span>{' '}
@@ -946,8 +940,8 @@ export default function ReviewPage() {
                                       );
                                     }
 
-                                    // For non-wine classType (beer/spirits) with null expected, show requirement statement
-                                    if (isNonWineClassType && !result.expected) {
+                                    // For non-wine classType (beer/spirits) with null expected or NOT_FOUND, show requirement statement
+                                    if (isNonWineClassType && (!result.expected || result.type === 'not_found')) {
                                       const beverageType = currentApp?.beverage_type?.toLowerCase();
                                       const typeDescription =
                                         beverageType === 'spirits'
@@ -959,6 +953,12 @@ export default function ReviewPage() {
                                           <span className="text-foreground">{typeDescription}</span>
                                         </div>
                                       );
+                                    }
+
+                                    // For PRESENCE fields that are not found (and not classType), don't show anything here
+                                    // (field label already shows "Field not found" above)
+                                    if (isPresenceField && result.type === 'not_found' && !result.expected) {
+                                      return null;
                                     }
 
                                     // For sulfite declaration with null expected, show requirement statement after "Expected:"

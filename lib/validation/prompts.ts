@@ -94,10 +94,17 @@ You are a TTB (Alcohol and Tobacco Tax and Trade Bureau) compliance expert analy
 
 LABEL ANATOMY - Where to find each field:
 - BRAND NAME: Largest, most prominent text - the product's marketing name
+  CRITICAL: Brand names can include spirit type words (e.g., "BLACK ROSE GIN", "GREY GOOSE VODKA", "JACK DANIEL'S WHISKEY")
+  Extract the COMPLETE brand name as shown on the label - DO NOT truncate or remove spirit type words
+  Examples: "BLACK ROSE GIN" (extract as "BLACK ROSE GIN", NOT "BLACK ROSE"), "GREY GOOSE VODKA", "JACK DANIEL'S"
 - FANCIFUL NAME: Optional secondary/stylized name, often near brand name
+  CRITICAL: Fanciful names can include spirit type words (e.g., "PEANUT BUTTER WHISKEY", "CHOCOLATE VODKA", "CARAMEL RUM")
+  Extract the COMPLETE fanciful name as shown on the label - DO NOT truncate or remove spirit type words
+  Examples: "PEANUT BUTTER WHISKEY" (extract as "PEANUT BUTTER WHISKEY", NOT "PEANUT BUTTER"), "CHOCOLATE VODKA", "CARAMEL RUM"
 - CLASS/TYPE: Spirit category - usually near brand name or on neck label
   Examples: "Kentucky Straight Bourbon Whiskey", "Single Malt Scotch Whisky", 
   "Blanco Tequila", "London Dry Gin", "VSOP Cognac", "Vodka", "Silver Rum"
+  NOTE: This is SEPARATE from the brand name - if brand name is "BLACK ROSE GIN", the class/type might be "Gin" or "London Dry Gin"
 - ALCOHOL CONTENT: Usually displayed as BOTH percentage AND proof
   Examples: "40% ALC/VOL (80 PROOF)", "45% ALC./VOL.", "90 PROOF"
   Location: Often near net contents or bottom of front label
@@ -123,6 +130,24 @@ EXTRACTION RULES:
 2. BRAND NAME is NOT the same as PRODUCER NAME
    - Brand: "Jack Daniel's" / Producer: "Jack Daniel Distillery"
    - Brand: "Johnnie Walker" / Producer: "John Walker & Sons"
+3. BRAND NAME CRITICAL RULE - Extract COMPLETE brand name:
+   - Brand names can include spirit type words (GIN, VODKA, WHISKEY, RUM, TEQUILA, etc.)
+   - Extract the ENTIRE brand name exactly as shown on the label
+   - DO NOT truncate brand names even if they contain spirit type words
+   - Examples:
+     * If label shows "BLACK ROSE GIN" → Extract as "BLACK ROSE GIN" (NOT "BLACK ROSE")
+     * If label shows "GREY GOOSE VODKA" → Extract as "GREY GOOSE VODKA" (NOT "GREY GOOSE")
+     * If label shows "JACK DANIEL'S" → Extract as "JACK DANIEL'S" (complete as shown)
+   - The class/type field is SEPARATE and contains the full spirit designation (e.g., "Gin", "London Dry Gin", "Vodka")
+4. FANCIFUL NAME CRITICAL RULE - Extract COMPLETE fanciful name:
+   - Fanciful names can include spirit type words (GIN, VODKA, WHISKEY, RUM, TEQUILA, etc.)
+   - Extract the ENTIRE fanciful name exactly as shown on the label
+   - DO NOT truncate fanciful names even if they contain spirit type words
+   - Examples:
+     * If label shows "PEANUT BUTTER WHISKEY" → Extract as "PEANUT BUTTER WHISKEY" (NOT "PEANUT BUTTER")
+     * If label shows "CHOCOLATE VODKA" → Extract as "CHOCOLATE VODKA" (NOT "CHOCOLATE")
+     * If label shows "CARAMEL RUM" → Extract as "CARAMEL RUM" (complete as shown)
+   - The class/type field is SEPARATE and contains the full spirit designation
 3. For ALCOHOL CONTENT: Spirits are typically 35-50% ABV (70-100 proof)
    - CRITICAL: Extract the COMPLETE text exactly as shown, including any prefix words like "ALCOHOL", "ALC.", or "ABV"
    - DO NOT OMIT PREFIX WORDS - if the label shows "ALC. 40% BY VOL.", extract it as "ALC. 40% BY VOL." (NOT "40% BY VOL.")
@@ -142,8 +167,8 @@ Return a JSON object with this exact structure:
 
 {
   "extraction": {
-    "brandName": "exact text or null",
-    "fancifulName": "exact text or null",
+    "brandName": "exact text or null - CRITICAL: Extract the COMPLETE brand name as shown on the label. Brand names can include spirit type words (GIN, VODKA, WHISKEY, etc.) - DO NOT truncate. If label shows 'BLACK ROSE GIN', extract as 'BLACK ROSE GIN' (NOT 'BLACK ROSE'). Extract exactly as shown.",
+    "fancifulName": "exact text or null - CRITICAL: Extract the COMPLETE fanciful name as shown on the label. Fanciful names can include spirit type words (GIN, VODKA, WHISKEY, etc.) - DO NOT truncate. If label shows 'PEANUT BUTTER WHISKEY', extract as 'PEANUT BUTTER WHISKEY' (NOT 'PEANUT BUTTER'). Extract exactly as shown.",
     "classType": "exact spirit type designation or null",
     "alcoholContent": "exact COMPLETE text including any prefix words and % and/or proof (e.g., 'ALCOHOL 40% BY VOLUME', '40% ALC/VOL', 'ALC. 45% BY VOL.') or null - CRITICAL: Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present. If label shows 'ALC. 45% BY VOL.', extract as 'ALC. 45% BY VOL.' NOT '45% BY VOL.'",
     "netContents": "exact text (e.g., '750 mL') or null - CRITICAL: Extract ONLY the measurement value and unit. Do NOT include prefix words like 'CONTENTS', 'NET CONTENTS', or 'NET'. If label shows 'CONTENTS 750ML', extract only '750ML'.",
@@ -173,9 +198,17 @@ CRITICAL for healthWarningText:
 - Include the complete text from "GOVERNMENT WARNING:" through "...may cause health problems."
 
 IMPORTANT:
+- BRAND NAME CRITICAL RULE: Extract the COMPLETE brand name as shown - brand names can include spirit type words
+  * If label shows "BLACK ROSE GIN" → Extract as "BLACK ROSE GIN" (complete, NOT "BLACK ROSE")
+  * If label shows "GREY GOOSE VODKA" → Extract as "GREY GOOSE VODKA" (complete, NOT "GREY GOOSE")
+  * DO NOT truncate brand names - extract exactly as shown on the label
+- FANCIFUL NAME CRITICAL RULE: Extract the COMPLETE fanciful name as shown - fanciful names can include spirit type words
+  * If label shows "PEANUT BUTTER WHISKEY" → Extract as "PEANUT BUTTER WHISKEY" (complete, NOT "PEANUT BUTTER")
+  * If label shows "CHOCOLATE VODKA" → Extract as "CHOCOLATE VODKA" (complete, NOT "CHOCOLATE")
+  * DO NOT truncate fanciful names - extract exactly as shown on the label
 - Double-check ALCOHOL CONTENT - common misreads: 40↔45, 80↔86, 90↔96
 - AGE STATEMENT should be null unless a specific age/duration is stated
-- CLASS/TYPE should be the complete designation as shown on the label
+- CLASS/TYPE should be the complete designation as shown on the label (this is SEPARATE from brand name and fanciful name)
 - BRAND NAME ≠ PRODUCER NAME (they are different fields)
 `;
 
@@ -225,10 +258,21 @@ EXTRACTION RULES:
 2. BRAND NAME ≠ PRODUCER NAME
    - Brand: "Stag's Leap Wine Cellars"
    - Producer: "Stag's Leap Wine Cellars, Napa, CA"
-3. VARIETAL vs CLASS/TYPE vs APPELLATION - these are different:
-   - Varietal: "Cabernet Sauvignon", "Khikhvi", "Chardonnay" (grape variety name)
-   - Class/Type: "Red Wine", "White Wine", "Dry Wine" (generic wine category)
-   - Appellation: "Napa Valley" (where grapes are from)
+3. VARIETAL vs CLASS/TYPE vs APPELLATION - these are DIFFERENT and MUST NOT be confused:
+   - VARIETAL (classType field): Grape variety name - examples: "Cabernet Sauvignon", "Khikhvi", "Chardonnay", "Pinot Noir", "Merlot", "Sauvignon Blanc"
+     * These are GRAPE NAMES, typically 1-2 words
+     * Examples: "CABERNET SAUVIGNON", "Chardonnay", "Pinot Noir"
+     * DO NOT confuse with geographic locations
+   - CLASS/TYPE: Generic wine category - examples: "Red Wine", "White Wine", "Dry Wine" (generic wine category)
+   - APPELLATION (appellation field): Geographic origin designation - examples: "Napa Valley", "Sonoma Coast", "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Willamette Valley"
+     * These are GEOGRAPHIC LOCATIONS, can be multi-word (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY")
+     * Examples: "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"
+     * DO NOT confuse with grape variety names
+   CRITICAL DISTINCTION:
+   - If you see "CABERNET SAUVIGNON" → This is a VARIETAL (grape name) → Extract as classType
+   - If you see "MOON MOUNTAIN DISTRICT SONOMA COUNTY" → This is an APPELLATION (geographic location) → Extract as appellation
+   - If you see "Napa Valley" → This is an APPELLATION (geographic location) → Extract as appellation
+   - If you see "Chardonnay" → This is a VARIETAL (grape name) → Extract as classType
    CRITICAL: If both a varietal AND a class/type appear on the label, extract the VARIETAL (grape name), not the class/type. For example, if label shows "Khikhvi" and "White Dry Wine", extract "Khikhvi" as the classType.
 4. ALCOHOL CONTENT: Wines typically 5.5-24% depending on type
    - CRITICAL: Extract the COMPLETE text exactly as shown, including any prefix words like "ALCOHOL", "ALC.", or "ABV"
@@ -258,8 +302,8 @@ Return a JSON object with this exact structure:
 {
   "extraction": {
     "brandName": "exact winery/brand name or null",
-    "classType": "exact varietal (grape name) or wine type or null - CRITICAL: If both a varietal (grape name like 'Khikhvi', 'Chardonnay') and a class/type (like 'White Wine', 'Red Wine') appear on the label, extract the VARIETAL, not the class/type. Varietals always take precedence.",
-    "appellation": "exact geographic designation with any qualifiers (AOC, DOCG, etc.) or null - CRITICAL: For US wines, state names like 'Virginia', 'California', 'Oregon' are valid appellations when listed prominently and separately on the label. Extract state names if they appear as geographic designations separate from producer address.",
+    "classType": "exact varietal (grape name) or wine type or null - CRITICAL: Extract GRAPE VARIETY NAMES here (e.g., 'CABERNET SAUVIGNON', 'Chardonnay', 'Pinot Noir', 'Khikhvi'). These are GRAPE NAMES, NOT geographic locations. If both a varietal (grape name like 'Khikhvi', 'Chardonnay', 'CABERNET SAUVIGNON') and a class/type (like 'White Wine', 'Red Wine') appear on the label, extract the VARIETAL, not the class/type. Varietals always take precedence. DO NOT confuse with appellations - grape names go here, geographic locations go in appellation field.",
+    "appellation": "exact geographic designation with any qualifiers (AOC, DOCG, etc.) or null - CRITICAL: Extract GEOGRAPHIC LOCATIONS here (e.g., 'MOON MOUNTAIN DISTRICT SONOMA COUNTY', 'Napa Valley', 'Sonoma Coast', 'California', 'Virginia'). These are WHERE THE GRAPES ARE FROM, NOT grape variety names. For US wines, state names like 'Virginia', 'California', 'Oregon' are valid appellations when listed prominently and separately on the label. Extract state names if they appear as geographic designations separate from producer address. DO NOT confuse with varietals - geographic locations go here, grape names go in classType field.",
     "alcoholContent": "exact COMPLETE text including any prefix words (e.g., '13.5% Alc/Vol', 'ALCOHOL 14% BY VOLUME', 'ALC. 13.5% BY VOL.', 'ALC. 12.5% BY VOL.') or null - CRITICAL: Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present. If label shows 'ALC. 12.5% BY VOL.', extract as 'ALC. 12.5% BY VOL.' NOT '12.5% BY VOL.'",
     "netContents": "exact text (e.g., '750 mL') or null - CRITICAL: Extract ONLY the measurement value and unit. Do NOT include prefix words like 'CONTENTS', 'NET CONTENTS', or 'NET'. If label shows 'CONTENTS 750ML', extract only '750ML'.",
     "producerName": "exact winery/bottler name or null",
@@ -298,7 +342,13 @@ NOTE on isEstateBottled:
 - This affects whether appellation is required
 
 IMPORTANT:
-- VARIETAL (classType) ≠ APPELLATION - don't confuse grape variety with region
+- VARIETAL (classType) ≠ APPELLATION - CRITICAL: These are COMPLETELY DIFFERENT fields and MUST NOT be confused:
+  * VARIETAL (classType): Grape variety names like "CABERNET SAUVIGNON", "Chardonnay", "Pinot Noir" → Extract as classType
+  * APPELLATION: Geographic locations like "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "California" → Extract as appellation
+  * Example: If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY":
+    - "CABERNET SAUVIGNON" is the VARIETAL (grape name) → Extract as classType
+    - "MOON MOUNTAIN DISTRICT SONOMA COUNTY" is the APPELLATION (geographic location) → Extract as appellation
+  * DO NOT swap these - grape names belong in classType, geographic locations belong in appellation
 - VARIETAL PRIORITY: If both a varietal (grape name) and a class/type (e.g., "White Wine") appear, extract the VARIETAL, not the class/type
 - Double-check ALCOHOL CONTENT - common misreads: 13.5↔14.5, 12.5↔13.5
 - SULFITE DECLARATION is almost always present - look carefully on back label
@@ -332,14 +382,30 @@ export function getBeverageSpecificInstructions(beverageType: 'spirits' | 'wine'
       return `
 
 CRITICAL WINE-SPECIFIC RULES:
-- VARIETAL vs CLASS/TYPE: These are different things:
-  * Varietal: Grape variety name (e.g., "Khikhvi", "Chardonnay", "Cabernet Sauvignon", "Rkatsiteli", "Saperavi", "Pinot Noir")
-  * Class/Type: Generic wine category (e.g., "White Wine", "Red Wine", "Dry Wine", "White Dry Wine")
+- VARIETAL vs CLASS/TYPE vs APPELLATION - CRITICAL DISTINCTION:
+  * VARIETAL (classType field): Grape variety name - examples: "Khikhvi", "Chardonnay", "Cabernet Sauvignon", "CABERNET SAUVIGNON", "Rkatsiteli", "Saperavi", "Pinot Noir"
+    - These are GRAPE NAMES (what type of grape)
+    - Typically 1-2 words
+    - Extract as classType field
+  * CLASS/TYPE: Generic wine category - examples: "White Wine", "Red Wine", "Dry Wine", "White Dry Wine"
+    - Only extract if NO varietal is present
+  * APPELLATION (appellation field): Geographic origin designation - examples: "Napa Valley", "Sonoma Coast", "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Willamette Valley", "California", "Virginia"
+    - These are GEOGRAPHIC LOCATIONS (where grapes are from)
+    - Can be multi-word (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY")
+    - Extract as appellation field
+- CRITICAL: DO NOT confuse VARIETAL with APPELLATION:
+  * "CABERNET SAUVIGNON" = VARIETAL (grape name) → Extract as classType
+  * "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = APPELLATION (geographic location) → Extract as appellation
+  * "Chardonnay" = VARIETAL (grape name) → Extract as classType
+  * "Napa Valley" = APPELLATION (geographic location) → Extract as appellation
 - CRITICAL PRIORITY RULE FOR class_type FIELD: If BOTH a varietal (grape name) AND a class/type (e.g., "White Wine", "Red Wine", "White Dry Wine") appear on the label, you MUST extract the VARIETAL, NOT the class/type. Varietals ALWAYS take precedence over generic class/type designations.
 - Examples:
   * If label shows "Khikhvi" and "White Dry Wine", extract "Khikhvi" as class_type (NOT "White Dry Wine")
   * If label shows "Chardonnay" and "White Wine", extract "Chardonnay" as class_type (NOT "White Wine")
   * If label shows "Cabernet Sauvignon" and "Red Wine", extract "Cabernet Sauvignon" as class_type (NOT "Red Wine")
+  * If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY":
+    - Extract "CABERNET SAUVIGNON" as class_type (varietal/grape name)
+    - Extract "MOON MOUNTAIN DISTRICT SONOMA COUNTY" as appellation (geographic location)
 - Only extract the class/type if NO varietal is present on the label.
 - This is a CRITICAL requirement - failure to follow this rule will cause validation errors.
 
@@ -350,7 +416,8 @@ CRITICAL WINE-SPECIFIC RULES:
   * Include qualifiers: "DOCG", "AOC", "AVA" if shown
   * Preserve exact capitalization as shown on label (e.g., if label shows "VIRGINIA" in all caps, extract as "VIRGINIA")
   * CRITICAL: If a state name appears prominently on the label (separate from producer address), extract it as the appellation
-  * Examples: "Napa Valley", "Sonoma Coast", "Virginia", "California", "Bordeaux AOC", "Chianti Classico DOCG"
+  * Examples: "Napa Valley", "Sonoma Coast", "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Virginia", "California", "Bordeaux AOC", "Chianti Classico DOCG"
+  * DO NOT confuse with varietals - geographic locations belong in appellation field, grape names belong in classType field
 
 - ALCOHOL CONTENT: Wines typically 5.5-24% depending on type
   * Table wine: 11-14.5%
@@ -392,11 +459,26 @@ CRITICAL BEER-SPECIFIC RULES:
       return `
 
 CRITICAL SPIRITS-SPECIFIC RULES:
+- BRAND NAME: CRITICAL - Extract COMPLETE brand name as shown
+  * Brand names can include spirit type words (GIN, VODKA, WHISKEY, RUM, TEQUILA, etc.)
+  * Extract the ENTIRE brand name exactly as shown on the label - DO NOT truncate
+  * Examples:
+    - If label shows "BLACK ROSE GIN" → Extract as "BLACK ROSE GIN" (NOT "BLACK ROSE")
+    - If label shows "GREY GOOSE VODKA" → Extract as "GREY GOOSE VODKA" (NOT "GREY GOOSE")
+    - If label shows "JACK DANIEL'S" → Extract as "JACK DANIEL'S" (complete as shown)
+  * The class/type field is SEPARATE and contains the full spirit designation (e.g., "Gin", "London Dry Gin", "Vodka")
+  * DO NOT remove spirit type words from brand names - extract exactly as shown
 - FANCIFUL NAME: Optional secondary/stylized name, often near brand name
-  * Look for text that appears prominently near the brand name but is distinct from it
-  * Common examples: "REPOSADO", "SINGLE BARREL SELECT", "AÑEJO", "BLANCO", "SILVER", "GOLD"
+  * CRITICAL: Fanciful names can include spirit type words (GIN, VODKA, WHISKEY, RUM, TEQUILA, etc.)
+  * Extract the COMPLETE fanciful name exactly as shown on the label - DO NOT truncate
+  * Examples:
+    - If label shows "PEANUT BUTTER WHISKEY" → Extract as "PEANUT BUTTER WHISKEY" (NOT "PEANUT BUTTER")
+    - If label shows "CHOCOLATE VODKA" → Extract as "CHOCOLATE VODKA" (NOT "CHOCOLATE")
+    - If label shows "CARAMEL RUM" → Extract as "CARAMEL RUM" (complete as shown)
+  * Common examples: "REPOSADO", "SINGLE BARREL SELECT", "AÑEJO", "BLANCO", "SILVER", "GOLD", "PEANUT BUTTER WHISKEY"
   * Extract exactly as shown on label, preserving ALL CAPS if shown in caps
   * Use null if not present - not all spirits have a fanciful name
+  * The class/type field is SEPARATE and contains the full spirit designation
 
 - ALCOHOL CONTENT: Spirits are typically 35-50% ABV (70-100 proof)
   * May show % only, proof only, or both

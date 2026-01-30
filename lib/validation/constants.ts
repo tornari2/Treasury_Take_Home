@@ -42,9 +42,12 @@ export const NET_CONTENTS_PATTERNS = {
   usCustomary: [
     /^\d+(\.\d+)?\s*fl\.?\s*oz\.?$/i, // fl oz, fl. oz., fl oz., fl. oz
     /^\d+(\.\d+)?\s*fluid\s+ounce(s)?$/i, // fluid ounce, fluid ounces
-    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*pint(s)?$/i, // pint, pints, U.S. pint, US pint
-    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*quart(s)?$/i, // quart, quarts, U.S. quart, US quart
-    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*gallon(s)?$/i, // gallon, gallons, U.S. gallon, US gallon, U.S. gallons, US gallons
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*pint(s)?\.?$/i, // pint, pints, pt., PT., U.S. pint, US pint
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*pt\.?$/i, // pt, pt., PT, PT.
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*quart(s)?\.?$/i, // quart, quarts, qt., QT., U.S. quart, US quart
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*qt\.?$/i, // qt, qt., QT, QT.
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*gallon(s)?\.?$/i, // gallon, gallons, gal., GAL., Gal., U.S. gallon, US gallon
+    /^\d+(\.\d+)?\s*(U\.?S\.?)?\s*gal\.?$/i, // gal, gal., GAL, GAL., Gal, Gal.
   ],
 };
 

@@ -6,11 +6,63 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 **Phase:** Implementation Complete → Testing & Deployment Ready  
 **Primary Goal:** TTB Label Verification System prototype - **COMPLETE** ✅  
-**Current Sprint:** Code quality improvements, testing, and deployment preparation
+**Current Sprint:** Performance optimization and testing
+
+## Recent Changes (January 30, 2025 - Latest)
+
+### Performance Optimizations ✅ (Latest - January 30, 2025)
+
+- **GPT-4o API Call Optimizations:**
+  - Set `temperature: 0` for deterministic, faster responses (also improves accuracy)
+  - Reduced `max_tokens` from 2000 to 1500 (conservative reduction, still safe buffer)
+  - Reorganized prompt structure: static content (lines 231-257) moved before dynamic content
+  - Changed model to `gpt-4o` as requested (was temporarily `gpt-4o-mini`)
+  - Prompt caching automatically enabled (works for prompts >1024 tokens)
+- **Code-Level Optimizations:**
+  - Cache JSON stringification in verify route (`extractedDataJson`, `verificationResultJson`)
+  - Avoids repeated `JSON.stringify()` calls for same data
+- **Performance Analysis:**
+  - Current verification time: ~10 seconds average
+  - Main bottleneck: OpenAI API processing time (~9-10s), not code execution
+  - Prompt caching provides ~50% cost savings on cached portions (~500-700 tokens)
+  - Expected improvement: 15-25% reduction (7-8 seconds realistic target)
+  - To reach <5s target would require: model downgrade (gpt-4o-mini), infrastructure changes, or Azure OpenAI regional endpoints
+- **Testing Infrastructure:**
+  - Added `scripts/test-verification-speed-api.ts` - tests via API endpoint
+  - Added `scripts/test-verification-speed.ts` - tests direct function calls
+  - Scripts measure average, min, max processing times across 3 test runs
+- **Key Findings:**
+  - Prompt caching already working automatically (no code changes needed)
+  - Regional endpoints not available for standard OpenAI API
+  - Parallel processing already optimal (all images in single API call)
+  - Beverage-specific prompts should remain separate (too many critical differences to merge)
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Review Notes Persistence and Verification Clearing ✅ (Latest - January 29, 2025)
+### Critical Verification Fixes and Dashboard Enhancements ✅ (Latest - January 29, 2025)
+
+- **Review Notes Column in Dashboard:**
+  - Added "Review Notes" column to application queue table (positioned after Status, before Created)
+  - Shows message box icon (MessageSquare from lucide-react) for approved/rejected applications with review notes
+  - Hover tooltip displays full review notes content with proper styling
+  - Icon only appears when review notes exist and status is approved or rejected
+  - Empty state shows "—" when no review notes exist
+
+- **Critical Verification Fixes:**
+  - **Prefilled AI Recommendations Issue:** Fixed persistent display of old verification results when re-verifying
+    - Added `clearVerificationResults()` method to `lib/db-helpers.ts` to clear verification results before processing
+    - Verification API route now clears old results BEFORE starting new verification (prevents stale data display)
+    - Frontend clears verification results to `null` (not empty object) when starting verification
+    - Updated verification result checks to properly handle `null` values
+    - Removed premature `useEffect` that was blocking verification trigger
+  - **Verification Hanging Issue:** Fixed indefinite hanging during verification
+    - Added client-side timeout: 3-minute abort controller with user-friendly timeout message
+    - Added server-side timeout: Hard 3-minute cap using Promise.race to prevent API route hanging
+    - Increased OpenAI service timeout from 30s to 60s per image, max from 2min to 5min
+    - Verification now always resolves (success or timeout) preventing UI from staying stuck
+    - Proper error handling for timeout scenarios with clear user feedback
+
+### Review Notes Persistence and Verification Clearing ✅ (January 29, 2025)
 
 - **Review Notes Persistence:**
   - Review notes now persist when switching from review page back to dashboard
@@ -921,4 +973,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (Review notes persistence: notes persist when switching pages and changing status, only clear on reverification. Confirmation dialog removal: removed popup for approving/rejecting with mismatches. Verification clearing fix: review notes and verification results properly wiped when reverifying. Previous: Verification flow fixes: infinite loop prevention, race condition fixes, immediate result clearing. Navigation improvements: loading overlays, better error handling. UI enhancements: larger zoom increments, always-visible reset button, scrollable table. Ready for production deployment and testing.)_
+_Last Updated: January 29, 2025 (Critical verification fixes: resolved prefilled AI recommendations issue by clearing old results before processing, fixed verification hanging with client/server timeouts. Dashboard enhancements: added Review Notes column with hover tooltip. Previous: Review notes persistence, confirmation dialog removal, verification clearing fixes, navigation improvements, UI enhancements. Ready for production deployment and testing.)_

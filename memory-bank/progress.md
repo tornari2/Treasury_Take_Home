@@ -229,6 +229,30 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
+## Recent Updates (January 30, 2025)
+
+### Performance Optimizations ✅ (Latest - January 30, 2025)
+
+- **GPT-4o API Optimizations:**
+  - Set `temperature: 0` for deterministic, faster responses (improves accuracy and speed)
+  - Reduced `max_tokens` from 2000 to 1500 (safe buffer for structured JSON responses)
+  - Reorganized prompt structure: static content first, dynamic content last (optimizes caching)
+  - Changed model from `gpt-4o-mini` to `gpt-4o` as requested
+  - Prompt caching automatically enabled for prompts >1024 tokens (provides 50% cost savings on cached portions)
+- **Code Optimizations:**
+  - Cache JSON stringification in verify route to avoid repeated serialization
+  - Optimized prompt structure maximizes cacheable static content (~500-700 tokens cacheable)
+- **Performance Testing:**
+  - Added test scripts: `scripts/test-verification-speed-api.ts` and `scripts/test-verification-speed.ts`
+  - Current performance: ~10 seconds average (down from baseline)
+  - Expected improvement: 15-25% reduction in processing time
+  - Main bottleneck: OpenAI API processing time (~9-10s), not code execution
+- **Analysis:**
+  - Prompt caching is already working automatically (no code changes needed)
+  - Regional endpoints not available for standard OpenAI API (uses automatic routing)
+  - Parallel processing already optimal (all images sent together in single API call)
+  - Further optimizations would require infrastructure changes or model downgrade (gpt-4o-mini)
+
 ## Recent Updates (January 29, 2025)
 
 ### Review Notes Persistence and Verification Clearing ✅ (Latest - January 29, 2025)
@@ -437,6 +461,26 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 - **Batch Flow:**
   - Automatic redirect after completing batch (no popup)
+
+### Critical Verification Fixes and Dashboard Enhancements ✅ (Latest - January 29, 2025)
+
+- **Review Notes Column in Dashboard:**
+  - Added "Review Notes" column to application queue table (after Status, before Created)
+  - Shows MessageSquare icon for approved/rejected applications with review notes
+  - Hover tooltip displays full review notes content with proper styling
+  - Icon only appears when review notes exist and status is approved or rejected
+
+- **Critical Verification Fixes:**
+  - **Prefilled AI Recommendations Issue:** Fixed persistent display of old verification results
+    - Added `clearVerificationResults()` method to `lib/db-helpers.ts`
+    - Verification API route clears old results BEFORE processing new verification
+    - Frontend clears verification results to `null` when starting verification
+    - Removed blocking `useEffect` that prevented verification from triggering
+  - **Verification Hanging Issue:** Fixed indefinite hanging during verification
+    - Client-side: 3-minute timeout with AbortController and user-friendly error message
+    - Server-side: Hard 3-minute timeout using Promise.race to prevent API route hanging
+    - Increased OpenAI service timeout from 30s to 60s per image (max 5min)
+    - Verification now always resolves preventing UI from staying stuck
 
 ### Validation Improvements ✅ (January 29, 2025)
 

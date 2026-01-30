@@ -2,8 +2,7 @@
 # This file helps Railway understand your project structure
 
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+builder = "NIXPACKS"
 
 [deploy]
 startCommand = "npm start"

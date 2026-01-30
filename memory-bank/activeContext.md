@@ -10,7 +10,27 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### UI/UX & Validation Improvements ✅ (Latest - January 29, 2025)
+### Age Statement, N/A Display, Fanciful Name & Alcohol Content ✅ (Latest - January 29, 2025)
+
+- **Age Statement Validation (Spirits):**
+  - Age statement is **conditionally required** based on Class/Type (not always required).
+  - Mandatory for: whisky aged &lt; 4 years; grape lees/pomace/marc brandy aged &lt; 2 years; distillation date or miscellaneous age references (latter two would need separate extraction).
+  - When not required: `expected` is "N/A - Not required for Class or Type"; `extracted` is null; status NOT_APPLICABLE.
+  - When present: must match approved formats (e.g. "X years old", "Aged X years", "Aged at least X years", blended whisky format).
+  - `validateAgeStatement(extracted, classType)` in `lib/validation/validators/spirits.ts`; `validateSpiritsLabel` passes `extraction.classType`.
+
+- **N/A Display (Review Page):**
+  - Values starting with "N/A" (e.g. "N/A - Not applicable", "N/A - Domestic", "N/A - Not required for Class or Type") are shown **without** the "Expected:" label and in **gray** (`text-muted-foreground`).
+  - Applies to NOT_APPLICABLE results and any expected value that starts with "N/A".
+
+- **Fanciful Name:**
+  - When label has fanciful name but application does not: `expected` is "None" (not null) so review page shows "Expected: None" instead of omitting.
+
+- **Alcohol Content:**
+  - Alcohol content is required on all labels. When `expected` is missing for alcohol content, review page shows "Expected: Required" instead of "Expected: None".
+  - Special handling in review page for `alcoholContent` / `alcohol_content` when `result.expected` is falsy.
+
+### UI/UX & Validation Improvements ✅ (January 29, 2025)
 
 - **Soft Mismatch Visual Feedback:**
   - Fields with soft mismatch status now display a yellow border matching the warning icon color

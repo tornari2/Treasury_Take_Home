@@ -395,7 +395,7 @@ interface ApplicationData {
   - Wine: > 14% ABV requires numerical statement, 7-14% ABV optional if "table wine" or "light wine"
   - Spirits: Standard format validation
 - Country of Origin (required if `originType === IMPORTED`, shows "N/A - Domestic" for domestic)
-- Age Statement (spirits only)
+- Age Statement (spirits only, conditionally required: mandatory for whisky &lt; 4 years, grape lees/pomace/marc brandy &lt; 2 years; approved format when present)
 - Sulfite Declaration (wine only)
 - Appellation (wine, conditionally required if varietal/vintage/estate bottled present)
 - Foreign Wine Percentage (wine, required if foreign wine referenced)

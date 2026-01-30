@@ -263,6 +263,12 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
   - Added DELETE endpoint at `/api/applications/[id]`
   - Removed success/failure alert messages after deletion
 
+- **Age Statement, N/A Display, Fanciful Name & Alcohol Content (January 29, 2025):**
+  - Age Statement: Conditionally required by Class/Type (whisky &lt; 4 yr, grape lees/pomace/marc brandy &lt; 2 yr); approved format validation; "N/A - Not required for Class or Type" when not required.
+  - N/A values (e.g. N/A - Domestic, N/A - Not applicable): Shown without "Expected:" label, in gray.
+  - Fanciful name: When label has value but application doesn't, expected shows "None".
+  - Alcohol content: When expected missing, review page shows "Required" (always required on labels).
+
 - **Review Page Display Improvements:**
   - Removed title "Review Application #{id}" and applicant name from top of page
   - Hide "Extracted" field when field is not found (shows null instead of "Field not found")

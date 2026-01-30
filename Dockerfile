@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
+# Set build-time environment variables to prevent database initialization
+ENV NEXT_PHASE=phase-production-build
+ENV NODE_ENV=production
+
 # Copy package files
 COPY package*.json ./
 
@@ -19,6 +23,7 @@ RUN npm ci
 COPY . .
 
 # Build the application
+# Database initialization is skipped during build via NEXT_PHASE check
 RUN npm run build
 
 # Expose port

@@ -4,15 +4,58 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Current Work Focus
 
-**Phase:** Implementation Complete → Testing & Deployment Ready  
+**Phase:** Implementation Complete → Bug Fixes & Stability  
 **Primary Goal:** TTB Label Verification System prototype - **COMPLETE** ✅  
-**Current Sprint:** Performance optimization and testing
+**Current Sprint:** Development environment stability and form validation fixes
+
+**Active Investigation:**
+- "The string did not match the expected pattern." error when creating new application via UI
+- Backend API confirmed working (curl POST returns 201 Created)
+- Likely client-side HTML5 input validation issue - checking form input components for `pattern` attributes
+- Focus areas: `ProducerInfoSection.tsx`, `BasicInfoSection.tsx`, and other form section components
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-**Last Updated:** January 30, 2026 - Build System Stability Fixes
+**Last Updated:** January 30, 2026 - Node.js Compatibility & Development Environment Fixes
 
-### Build System Stability Fixes ✅ (Latest - January 30, 2026)
+### Node.js Version Compatibility & Development Environment Fixes ✅ (Latest - January 30, 2026)
+
+- **Critical Node.js v22 Incompatibility Resolved:**
+  - Identified Node.js v22 as incompatible with Next.js 14.2.35, causing fundamental build failures
+  - Root cause: Node v22 produces corrupted webpack chunks and missing static assets in Next.js 14
+  - Implemented comprehensive Node.js version enforcement:
+    - Created `scripts/check-node-version.js` to detect and block Node v22+ before dev server starts
+    - Added `predev` hook in `package.json` to run version check automatically
+    - Created `.nvmrc` file specifying Node.js version `20` for NVM users
+    - Updated `package.json` engines to require `>=18.0.0 <22.0.0`
+  - Performed complete environment reset:
+    - Installed NVM (Node Version Manager) for proper version switching
+    - Switched to Node.js v20: `nvm install 20 && nvm use 20 && nvm alias default 20`
+    - Clean slate reinstall: `rm -rf node_modules .next`, then `npm install`
+    - Rebuilt native modules: `npm rebuild better-sqlite3` for Node v20 ABI compatibility
+  - Result: All build and runtime issues resolved, API routes functional, dev server stable
+
+- **Development Server Stability Improvements:**
+  - Fixed 500 Internal Server Error on localhost (resolved via Node version fix)
+  - Fixed CSS styles not loading (symptom of corrupted build artifacts from Node v22)
+  - Fixed 404 errors on `/dashboard` and static assets (webpack chunks missing due to Node v22)
+  - Fixed 404 errors on API routes (`/api/applications`, `/api/applications/:id/verify`, DELETE endpoints)
+  - Fixed `better-sqlite3.node` compiled against different Node.js version error
+  - All issues traced back to Node.js version incompatibility as root cause
+
+- **Webpack Configuration:**
+  - Disabled webpack cache in development mode (`config.cache = false` for `dev`) to prevent persistent caching issues
+  - Prevents stale chunks from causing 404 errors on static assets
+  - Configuration in `next.config.js`: `webpack: (config, { dev }) => { if (dev) { config.cache = false; } }`
+
+- **Current Issue Under Investigation:**
+  - "The string did not match the expected pattern." error when creating new application via UI
+  - Backend API confirmed working (curl POST to `/api/applications` returns 201 Created)
+  - Error likely originating from client-side HTML5 input validation (`pattern` attribute)
+  - Investigation focused on `ProducerInfoSection.tsx` and form input components
+  - No explicit `pattern` attributes found in `components/ui/input.tsx` - checking form sections
+
+### Build System Stability Fixes ✅ (Previous - January 30, 2026)
 
 - **Critical Build Issues Resolved:**
   - Fixed `Cannot find module for page: /_document` error by adding `pages/_document.tsx`

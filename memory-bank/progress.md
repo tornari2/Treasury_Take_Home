@@ -4,9 +4,41 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
-**Last Updated:** January 30, 2026 - Build System Stability Fixes
+**Last Updated:** January 30, 2026 - Node.js Compatibility & Development Environment Fixes
 
-### Build System Stability Fixes ✅ (Latest - January 30, 2026)
+### Node.js Version Compatibility & Development Environment Fixes ✅ (Latest - January 30, 2026)
+
+- **Critical Node.js v22 Incompatibility:**
+  - Root cause identified: Node.js v22 incompatible with Next.js 14.2.35, causing corrupted builds
+  - Symptoms: Missing webpack chunks, 404 errors on static assets, API route failures, CSS not loading
+  - Solution implemented:
+    - Created `scripts/check-node-version.js` to block Node v22+ before dev server starts
+    - Added `predev` hook in `package.json` to enforce version check
+    - Created `.nvmrc` file specifying Node.js version `20`
+    - Updated `package.json` engines: `>=18.0.0 <22.0.0`
+  - Environment reset:
+    - Installed NVM, switched to Node v20, set as default
+    - Clean reinstall: `rm -rf node_modules .next && npm install`
+    - Rebuilt native modules: `npm rebuild better-sqlite3`
+  - Result: All build/runtime issues resolved, dev server stable, API routes functional
+
+- **Development Server Issues Fixed:**
+  - ✅ 500 Internal Server Error on localhost (fixed via Node version)
+  - ✅ CSS styles not loading (fixed via Node version)
+  - ✅ 404 errors on `/dashboard` and static assets (fixed via Node version)
+  - ✅ 404 errors on API routes (fixed via Node version)
+  - ✅ `better-sqlite3.node` version mismatch (fixed via Node version + rebuild)
+
+- **Webpack Configuration:**
+  - Disabled webpack cache in dev mode to prevent stale chunk issues
+  - Configuration: `webpack: (config, { dev }) => { if (dev) { config.cache = false; } }`
+
+- **Current Issue:**
+  - ⏳ "The string did not match the expected pattern." when creating application via UI
+  - Backend API confirmed working (curl returns 201 Created)
+  - Likely client-side HTML5 validation issue - investigating form inputs
+
+### Build System Stability Fixes ✅ (Previous - January 30, 2026)
 
 - **Critical Build Fixes:**
   - Fixed `Cannot find module for page: /_document` error - added `pages/_document.tsx`

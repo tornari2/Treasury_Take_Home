@@ -171,6 +171,27 @@ module.exports = {
 
 **Note:** With `strictNullChecks: true`, TypeScript will catch potential null/undefined errors. All code must properly handle nullable values.
 
+### Node.js Version Management
+
+**Critical:** Node.js v22 is **incompatible** with Next.js 14.2.35 and will cause:
+- Corrupted webpack chunks
+- Missing static assets (404 errors)
+- API route failures
+- CSS not loading
+- Native module ABI mismatches
+
+**Required Setup:**
+- Node.js version: **20** (specified in `.nvmrc` and `package.json` engines)
+- Version enforcement: `scripts/check-node-version.js` runs as `predev` hook
+- NVM recommended: `nvm install 20 && nvm use 20 && nvm alias default 20`
+- After switching versions: `rm -rf node_modules .next && npm install && npm rebuild better-sqlite3`
+
+**Version Check Script:**
+- Location: `scripts/check-node-version.js`
+- Blocks Node v22+ with clear error message
+- Runs automatically before `npm run dev` via `predev` hook
+- Exits with error code 1 if unsupported version detected
+
 ### Development Commands
 
 ```bash
@@ -386,6 +407,15 @@ NODE_ENV=production
     - `app/api/debug/env/route.ts`: Added null coalescing for `process.env[key]` values
     - `lib/validation/validators/common.ts`: Fixed boolean type coercion in `hasName` variable
   - **Build Process:** If encountering manifest errors, clean build cache: `rm -rf .next && npm run build`
+
+- **Node.js Version Compatibility Fixes (Jan 30, 2026):**
+  - **Critical:** Node.js v22 incompatible with Next.js 14.2.35 - causes corrupted builds
+  - Implemented version enforcement: `scripts/check-node-version.js` + `predev` hook
+  - Created `.nvmrc` specifying Node.js version `20`
+  - Updated `package.json` engines: `>=18.0.0 <22.0.0`
+  - Fixed all development server issues (500 errors, 404s, CSS not loading, API failures) via Node v20 switch
+  - Disabled webpack cache in dev mode (`config.cache = false`) to prevent stale chunk issues
+  - Required after version switch: `rm -rf node_modules .next && npm install && npm rebuild better-sqlite3`
 
 **Persistent Volume:**
 

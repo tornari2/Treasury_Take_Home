@@ -45,7 +45,7 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
     const files = event.target.files;
     if (!files) return;
 
-    const imageTypes: ImageType[] = ['front', 'back', 'side', 'neck'];
+    const imageTypes: ImageType[] = ['front', 'back', 'side', 'neck', 'other'];
 
     Array.from(files).forEach((file) => {
       // Validate file type
@@ -164,6 +164,7 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
           beverageType === BeverageType.WINE && appellation.trim() ? appellation.trim() : null,
         varietal: beverageType === BeverageType.WINE && varietal.trim() ? varietal.trim() : null,
         vintageDate: null,
+        other: null,
       };
 
       // Create FormData
@@ -412,6 +413,7 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
                       <SelectItem value="back">Back</SelectItem>
                       <SelectItem value="side">Side</SelectItem>
                       <SelectItem value="neck">Neck</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

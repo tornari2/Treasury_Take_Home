@@ -45,7 +45,7 @@ export function runMigrations() {
     CREATE TABLE IF NOT EXISTS label_images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       application_id INTEGER NOT NULL,
-      image_type TEXT NOT NULL CHECK(image_type IN ('front', 'back', 'side', 'neck')),
+      image_type TEXT NOT NULL CHECK(image_type IN ('front', 'back', 'side', 'neck', 'other')),
       image_data BLOB NOT NULL,
       mime_type TEXT NOT NULL,
       extracted_data TEXT,
@@ -56,6 +56,39 @@ export function runMigrations() {
       FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
     )
   `);
+
+  // Migration: Update CHECK constraint for image_type to include 'other'
+  // SQLite doesn't support ALTER TABLE to modify CHECK constraints, so we need to recreate the table
+  try {
+    // Check if table exists and if constraint needs updating
+    const tableInfo = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='label_images'")
+      .get() as { sql: string } | undefined;
+    if (tableInfo && !tableInfo.sql.includes("'other'")) {
+      // Table exists but doesn't have 'other' in constraint - need to migrate
+      db.exec(`
+        CREATE TABLE label_images_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          application_id INTEGER NOT NULL,
+          image_type TEXT NOT NULL CHECK(image_type IN ('front', 'back', 'side', 'neck', 'other')),
+          image_data BLOB NOT NULL,
+          mime_type TEXT NOT NULL,
+          extracted_data TEXT,
+          verification_result TEXT,
+          confidence_score REAL,
+          processed_at DATETIME,
+          processing_time_ms INTEGER,
+          FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
+        )
+      `);
+      db.exec(`INSERT INTO label_images_new SELECT * FROM label_images`);
+      db.exec(`DROP TABLE label_images`);
+      db.exec(`ALTER TABLE label_images_new RENAME TO label_images`);
+    }
+  } catch (error) {
+    // Migration failed - table might not exist yet or already migrated
+    // That's okay, the CREATE TABLE IF NOT EXISTS above will handle it
+  }
 
   // Create audit_logs table
   db.exec(`

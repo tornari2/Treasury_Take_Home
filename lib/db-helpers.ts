@@ -1,6 +1,6 @@
 import db from './db';
 import { ensureMigrations } from './migrations';
-import type { User, Application, LabelImage, AuditLog } from '@/types/database';
+import type { User, Application, LabelImage, AuditLog, ImageType } from '@/types/database';
 
 // Ensure migrations run before any database operations
 ensureMigrations();
@@ -83,12 +83,7 @@ export const applicationHelpers = {
 
 // Label Image helpers
 export const labelImageHelpers = {
-  create: (
-    applicationId: number,
-    imageType: 'front' | 'back' | 'side' | 'neck',
-    imageData: Buffer,
-    mimeType: string
-  ) => {
+  create: (applicationId: number, imageType: ImageType, imageData: Buffer, mimeType: string) => {
     const stmt = db.prepare(`
       INSERT INTO label_images (application_id, image_type, image_data, mime_type)
       VALUES (?, ?, ?, ?)

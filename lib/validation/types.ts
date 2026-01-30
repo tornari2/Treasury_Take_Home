@@ -56,6 +56,9 @@ export interface ApplicationData {
   varietal?: string | null; // e.g., "Chardonnay", "Cabernet Sauvignon"
   vintageDate?: string | null; // e.g., "2019", "2021"
 
+  // Additional notes/other information
+  other?: string | null;
+
   // Pre-loaded label images (1 to N images)
   labelImages: string[]; // Array of image URLs or base64 strings
 }
@@ -110,7 +113,7 @@ export interface SpiritsExtractionResult {
     producerNamePhrase: string | null; // Phrase preceding producer name (e.g., "Bottled By", "Imported By")
     healthWarningText: string | null;
     countryOfOrigin: string | null;
-    ageStatement: string | null; // REQUIRED for spirits
+    ageStatement: string | null; // Conditionally required for spirits
 
     // Surfaced fields (displayed but not validated)
     colorIngredientDisclosure: string | null;

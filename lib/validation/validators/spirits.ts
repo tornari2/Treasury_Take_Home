@@ -211,20 +211,12 @@ export function validateAgeStatement(
     }
   }
 
-  // Age statement is present with valid format but was not required
-  // Set expected to indicate it's optional/not required
-  const expectedMessage =
-    isWhisky(classType) && age !== null && age >= 4
-      ? `Optional - Not required for whisky aged ${age} years (≥ 4 years)`
-      : isGrapeLeesPomaceMarcBrandy(classType) && age !== null && age >= 2
-        ? `Optional - Not required for grape lees/pomace/marc brandy aged ${age} years (≥ 2 years)`
-        : 'Optional - Not required for this spirit type';
-
+  // Age statement is present with valid format (may or may not have been required)
   return {
     field: 'ageStatement',
     status: MatchStatus.MATCH,
-    expected: expectedMessage,
+    expected: null,
     extracted,
-    rule: 'Age statement present and in approved format (optional for this spirit type/age)',
+    rule: 'Age statement present and in approved format',
   };
 }

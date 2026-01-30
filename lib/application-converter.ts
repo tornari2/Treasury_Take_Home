@@ -57,6 +57,7 @@ export function convertApplicationToApplicationData(
       appellation: legacyData.appellation_of_origin || null,
       varietal: legacyData.varietal || legacyData.class_type || null,
       vintageDate: legacyData.vintage_date || null,
+      other: legacyData.other || null,
       labelImages: labelImageIds.map((id) => String(id)),
     };
   }
@@ -74,6 +75,7 @@ export function convertApplicationToApplicationData(
     appellation: appData.appellation || null,
     varietal: appData.varietal || null,
     vintageDate: appData.vintageDate || null,
+    other: appData.other || null,
     labelImages: appData.labelImages || labelImageIds.map((id) => String(id)),
   };
 }

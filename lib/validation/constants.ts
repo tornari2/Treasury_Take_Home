@@ -20,6 +20,7 @@ export const ALCOHOL_CONTENT_PATTERNS: RegExp[] = [
   /^Alcohol\s+\d+(\.\d+)?%\s*(by\s+)?Vol(ume)?\.?$/i,
   /^Alc\.?\s+\d+(\.\d+)?%\s*(by\s+)?Vol\.?$/i,
   /^\d+(\.\d+)?%\s*Alcohol\s+(by\s+)?Vol(ume)?\.?$/i,
+  /^\d+(\.\d+)?%\s*Alc\.?\s+by\s+Vol\.?$/i, // Matches "40% Alc. by Vol."
 ];
 
 /**

@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     const imageTypes: ImageType[] = [];
     for (const typeValue of imageTypeValues) {
       const type = String(typeValue) as ImageType;
-      if (!['front', 'back', 'side', 'neck'].includes(type)) {
+      if (!['front', 'back', 'side', 'neck', 'other'].includes(type)) {
         return NextResponse.json({ error: 'Invalid image type' }, { status: 400 });
       }
       imageTypes.push(type);

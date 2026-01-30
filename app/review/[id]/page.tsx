@@ -733,13 +733,14 @@ export default function ReviewPage() {
                                 }
                                 return null;
                               })()}
-                              {result.extracted &&
+                              {/* Always show Extracted: when there's an expected value, even if extracted is empty */}
+                              {(result.expected || result.extracted) &&
                                 result.type !== 'not_found' &&
                                 result.extracted !== 'Field not found' && (
                                   <div className="text-sm text-foreground">
                                     <span className="font-medium">Extracted:</span>{' '}
                                     <span className="text-muted-foreground">
-                                      {result.extracted}
+                                      {result.extracted || ''}
                                     </span>
                                   </div>
                                 )}

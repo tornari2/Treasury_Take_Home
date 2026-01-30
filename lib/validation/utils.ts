@@ -229,6 +229,7 @@ export function containsValidAlcoholFormat(str: string | null | undefined): bool
     /Alcohol\s+\d+(\.\d+)?%\s*(by\s+)?Vol(ume)?\.?/i,
     /Alc\.?\s+\d+(\.\d+)?%\s*(by\s+)?Vol\.?/i,
     /\d+(\.\d+)?%\s*Alcohol\s+(by\s+)?Vol(ume)?\.?/i,
+    /\d+(\.\d+)?%\s*Alc\.?\s+by\s+Vol\.?/i, // Matches "40% Alc. by Vol."
   ];
 
   return containsPatterns.some((pattern) => pattern.test(trimmed));

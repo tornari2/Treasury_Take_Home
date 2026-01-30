@@ -28,6 +28,8 @@ import {
   detectBeerAlcoholTerms,
   isTableWineOrLightWine,
   validateBeerNetContentsFormat,
+  normalizeBusinessEntitySuffix,
+  producerNamesMatchIgnoringEntitySuffix,
   validateWineNetContentsFormat,
   producerNamesMatchIgnoringEntitySuffix,
 } from '../utils';
@@ -749,7 +751,15 @@ export function validateProducerNameAddress(
   const extractedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
 
   // Check if all three parts (name, city, state) appear in the extracted value
-  const hasName = extractedWithoutZip.includes(expectedNameNorm);
+  // For name, check both exact match and match ignoring entity suffix (e.g., "LLC" vs no suffix)
+  const extractedNameNorm = normalizeString(extractedName || '');
+  const expectedNameWithoutSuffix = normalizeBusinessEntitySuffix(expectedNameNorm);
+  const extractedNameWithoutSuffix = normalizeBusinessEntitySuffix(extractedNameNorm);
+  const hasName =
+    extractedWithoutZip.includes(expectedNameNorm) ||
+    extractedWithoutZip.includes(expectedNameWithoutSuffix) ||
+    extractedNameWithoutSuffix === expectedNameWithoutSuffix ||
+    (extractedName && producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName));
   const hasCity = extractedWithoutZip.includes(expectedCityNorm);
   const hasState = (() => {
     // Check state with ZIP code handling - check both address and combined string

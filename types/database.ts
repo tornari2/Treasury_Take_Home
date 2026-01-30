@@ -1,7 +1,7 @@
 export type UserRole = 'agent' | 'admin';
 export type BeverageType = 'spirits' | 'wine' | 'beer';
 export type ApplicationStatus = 'pending' | 'needs_review' | 'approved' | 'rejected';
-export type ImageType = 'front' | 'back' | 'side' | 'neck';
+export type ImageType = 'front' | 'back' | 'side' | 'neck' | 'other';
 export type AuditAction =
   | 'login'
   | 'logout'

@@ -13,8 +13,10 @@ import { OriginType } from '../types';
 import {
   stringsMatch,
   isSoftMismatch,
+  isSimilarString,
   differsOnlyByCase,
   matchesAnyPattern,
+  containsValidAlcoholFormat,
   valueExists,
   healthWarningMatchesExact,
   normalizeString,
@@ -77,6 +79,19 @@ export function validateBrandName(
       expected,
       extracted,
       rule: 'CROSS-CHECK: Brand name must match application',
+    };
+  }
+
+  // Check for minor misspellings (similar strings with 1-2 character differences)
+  // This handles OCR errors and typos like "FROG" vs "Frogg"
+  if (isSimilarString(expected, extracted)) {
+    return {
+      field: 'brandName',
+      status: MatchStatus.SOFT_MISMATCH,
+      expected,
+      extracted,
+      rule: 'CROSS-CHECK: Brand name must match application',
+      details: 'Minor spelling difference detected (possible OCR error or typo)',
     };
   }
 
@@ -151,6 +166,19 @@ export function validateFancifulName(
       expected: expected!,
       extracted: extracted!,
       rule: 'CROSS-CHECK: Fanciful name must match application',
+    };
+  }
+
+  // Check for minor misspellings (similar strings with 1-2 character differences)
+  // This handles OCR errors and typos
+  if (isSimilarString(expected, extracted)) {
+    return {
+      field: 'fancifulName',
+      status: MatchStatus.SOFT_MISMATCH,
+      expected: expected!,
+      extracted: extracted!,
+      rule: 'CROSS-CHECK: Fanciful name must match application',
+      details: 'Minor spelling difference detected (possible OCR error or typo)',
     };
   }
 
@@ -463,7 +491,9 @@ export function validateAlcoholContent(
       };
     }
 
-    const validFormat = matchesAnyPattern(extracted, ALCOHOL_CONTENT_PATTERNS);
+    // Use containsValidAlcoholFormat to allow additional text like proof statements
+    // Proof statements are allowed even though not mandatory and not satisfactory alone
+    const validFormat = containsValidAlcoholFormat(extracted);
     if (!validFormat) {
       return {
         field: 'alcoholContent',
@@ -472,7 +502,7 @@ export function validateAlcoholContent(
         extracted,
         rule: 'FORMAT: Alcohol content must use acceptable format',
         details:
-          'Format may not meet TTB requirements. Accepted formats: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume"',
+          'Format may not meet TTB requirements. Accepted formats: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume". Additional text like proof statements is allowed.',
       };
     }
   }
@@ -851,8 +881,25 @@ export function validateProducerNameAddress(
     }
   }
 
-  // If core name doesn't match at all, it's a hard mismatch
+  // If core name doesn't match at all, check for minor misspellings before hard mismatch
   if (!coreNameMatches && extractedName) {
+    // Check for minor misspellings (similar strings with 1-2 character differences)
+    // This handles OCR errors and typos in producer names
+    if (isSimilarString(expectedName, extractedName)) {
+      // If city and state also match, treat as soft mismatch
+      if (addressContainsCity && addressContainsState) {
+        return {
+          field: 'producerNameAddress',
+          status: MatchStatus.SOFT_MISMATCH,
+          expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+          rule: 'CROSS-CHECK: Producer name, city, and state must match application',
+          details:
+            'Minor spelling difference in producer name detected (possible OCR error or typo)',
+        };
+      }
+      // If city/state don't match, still hard mismatch
+    }
     return {
       field: 'producerNameAddress',
       status: MatchStatus.HARD_MISMATCH,

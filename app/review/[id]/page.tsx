@@ -43,6 +43,7 @@ export default function ReviewPage() {
   const [application, setApplication] = useState<Application | null>(null);
   // Initialize loading to false - we'll set it to true only if needed (prevents flicker when navigating between screens)
   const [loading, setLoading] = useState(false);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [imageZooms, setImageZooms] = useState<Record<number, number>>({});
@@ -58,13 +59,20 @@ export default function ReviewPage() {
 
   useEffect(() => {
     if (params.id) {
+      // Clear previous application data immediately when ID changes to prevent showing wrong data
+      const currentAppId = Number(params.id);
+      if (application && application.id !== currentAppId) {
+        setApplication(null);
+      }
+
       // Only show loading screen if we're not navigating within a batch
       const inBatchMode =
         searchParams?.get('batch') === 'true' ||
         (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
-      if (!inBatchMode && !application) {
+      if (!inBatchMode) {
         setLoading(true);
       }
+      setHasAttemptedFetch(false); // Reset when ID changes
       fetchApplication();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,6 +143,7 @@ export default function ReviewPage() {
       if (!application && !inBatchMode) {
         setLoading(true);
       }
+      setHasAttemptedFetch(true);
       const response = await fetch(`/api/applications/${params.id}`);
 
       if (!response.ok) {
@@ -361,7 +370,16 @@ export default function ReviewPage() {
   const inBatchMode =
     searchParams?.get('batch') === 'true' ||
     (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
-  if (loading && !application && !inBatchMode) {
+
+  // Check if current application matches the current ID (prevents showing wrong app during transitions)
+  const currentAppId = params.id ? Number(params.id) : null;
+  const applicationMatchesId = application && currentAppId && application.id === currentAppId;
+
+  // Show loading if:
+  // 1. We're explicitly loading, OR
+  // 2. We have an ID but the application doesn't match (transitioning between pages)
+  // Always show loading during transitions to prevent flicker
+  if (params.id && !applicationMatchesId && !inBatchMode) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading application...</div>
@@ -369,10 +387,21 @@ export default function ReviewPage() {
     );
   }
 
-  if (!application) {
+  // Only show "not found" if we've attempted to fetch, completed loading, have no application, and we're not in a transition
+  // (applicationMatchesId will be false if application is null, so we need to check hasAttemptedFetch and !loading)
+  if (!application && hasAttemptedFetch && !loading && params.id && !inBatchMode) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg text-red-600">Application not found</div>
+      </div>
+    );
+  }
+
+  // Don't render the rest if we don't have a matching application
+  if (!applicationMatchesId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading application...</div>
       </div>
     );
   }
@@ -562,98 +591,124 @@ export default function ReviewPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {Object.entries(verificationResult).map(([fieldName, result]: [string, any]) => (
-                  <Alert
-                    key={fieldName}
-                    variant={
-                      getFieldStatusVariant(result) === 'destructive' ? 'destructive' : 'default'
-                    }
-                    className="border-2"
-                  >
-                    <div className="flex items-start gap-2">
-                      {getFieldStatusIcon(result)}
-                      <div className="flex-1">
-                        <div className="font-semibold text-foreground">
-                          {getFieldLabel(fieldName, application?.beverage_type)}
-                        </div>
-                        {result.type === 'not_applicable' ? (
-                          <div className="text-sm mt-1 text-muted-foreground">
-                            {result.expected || 'N/A - Not applicable'}
+                {Object.entries(verificationResult).map(([fieldName, result]: [string, any]) => {
+                  const isSoftMismatch = result.type === 'soft_mismatch';
+                  return (
+                    <Alert
+                      key={fieldName}
+                      variant={
+                        getFieldStatusVariant(result) === 'destructive' ? 'destructive' : 'default'
+                      }
+                      className={`border-2 ${isSoftMismatch ? 'border-yellow-600' : ''}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {getFieldStatusIcon(result)}
+                        <div className="flex-1">
+                          <div className="font-semibold text-foreground">
+                            {getFieldLabel(fieldName, application?.beverage_type)}
                           </div>
-                        ) : (
-                          <>
-                            {(() => {
-                              // Special handling for wine classType when expected is null
-                              const isWineClassType =
-                                (fieldName === 'classType' || fieldName === 'class_type') &&
-                                (application?.beverage_type === 'wine' ||
-                                  application?.beverage_type === 'WINE');
+                          {result.type === 'not_applicable' ? (
+                            <div className="text-sm mt-1 text-muted-foreground">
+                              {result.expected || 'N/A - Not applicable'}
+                            </div>
+                          ) : (
+                            <>
+                              {(() => {
+                                // Special handling for wine classType when expected is null
+                                const isWineClassType =
+                                  (fieldName === 'classType' || fieldName === 'class_type') &&
+                                  (application?.beverage_type === 'wine' ||
+                                    application?.beverage_type === 'WINE');
 
-                              // Special handling for sulfite declaration when expected is null
-                              const isSulfiteDeclaration =
-                                (fieldName === 'sulfiteDeclaration' ||
-                                  fieldName === 'sulfite_declaration') &&
-                                (application?.beverage_type === 'wine' ||
-                                  application?.beverage_type === 'WINE');
+                                // Special handling for non-wine classType when expected is null (beer/spirits)
+                                const isNonWineClassType =
+                                  (fieldName === 'classType' || fieldName === 'class_type') &&
+                                  application?.beverage_type !== 'wine' &&
+                                  application?.beverage_type !== 'WINE';
 
-                              // For wine classType with null expected, show requirement statement after "Expected:"
-                              if (isWineClassType && !result.expected) {
-                                return (
-                                  <div className="text-sm mt-1 text-foreground">
-                                    <span className="font-medium">Expected:</span>{' '}
-                                    <span className="text-foreground">
-                                      A Class/Type designation is required whenever a Varietal is
-                                      not listed on the application.
+                                // Special handling for sulfite declaration when expected is null
+                                const isSulfiteDeclaration =
+                                  (fieldName === 'sulfiteDeclaration' ||
+                                    fieldName === 'sulfite_declaration') &&
+                                  (application?.beverage_type === 'wine' ||
+                                    application?.beverage_type === 'WINE');
+
+                                // For wine classType with null expected, show requirement statement after "Expected:"
+                                if (isWineClassType && !result.expected) {
+                                  return (
+                                    <div className="text-sm mt-1 text-foreground">
+                                      <span className="font-medium">Expected:</span>{' '}
+                                      <span className="text-foreground">
+                                        A Class/Type designation is required whenever a Varietal is
+                                        not listed on the application.
+                                      </span>
+                                    </div>
+                                  );
+                                }
+
+                                // For non-wine classType (beer/spirits) with null expected, show requirement statement
+                                if (isNonWineClassType && !result.expected) {
+                                  const beverageType = application?.beverage_type?.toLowerCase();
+                                  const typeDescription =
+                                    beverageType === 'spirits'
+                                      ? 'A Class or Type designation describing the kind of distilled spirits'
+                                      : 'A Class or Type designation describing the kind of malt beverage';
+                                  return (
+                                    <div className="text-sm mt-1 text-foreground">
+                                      <span className="font-medium">Expected:</span>{' '}
+                                      <span className="text-foreground">{typeDescription}</span>
+                                    </div>
+                                  );
+                                }
+
+                                // For sulfite declaration with null expected, show requirement statement after "Expected:"
+                                if (isSulfiteDeclaration && !result.expected) {
+                                  return (
+                                    <div className="text-sm mt-1 text-foreground">
+                                      <span className="font-medium">Expected:</span>{' '}
+                                      <span className="text-foreground">
+                                        Must appear if the product has 10 ppm or more (total) sulfur
+                                        dioxide.
+                                      </span>
+                                    </div>
+                                  );
+                                }
+
+                                // Default display for other fields
+                                if (result.expected || result.extracted) {
+                                  return (
+                                    <div className="text-sm mt-1 text-foreground">
+                                      <span className="font-medium">Expected:</span>{' '}
+                                      <span className="text-foreground">
+                                        {result.expected || 'None'}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                              {result.extracted &&
+                                result.type !== 'not_found' &&
+                                result.extracted !== 'Field not found' && (
+                                  <div className="text-sm text-foreground">
+                                    <span className="font-medium">Extracted:</span>{' '}
+                                    <span className="text-muted-foreground">
+                                      {result.extracted}
                                     </span>
                                   </div>
-                                );
-                              }
-
-                              // For sulfite declaration with null expected, show requirement statement after "Expected:"
-                              if (isSulfiteDeclaration && !result.expected) {
-                                return (
-                                  <div className="text-sm mt-1 text-foreground">
-                                    <span className="font-medium">Expected:</span>{' '}
-                                    <span className="text-foreground">
-                                      Must appear if the product has 10 ppm or more (total) sulfur
-                                      dioxide.
-                                    </span>
-                                  </div>
-                                );
-                              }
-
-                              // Default display for other fields
-                              if (result.expected || result.extracted) {
-                                return (
-                                  <div className="text-sm mt-1 text-foreground">
-                                    <span className="font-medium">Expected:</span>{' '}
-                                    <span className="text-foreground">
-                                      {result.expected || 'None'}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })()}
-                            {result.extracted &&
-                              result.type !== 'not_found' &&
-                              result.extracted !== 'Field not found' && (
-                                <div className="text-sm text-foreground">
-                                  <span className="font-medium">Extracted:</span>{' '}
-                                  <span className="text-muted-foreground">{result.extracted}</span>
+                                )}
+                              {result.type === 'not_found' && (
+                                <div className="text-sm text-destructive mt-1">
+                                  Field not found on label
                                 </div>
                               )}
-                            {result.type === 'not_found' && (
-                              <div className="text-sm text-destructive mt-1">
-                                Field not found on label
-                              </div>
-                            )}
-                          </>
-                        )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </Alert>
-                ))}
+                    </Alert>
+                  );
+                })}
               </div>
             )}
 

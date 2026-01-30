@@ -276,9 +276,19 @@ export default function Dashboard() {
   };
 
   const getProductType = (app: Application): string => {
-    // Capitalize first letter of beverage type
+    // Map beverage type to display labels that match the application form
     if (!app.beverage_type) return '—';
-    return app.beverage_type.charAt(0).toUpperCase() + app.beverage_type.slice(1);
+    switch (app.beverage_type.toLowerCase()) {
+      case 'beer':
+        return 'Malt Beverage';
+      case 'wine':
+        return 'Wine';
+      case 'spirits':
+        return 'Distilled Spirits';
+      default:
+        // Fallback: capitalize first letter
+        return app.beverage_type.charAt(0).toUpperCase() + app.beverage_type.slice(1);
+    }
   };
 
   const getProductSource = (app: Application): string => {

@@ -8,7 +8,13 @@ import {
   FieldValidationResult,
   WineExtractionResult,
 } from '../types';
-import { stringsMatch, isSoftMismatch, valueExists, normalizeString } from '../utils';
+import {
+  stringsMatch,
+  isSoftMismatch,
+  isSimilarString,
+  valueExists,
+  normalizeString,
+} from '../utils';
 
 /**
  * Validate Appellation of Origin (wine only)
@@ -142,6 +148,19 @@ export function validateAppellation(
     }
   }
 
+  // Check for minor misspellings (similar strings with 1-2 character differences)
+  // This handles OCR errors and typos
+  if (isSimilarString(expected, extracted)) {
+    return {
+      field: 'appellation',
+      status: MatchStatus.SOFT_MISMATCH,
+      expected: expected!,
+      extracted: extracted!,
+      rule: 'CROSS-CHECK: Appellation must match application',
+      details: 'Minor spelling difference detected (possible OCR error or typo)',
+    };
+  }
+
   return {
     field: 'appellation',
     status: MatchStatus.HARD_MISMATCH,
@@ -200,6 +219,19 @@ export function validateWineVarietal(
         expected: expectedVarietal!,
         extracted: extracted!,
         rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) present and matches application',
+      };
+    }
+
+    // Check for minor misspellings (similar strings with 1-2 character differences)
+    // This handles OCR errors and typos
+    if (isSimilarString(expectedVarietal, extracted)) {
+      return {
+        field: 'classType',
+        status: MatchStatus.SOFT_MISMATCH,
+        expected: expectedVarietal!,
+        extracted: extracted!,
+        rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) must match application',
+        details: 'Minor spelling difference detected (possible OCR error or typo)',
       };
     }
 
@@ -292,6 +324,19 @@ export function validateVintageDate(
     };
   }
 
+  // Check for minor misspellings (similar strings with 1-2 character differences)
+  // This handles OCR errors and typos
+  if (isSimilarString(expected, extracted)) {
+    return {
+      field: 'vintageDate',
+      status: MatchStatus.SOFT_MISMATCH,
+      expected: expected!,
+      extracted: extracted!,
+      rule: 'CROSS-CHECK: Vintage date must match application',
+      details: 'Minor spelling difference detected (possible OCR error or typo)',
+    };
+  }
+
   return {
     field: 'vintageDate',
     status: MatchStatus.HARD_MISMATCH,
@@ -312,7 +357,7 @@ export function validateSulfiteDeclaration(extracted: string | null): FieldValid
     return {
       field: 'sulfiteDeclaration',
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
+      expected: null,
       extracted: null,
       rule: 'PRESENCE: Sulfite declaration must appear on wine label',
     };

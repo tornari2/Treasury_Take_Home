@@ -142,11 +142,96 @@ export function isSoftMismatch(
 }
 
 /**
+ * Calculate Levenshtein distance between two strings (number of character edits needed)
+ * Used to detect minor misspellings that should be treated as soft mismatches
+ */
+function levenshteinDistance(a: string, b: string): number {
+  const matrix: number[][] = [];
+  const lenA = a.length;
+  const lenB = b.length;
+
+  // Initialize matrix
+  for (let i = 0; i <= lenA; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= lenB; j++) {
+    matrix[0][j] = j;
+  }
+
+  // Fill matrix
+  for (let i = 1; i <= lenA; i++) {
+    for (let j = 1; j <= lenB; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j] + 1, // deletion
+          matrix[i][j - 1] + 1, // insertion
+          matrix[i - 1][j - 1] + 1 // substitution
+        );
+      }
+    }
+  }
+
+  return matrix[lenA][lenB];
+}
+
+/**
+ * Check if two strings are similar enough to be considered a soft mismatch (minor misspelling)
+ * Returns true if the normalized strings differ by 1-2 characters (Levenshtein distance)
+ * This handles OCR errors and minor typos like "FROG" vs "Frogg"
+ */
+export function isSimilarString(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  if (!a || !b) return false;
+
+  const normalizedA = normalizeString(a);
+  const normalizedB = normalizeString(b);
+
+  // If they match exactly, not a similar string (handled by other functions)
+  if (normalizedA === normalizedB) return false;
+
+  // Calculate Levenshtein distance
+  const distance = levenshteinDistance(normalizedA, normalizedB);
+
+  // Consider strings similar if they differ by 1-2 characters
+  // This catches common OCR errors and typos
+  // Limit to reasonable length to avoid false positives on very different strings
+  const maxLength = Math.max(normalizedA.length, normalizedB.length);
+  const maxDistance = maxLength <= 5 ? 1 : 2; // Allow 1 char difference for short strings, 2 for longer
+
+  return distance <= maxDistance && distance > 0;
+}
+
+/**
  * Check if a string matches any of the given regex patterns
  */
 export function matchesAnyPattern(str: string | null | undefined, patterns: RegExp[]): boolean {
   if (!str) return false;
   return patterns.some((pattern) => pattern.test(str.trim()));
+}
+
+/**
+ * Check if a string contains a valid alcohol content format (allows additional text like proof statements)
+ * This is more lenient than matchesAnyPattern - it checks if the string contains a valid format
+ * rather than requiring the entire string to match exactly
+ */
+export function containsValidAlcoholFormat(str: string | null | undefined): boolean {
+  if (!str) return false;
+  const trimmed = str.trim();
+
+  // Patterns that check if the string contains a valid alcohol content format
+  // These don't use ^ and $ anchors, allowing additional text before/after
+  const containsPatterns: RegExp[] = [
+    /\d+(\.\d+)?%\s*Alc\.?\s*\/?\s*Vol\.?/i,
+    /Alcohol\s+\d+(\.\d+)?%\s*(by\s+)?Vol(ume)?\.?/i,
+    /Alc\.?\s+\d+(\.\d+)?%\s*(by\s+)?Vol\.?/i,
+    /\d+(\.\d+)?%\s*Alcohol\s+(by\s+)?Vol(ume)?\.?/i,
+  ];
+
+  return containsPatterns.some((pattern) => pattern.test(trimmed));
 }
 
 /**

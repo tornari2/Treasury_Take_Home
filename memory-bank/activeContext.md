@@ -10,7 +10,29 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-### FormatChecks Implementation & Validation ✅ (Latest - January 30, 2026)
+### Batch Verification & Producer Address Matching Fixes ✅ (Latest - January 30, 2026)
+
+- **Batch Verification Redirect Fix:**
+  - Fixed issue where batch verification would redirect to review page even when verification failed or didn't complete
+  - Changed `pollStatus` return type to `{ completed: boolean; error?: string }` for better error handling
+  - Now only redirects to review page if batch actually completed successfully
+  - If batch fails or doesn't complete, shows error message and stays on dashboard
+  - Added 500ms delay before first poll to ensure batch is initialized
+  - Improved error messages for different failure scenarios (404, network errors, timeouts)
+
+- **Producer Name & Address State Matching Fix:**
+  - Fixed bug where state abbreviations (e.g., "CA") weren't matching full state names (e.g., "CALIFORNIA")
+  - Fixed bug on line 858 where `extractedAddress` was used instead of `addressToCheck` (causing issues when address info was in name field)
+  - Updated early state check logic to use `statesMatch()` function instead of regex pattern matching
+  - Now properly handles cases like "FAR MOUNTAIN, Napa, CA" matching "FAR MOUNTAIN, NAPA, CALIFORNIA"
+  - State matching now correctly extracts state from combined string and handles ZIP codes
+
+- **Verification UI Cleanup:**
+  - Removed blue "Verifying application with AI..." alert bar from review page
+  - Removed "Verification in progress..." text message under AI Verification Recommendations section
+  - When verifying, only the button shows "Verifying..." and is disabled (cleaner UX)
+
+### FormatChecks Implementation & Validation ✅ (January 30, 2026)
 
 - **Government Warning Bold Check:**
   - Now explicitly extracts and validates `formatChecks.governmentWarningBold` from OpenAI response

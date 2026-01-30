@@ -4,6 +4,12 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
+### Batch Verification & Producer Address Matching Fixes ✅
+
+- **Batch Verification Redirect Fix:** Fixed issue where batch verification would redirect to review page even when verification failed or didn't complete. Now only redirects on successful completion, shows error messages otherwise.
+- **Producer Address State Matching:** Fixed bug where state abbreviations (e.g., "CA") weren't matching full state names (e.g., "CALIFORNIA"). Updated state matching logic to use `statesMatch()` function and fixed bug where `extractedAddress` was used instead of `addressToCheck`.
+- **Verification UI Cleanup:** Removed blue "Verifying application with AI..." alert bar and "Verification in progress..." text message from review page. Cleaner UX with only disabled button showing "Verifying..." during verification.
+
 ### FormatChecks Implementation & Validation ✅
 
 - **Government Warning Bold Check:** Now explicitly extracts and validates `formatChecks.governmentWarningBold` from OpenAI response

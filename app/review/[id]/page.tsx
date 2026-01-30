@@ -597,43 +597,52 @@ export default function ReviewPage() {
       : {};
 
   // Handle mouse down for panning a specific image
-  const handleMouseDown = (imageId: number) => (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.button === 0) {
-      // Left mouse button
-      const currentPan = imagePans[imageId] || { x: 0, y: 0 };
-      setIsDragging((prev) => ({ ...prev, [imageId]: true }));
-      setDragStart((prev) => ({
-        ...prev,
-        [imageId]: { x: e.clientX - currentPan.x, y: e.clientY - currentPan.y },
-      }));
-    }
+  const handleMouseDown = (imageId: number) => {
+    return (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.button === 0) {
+        // Left mouse button
+        const currentPan = imagePans[imageId] || { x: 0, y: 0 };
+        setIsDragging((prev) => ({ ...prev, [imageId]: true }));
+        setDragStart((prev) => ({
+          ...prev,
+          [imageId]: { x: e.clientX - currentPan.x, y: e.clientY - currentPan.y },
+        }));
+      }
+    };
   };
 
   // Handle mouse move for panning a specific image
-  const handleMouseMove = (imageId: number) => (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isDragging[imageId]) {
-      const start = dragStart[imageId] || { x: 0, y: 0 };
-      setImagePans((prev) => ({
-        ...prev,
-        [imageId]: { x: e.clientX - start.x, y: e.clientY - start.y },
-      }));
-    }
+  const handleMouseMove = (imageId: number) => {
+    return (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isDragging[imageId]) {
+        const start = dragStart[imageId] || { x: 0, y: 0 };
+        setImagePans((prev) => ({
+          ...prev,
+          [imageId]: { x: e.clientX - start.x, y: e.clientY - start.y },
+        }));
+      }
+    };
   };
 
   // Handle mouse up for panning
-  const handleMouseUp = (imageId: number) => () => {
-    setIsDragging((prev) => ({ ...prev, [imageId]: false }));
+  const handleMouseUp = (imageId: number) => {
+    return () => {
+      setIsDragging((prev) => ({ ...prev, [imageId]: false }));
+    };
   };
 
   // Handle mouse leave to stop dragging
-  const handleMouseLeave = (imageId: number) => () => {
-    setIsDragging((prev) => ({ ...prev, [imageId]: false }));
+  const handleMouseLeave = (imageId: number) => {
+    return () => {
+      setIsDragging((prev) => ({ ...prev, [imageId]: false }));
+    };
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 relative">
-      {/* Removed loading overlay - previous content stays visible during transitions */}
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <div className="p-8">
+        {/* Removed loading overlay - previous content stays visible during transitions */}
+        <div className="max-w-7xl mx-auto">
         {/* Verification Banner Bar */}
         {verifying && (
           <Alert className="mb-6 border-blue-500 bg-blue-50">
@@ -643,10 +652,15 @@ export default function ReviewPage() {
             </AlertDescription>
           </Alert>
         )}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+        {/* Navigation section with banner overlay */}
+        <div className="mb-6 relative">
+          {/* Banner behind navigation */}
+          <div className="absolute top-0 left-0 right-0 h-16 bg-[#305170] -mx-8"></div>
+          {/* Navigation content on top of banner */}
+          <div className="relative z-10 flex items-center justify-between py-4">
             <Button
               variant="ghost"
+              className="text-white hover:bg-white/10"
               onClick={() => {
                 // Clear batch context when going back to dashboard
                 if (isInBatch) {
@@ -660,14 +674,15 @@ export default function ReviewPage() {
             </Button>
             {isInBatch && batchApplications && currentBatchIndex !== null && (
               <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={goToPrevious} disabled={currentBatchIndex === 0}>
+                <Button variant="outline" className="bg-white/90 hover:bg-white" onClick={goToPrevious} disabled={currentBatchIndex === 0}>
                   Previous
                 </Button>
-                <span className="text-sm text-muted-foreground px-2">
+                <span className="text-sm text-white font-medium px-2">
                   Application {currentBatchIndex + 1} of {batchApplications.length}
                 </span>
                 <Button
                   variant="outline"
+                  className="bg-white/90 hover:bg-white"
                   onClick={goToNext}
                   disabled={currentBatchIndex === batchApplications.length - 1}
                 >
@@ -844,16 +859,43 @@ export default function ReviewPage() {
                                 currentApp?.application_data?.originType
                             )}
                           </div>
+                          {(() => {
+                            // Check if this is a PRESENCE field that is not found
+                            const isPresenceField = result.rule && result.rule.startsWith('PRESENCE:');
+                            const isPresenceNotFound = isPresenceField && result.type === 'not_found' && !result.expected;
+                            
+                            // For PRESENCE fields that are not found, show "Field not found" under the field label
+                            if (isPresenceNotFound) {
+                              return (
+                                <div className="text-sm mt-1 text-muted-foreground">
+                                  Field not found
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                           {result.type === 'not_applicable' ? (
                             <div className="text-sm mt-1 text-muted-foreground">
                               {result.expected || 'N/A - Not applicable'}
                             </div>
                           ) : (
                             <>
-                              {/* Display Expected/Extracted for cross-checked fields (including NOT_FOUND if expected exists) */}
-                              {(result.type !== 'not_found' || result.expected) && (
+                              {/* Display Expected/Extracted for cross-checked fields (excluding PRESENCE fields that are not found) */}
+                              {(() => {
+                                const isPresenceField = result.rule && result.rule.startsWith('PRESENCE:');
+                                const isPresenceNotFound = isPresenceField && result.type === 'not_found' && !result.expected;
+                                // Don't show Expected/Extracted section for PRESENCE fields that are not found
+                                if (isPresenceNotFound) {
+                                  return false;
+                                }
+                                // Show for other cases
+                                return result.type !== 'not_found' || result.expected || isPresenceField;
+                              })() && (
                                 <>
                                   {(() => {
+                                    // Check if this is a PRESENCE field (rule starts with "PRESENCE:")
+                                    const isPresenceField = result.rule && result.rule.startsWith('PRESENCE:');
+
                                     // Special handling for wine classType when expected is null
                                     const isWineClassType =
                                       (fieldName === 'classType' || fieldName === 'class_type') &&
@@ -884,6 +926,12 @@ export default function ReviewPage() {
                                     const isAlcoholContent =
                                       fieldName === 'alcoholContent' ||
                                       fieldName === 'alcohol_content';
+
+                                    // For PRESENCE fields that are not found, don't show anything here
+                                    // (field label already shows "Field not found" above)
+                                    if (isPresenceField && result.type === 'not_found' && !result.expected) {
+                                      return null;
+                                    }
 
                                     // For wine classType with null expected, show requirement statement after "Expected:"
                                     if (isWineClassType && !result.expected) {
@@ -945,7 +993,8 @@ export default function ReviewPage() {
                                     }
 
                                     // For alcohol content, show "Required" if expected is missing (alcohol content is always required)
-                                    if (isAlcoholContent && !result.expected) {
+                                    // BUT only if it's not already handled as a PRESENCE field not_found above
+                                    if (isAlcoholContent && !result.expected && result.type !== 'not_found') {
                                       return (
                                         <div className="text-sm mt-1 text-foreground">
                                           <span className="font-medium">Expected:</span>{' '}
@@ -987,7 +1036,8 @@ export default function ReviewPage() {
                                     return null;
                                   })()}
                                   {/* Show Extracted: for cross-checked fields (show "None" if field not found) */}
-                                  {(result.expected || result.extracted) && (
+                                  {/* For PRESENCE fields with not_found, don't show Extracted line */}
+                                  {((result.expected || result.extracted) && !((result.rule && result.rule.startsWith('PRESENCE:')) && result.type === 'not_found' && !result.expected)) && (
                                     <div className="text-sm text-foreground">
                                       <span className="font-medium">Extracted:</span>{' '}
                                       {(() => {
@@ -1070,6 +1120,7 @@ export default function ReviewPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

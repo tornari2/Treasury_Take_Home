@@ -161,6 +161,9 @@ npx tsx scripts/create-test-user.ts # Create test user
 - **Multi-image processing:** All label images (front, back, neck, side) processed together in single API call
 - **Retry logic:** Automatic retry with exponential backoff (max 2 retries for transient failures)
 - **Error handling:** Custom error types for API key, timeout, network, and API errors
+  - Enhanced network error messages with firewall/connectivity guidance
+  - Graceful degradation for network restrictions blocking cloud APIs
+  - Clear user messaging about system administrator contact for connectivity issues
 - **API key validation:** Validates key presence and format before processing
 
 ### Security Requirements (Prototype)
@@ -230,6 +233,9 @@ npx tsx scripts/create-test-user.ts # Create test user
 - **OpenAI API:** GPT-4o vision model
   - Endpoint: `https://api.openai.com/v1/chat/completions`
   - Error handling: Custom error types, timeout handling, retry logic
+  - Network error detection: Enhanced messages for firewall/connectivity issues
+  - FormatChecks extraction: Extracts bold, caps, and formatting metadata from OpenAI responses
+  - Image preprocessing: Conservative thresholds (only extreme cases trigger preprocessing)
   - API key validation before processing
   - Model: `gpt-4o` (vision-capable, upgraded from GPT-4o-mini)
   - Multi-image processing: All images sent together in single API call

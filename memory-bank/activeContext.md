@@ -8,7 +8,42 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 **Primary Goal:** TTB Label Verification System prototype - **COMPLETE** ✅  
 **Current Sprint:** Performance optimization and testing
 
-## Recent Changes (January 30, 2025 - Latest)
+## Recent Changes (January 30, 2026 - Latest)
+
+### UI & UX Enhancements ✅ (Latest - January 30, 2026)
+
+- **Dashboard Banner:**
+  - Added blue/red gradient banner at top of Application Queue page
+  - Colors: Deep muted blue (#305170) - 68% height, Rich dark red (#9A3B39) - 32% height
+  - Full-width banner spans edge-to-edge above content
+
+- **Verification UI Cleanup:**
+  - Removed duplicate "Verification in progress..." message from review page
+  - Removed blue verifying bar underneath "AI Verification Recommendations" heading
+  - Only top loading bar ("Verifying application with AI...") shows during verification
+  - Section under recommendations shows nothing when verifying (cleaner UX)
+
+- **Error Handling Improvements:**
+  - Enhanced network error messages throughout application
+  - Clear guidance about firewall restrictions and contacting system administrator
+  - Better error detection and messaging in batch processing
+  - Improved error handling in verification API routes
+
+### Image Processing & Quality ✅ (Latest - January 30, 2026)
+
+- **Conservative Preprocessing:**
+  - Preprocessing now only triggers in extreme cases (not for every image)
+  - Severe lighting issues: <15% or >90% brightness (was 30-80%)
+  - Severe glare: 25%+ of image affected (was 10%)
+  - Multiple issues: Requires perspective distortion + lighting/glare (not single issues)
+  - Stricter thresholds: Glare brightness 250 (was 240), lighting tolerance 20-85% (was 30-80%)
+
+- **FormatChecks Extraction:**
+  - OpenAI service now extracts `formatChecks` object from API response
+  - Includes: `governmentWarningAllCaps`, `governmentWarningBold`, `remainderBold`, `surgeonCapitalized`, `generalCapitalized`
+  - FormatChecks passed through to validation for explicit bold checking
+
+## Recent Changes (January 30, 2025 - Previous)
 
 ### Appellation Extraction & Display Improvements ✅ (Latest - January 30, 2025)
 

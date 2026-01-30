@@ -128,6 +128,9 @@ _Derives from [projectbrief.md](./projectbrief.md). Captures architecture and de
 - **Repository Pattern:** Database queries abstracted into repository functions
 - **Middleware Chain:** Authentication middleware → Authorization → Request handler
 - **Error Handling:** Centralized error handler with user-friendly messages
+  - Network error detection with firewall/connectivity guidance
+  - Graceful degradation for blocked cloud API endpoints
+  - Clear messaging about system administrator contact for network restrictions
 
 ### Data Patterns
 

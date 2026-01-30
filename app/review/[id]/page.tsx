@@ -669,16 +669,6 @@ export default function ReviewPage() {
           </div>
         </div>
 
-        {verifying && (
-          <Alert className="mb-4 border-blue-500 bg-blue-50">
-            <AlertDescription className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span className="font-medium">Verifying application with AI...</span>
-              <span className="text-sm text-muted-foreground">This may take a moment</span>
-            </AlertDescription>
-          </Alert>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel: Label Images */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -806,11 +796,11 @@ export default function ReviewPage() {
 
             {Object.keys(verificationResult).length === 0 || verifying ? (
               <div className="space-y-4">
-                <div className="text-muted-foreground">
-                  {verifying
-                    ? 'Verification in progress...'
-                    : 'No verification results yet. Click "Verify" to process.'}
-                </div>
+                {!verifying && (
+                  <div className="text-muted-foreground">
+                    No verification results yet. Click &quot;Verify&quot; to process.
+                  </div>
+                )}
                 <Button
                   onClick={triggerVerification}
                   disabled={verifying}

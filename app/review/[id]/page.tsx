@@ -1019,10 +1019,6 @@ export default function ReviewPage() {
                                     )}
                                 </>
                               )}
-                              {/* Show "Field not found" for NOT_FOUND fields - no Expected/Extracted format */}
-                              {result.type === 'not_found' && (
-                                <div className="text-sm text-destructive mt-1">Field not found</div>
-                              )}
                             </>
                           )}
                         </div>

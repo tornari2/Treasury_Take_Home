@@ -10,7 +10,25 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2025 - Latest)
 
-### Performance Optimizations ✅ (Latest - January 30, 2025)
+### Navigation UX Improvements ✅ (Latest - January 30, 2025)
+
+- **Eliminated Loading Screen Flicker:**
+  - Removed all "Loading application..." messages during transitions between review pages
+  - Removed "Loading applications..." message when navigating between dashboard and review pages
+  - Previous content now stays visible during navigation for smooth transitions
+  - Loading screens only appear on true initial page loads (first visit ever)
+- **Review Page Navigation:**
+  - Use in-memory refs (`previousApplicationRef`) to preserve previous application data during navigation
+  - Previous application stays visible while new one loads in background
+  - No loading overlays or messages during transitions
+  - Smooth, flicker-free experience when navigating between applications
+- **Dashboard Navigation:**
+  - Use module-level cache (`cachedApplications`, `hasLoadedBefore`) to persist across component remounts
+  - Previous applications list stays visible when navigating back from review page
+  - Data refreshes in background without showing loading screen
+  - Eliminates flicker when moving between queue and review pages
+
+### Performance Optimizations ✅ (January 30, 2025)
 
 - **GPT-4o API Call Optimizations:**
   - Set `temperature: 0` for deterministic, faster responses (also improves accuracy)

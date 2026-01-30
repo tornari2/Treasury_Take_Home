@@ -611,6 +611,24 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
   - Batch verify uses asynchronous API for multiple applications
   - Scrollable application list instead of pagination controls
 
+### Latest Improvements (January 30, 2025 - Navigation UX)
+
+- **Eliminated Loading Screen Flicker:**
+  - Removed all "Loading application..." messages during transitions between review pages
+  - Removed "Loading applications..." message when navigating between dashboard and review pages
+  - Previous content now stays visible during navigation for smooth transitions
+  - Loading screens only appear on true initial page loads (first visit ever)
+- **Review Page Navigation:**
+  - Use in-memory refs (`previousApplicationRef`) to preserve previous application data during navigation
+  - Previous application stays visible while new one loads in background
+  - No loading overlays or messages during transitions
+  - Smooth, flicker-free experience when navigating between applications
+- **Dashboard Navigation:**
+  - Use module-level cache (`cachedApplications`, `hasLoadedBefore`) to persist across component remounts
+  - Previous applications list stays visible when navigating back from review page
+  - Data refreshes in background without showing loading screen
+  - Eliminates flicker when moving between queue and review pages
+
 ---
 
-_Last Updated: January 29, 2025 (Review notes persistence: notes persist when switching pages and changing status, only clear on reverification. Confirmation dialog removal: removed popup for approving/rejecting with mismatches. Verification clearing fix: review notes and verification results properly wiped when reverifying. Previous: Verification flow fixes: infinite loop prevention, race condition fixes, immediate result clearing. Navigation improvements: loading overlays, better error handling. UI enhancements: larger zoom increments, always-visible reset button, scrollable table. Ready for production deployment and testing.)_
+_Last Updated: January 30, 2025 (Navigation UX improvements: eliminated all loading screen flicker during navigation. Review page uses in-memory refs to preserve previous application data. Dashboard uses module-level cache to persist across remounts. Previous content stays visible during transitions for smooth UX. Previous: Review notes persistence: notes persist when switching pages and changing status, only clear on reverification. Confirmation dialog removal: removed popup for approving/rejecting with mismatches. Verification clearing fix: review notes and verification results properly wiped when reverifying. Ready for production deployment and testing.)_

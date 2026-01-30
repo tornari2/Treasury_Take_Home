@@ -145,6 +145,29 @@ module.exports = {
 
 **Required for:** Tailwind CSS compilation in Next.js. Without this file, CSS won't compile and styling will be missing.
 
+### TypeScript Configuration
+
+**File:** `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}
+```
+
+**Key Configuration:**
+- `baseUrl: "."` - Sets the base directory for module resolution
+- `paths: { "@/*": ["./*"] }` - Maps the `@/` alias to the project root directory
+
+**Required for:** Path alias support (`@/components/ui/*`, `@/lib/*`, etc.). Without this configuration, imports using `@/` prefix will fail with module resolution errors.
+
+**Usage:** Allows imports like `import { Button } from '@/components/ui/button'` instead of relative paths like `import { Button } from '../../../components/ui/button'`.
+
 ### Development Commands
 
 ```bash
@@ -376,7 +399,7 @@ lib/validation/
 ├── types.ts              # Enums (BeverageType, OriginType, MatchStatus) and interfaces (ApplicationData, AIExtractionResult, etc.)
 ├── constants.ts          # Validation constants (REQUIRED_HEALTH_WARNING, ALCOHOL_CONTENT_PATTERNS, NET_CONTENTS_PATTERNS)
 ├── prompts.ts            # AI extraction prompts (BEER_EXTRACTION_PROMPT, SPIRITS_EXTRACTION_PROMPT, WINE_EXTRACTION_PROMPT)
-├── utils.ts              # Utility functions (normalizeString, stringsMatch, isSoftMismatch, matchesAnyPattern, etc.)
+├── utils.ts              # Utility functions (normalizeString, stringsMatch, isSoftMismatch, matchesAnyPattern, normalizeState, statesMatch, normalizeCity, citiesMatch, normalizeBusinessEntitySuffix, producerNamesMatchIgnoringEntitySuffix, healthWarningMatchesExact, etc.)
 ├── validators/
 │   ├── common.ts         # Common validators used across all beverage types (brand, fanciful, class, alcohol, net contents, producer, health warning, country)
 │   ├── beer.ts           # Beer-specific validators (placeholder for future)
@@ -539,4 +562,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 30, 2026 (Railway deployment: Deployed to Railway using Nixpacks builder, created types/database.ts with all type definitions, added user registration endpoint, created database export/import scripts, removed Dockerfile in favor of Nixpacks. Previous: Added postcss.config.js for Tailwind CSS compilation, created .env file for environment variables, added database migrations for reviewed_at/review_notes/assigned_agent_id columns, fixed PRESENCE field display to show "Field not found" for all PRESENCE fields when not found, renamed Delete button to Remove, seeded database with 50 sample applications. Update when dependencies, tools, or constraints change._
+_Last Updated: January 30, 2026 (Validation utilities: Added normalizeCity and citiesMatch functions for handling city name variations with directional prefixes. Updated normalizeState to handle periods in state abbreviations. Enhanced validation accuracy for net contents, varietal/appellation extraction, brand/fanciful names, health warnings, and producer/importer addresses. Previous: TypeScript configuration, review page UI updates, database query scripts, Railway deployment. Update when dependencies, tools, or constraints change._

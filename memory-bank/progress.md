@@ -4,7 +4,40 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
-### Edit Functionality & Deployment Stability ✅ (Latest - January 30, 2026)
+### Validation Accuracy & Display Improvements ✅ (Latest - January 30, 2026)
+
+- **Net Contents Validation:**
+  - Added support for unit abbreviations (Gal., qt., pt.) in addition to full words
+  - Updated patterns to recognize "5.1 Gal." as valid U.S. customary unit
+  - Fixed `parseNetContentsToFlOz` and `validateBeerNetContentsFormat` to handle abbreviations
+
+- **Extraction Prompt Improvements:**
+  - Fixed varietal/appellation confusion with explicit examples and clear distinctions
+  - Added explicit instructions: "CABERNET SAUVIGNON" = varietal, "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = appellation
+  - Fixed brand name truncation for spirits - now extracts complete names like "BLACK ROSE GIN" (not "BLACK ROSE")
+  - Fixed fanciful name truncation for spirits - now extracts complete names like "PEANUT BUTTER WHISKEY" (not "PEANUT BUTTER")
+  - Added critical rules emphasizing complete extraction of brand/fanciful names even when they include spirit type words
+
+- **Health Warning Validation:**
+  - Fixed whitespace normalization to handle spaces after colons
+  - "GOVERNMENT WARNING:(1)" now matches "GOVERNMENT WARNING: (1)"
+  - Updated `normalizeHealthWarningForComparison` to normalize colon spacing
+
+- **Producer/Importer Name & Address Matching:**
+  - Added `citiesMatch` function to handle directional prefixes (N. Littleton = Littleton)
+  - Added `normalizeCity` function to remove directional prefixes (N., S., E., W., North, South, East, West)
+  - Updated `normalizeState` to handle periods in abbreviations (Co. = CO)
+  - Improved matching for business entity suffixes (Ltd., Inc., LLC, etc.)
+  - Now correctly matches "Blue Ocean Mercantile Ltd., N. Littleton, Co." with "Blue Ocean Mercantile, Littleton, CO"
+
+- **Class/Type Field Display:**
+  - Fixed to show requirement message instead of "Field not found"
+  - Beer: "A Class or Type designation describing the kind of malt beverage"
+  - Spirits: "A Class or Type designation describing the kind of distilled spirits"
+  - Wine: "A Class/Type designation is required whenever a Varietal is not listed on the application"
+  - Requirement message now always shows when field is not found, regardless of extraction status
+
+### Edit Functionality & Deployment Stability ✅ (January 30, 2026)
 
 - **Application Edit Feature:**
   - Added edit icon (pencil) to each row in application queue
@@ -827,4 +860,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 30, 2026 (Edit functionality: Added edit icon to application queue rows with PUT endpoint for full application updates. ApplicationForm now supports edit mode with pre-populated data. Deployment stability: Fixed blank white screen with error boundaries, simplified health check, increased Railway timeout. Security: Verified API key security, added security documentation and troubleshooting guides. Previous: UI & Validation improvements: Added blue/red gradient banner to dashboard. Removed duplicate verification status messages. Enhanced network error handling with firewall guidance. Made image preprocessing more conservative. Implemented formatChecks extraction for government warning bold validation. Navigation UX improvements: eliminated all loading screen flicker during navigation. Ready for production deployment and testing.)_
+_Last Updated: January 30, 2026 (Validation accuracy improvements: Fixed net contents unit abbreviations, varietal/appellation extraction confusion, brand/fanciful name truncation for spirits, health warning whitespace handling, producer/importer address matching with city/state variations, Class/Type requirement message display. Previous: Edit functionality, deployment stability, security documentation, UI improvements, navigation UX. Ready for production deployment and testing.)_

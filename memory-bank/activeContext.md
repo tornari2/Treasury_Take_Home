@@ -10,7 +10,47 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-### Edit Functionality & Deployment Stability ✅ (Latest - January 30, 2026)
+### Validation Accuracy & Display Improvements ✅ (Latest - January 30, 2026)
+
+- **Net Contents Validation Enhancements:**
+  - Added support for unit abbreviations (Gal., qt., pt.) in addition to full words
+  - Updated `NET_CONTENTS_PATTERNS` to include abbreviation patterns
+  - Fixed `parseNetContentsToFlOz` to parse abbreviations correctly
+  - Fixed `validateBeerNetContentsFormat` to recognize abbreviations in all validation checks
+  - Now correctly validates "5.1 Gal." as a valid U.S. customary unit
+
+- **Extraction Prompt Fixes:**
+  - Fixed varietal/appellation confusion with explicit examples and clear distinctions
+  - Added critical distinction section: "CABERNET SAUVIGNON" = varietal (classType), "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = appellation
+  - Fixed brand name truncation for spirits - added explicit rules to extract complete names
+  - Examples: "BLACK ROSE GIN" (not "BLACK ROSE"), "GREY GOOSE VODKA" (not "GREY GOOSE")
+  - Fixed fanciful name truncation for spirits - added explicit rules for complete extraction
+  - Examples: "PEANUT BUTTER WHISKEY" (not "PEANUT BUTTER"), "CHOCOLATE VODKA" (not "CHOCOLATE")
+  - Updated JSON field descriptions and IMPORTANT sections with critical rules
+
+- **Health Warning Validation:**
+  - Fixed whitespace normalization to handle spaces after colons
+  - Updated `normalizeHealthWarningForComparison` to normalize colon spacing
+  - "GOVERNMENT WARNING:(1)" now correctly matches "GOVERNMENT WARNING: (1)"
+  - Added regex pattern to ensure consistent spacing: `replace(/:\s*/g, ': ')`
+
+- **Producer/Importer Name & Address Matching:**
+  - Created `normalizeCity` function to remove directional prefixes (N., S., E., W., North, South, East, West)
+  - Created `citiesMatch` function to handle city name variations with directional prefixes
+  - Updated `normalizeState` to handle periods in state abbreviations (Co. = CO)
+  - Updated `validateProducerNameAddress` to use `citiesMatch` for city comparisons
+  - Now correctly matches: "Blue Ocean Mercantile Ltd., N. Littleton, Co." with "Blue Ocean Mercantile, Littleton, CO"
+  - Handles business entity suffix differences (Ltd., Inc., LLC, etc.)
+
+- **Class/Type Field Display Fix:**
+  - Fixed `validateClassType` to return `expected: null` instead of `'Field not found'`
+  - Updated display logic to show requirement messages when field is NOT_FOUND
+  - Beer: "A Class or Type designation describing the kind of malt beverage"
+  - Spirits: "A Class or Type designation describing the kind of distilled spirits"
+  - Wine: "A Class/Type designation is required whenever a Varietal is not listed on the application"
+  - Requirement message now always displays when field is not found, regardless of extraction status
+
+### Edit Functionality & Deployment Stability ✅ (January 30, 2026)
 
 - **Application Edit Feature:**
   - Added edit icon (pencil) to each row in application queue dashboard
@@ -1285,4 +1325,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 30, 2026 (Review page UI updates: fixed alcohol content field display to show field name with "Field not found" underneath, simplified banner by removing logo/title/prototype message, repositioned banner to overlay navigation elements, moved verification spinner under banner. TypeScript configuration: added path alias support for @/ imports. Database query script created for beer application inspection. Previous: Railway deployment, codebase cleanup, UI improvements, batch verification fixes. Ready for production deployment and testing.)_
+_Last Updated: January 30, 2026 (Validation accuracy improvements: Fixed net contents unit abbreviations, varietal/appellation extraction confusion, brand/fanciful name truncation for spirits, health warning whitespace handling, producer/importer address matching with city/state variations, Class/Type requirement message display. Previous: Edit functionality, deployment stability, security documentation, UI improvements, navigation UX. Ready for production deployment and testing.)_

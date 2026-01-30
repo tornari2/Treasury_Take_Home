@@ -10,7 +10,85 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-### Batch Verification & Producer Address Matching Fixes ✅ (Latest - January 30, 2026)
+### Codebase Cleanup & Organization ✅ (Latest - January 30, 2026)
+
+- **File Cleanup:**
+  - Removed unnecessary `.gitkeep` files, empty directories, unused middleware
+  - Consolidated test_labels to `public/test_labels/` for Next.js serving
+  - Removed unused dependencies (`next-auth`, `cookie`)
+
+- **Code Quality:**
+  - Cleaned up unused imports and variables
+  - Fixed lint warnings for unused parameters
+  - Added validators index.ts for cleaner module exports
+
+- **Tests:**
+  - Updated to match current behavior (case-only = match, needs_review removed)
+  - All 24 tests passing
+
+### UI Improvements & Button Styling ✅ (January 30, 2026)
+
+- **Verify Button Styling:**
+  - Added purple gradient button (`#9333ea` → `#7c3aed` → `#a855f7`) on dashboard
+  - Applied via `sparkly-purple` CSS class with hover effects
+  - Used for both single and batch verification actions
+
+- **Approve Button & Badge:**
+  - Changed Approve button on review page to solid green (`#22c55e`) instead of blue
+  - Changed approved status badge on queue page to green (`#22c55e`) instead of blue
+  - Applied via `green-button` and `green-badge` CSS classes
+
+- **Remove Button:**
+  - Renamed "Delete" button to "Remove" throughout UI
+  - Updated function names: `handleDelete` → `handleRemove`, `handleDeleteSelected` → `handleRemoveSelected`
+  - Updated state variables: `deletingApp` → `removingApp`, `deletingApps` → `removingApps`
+  - Updated all console messages and API responses
+
+- **Review Page Banner:**
+  - Added full-width blue banner (`#305170`) matching dashboard style
+  - Contains "Back to Dashboard" button and batch navigation controls
+  - Same height and styling as dashboard banner for consistency
+
+### Batch Verification Navigation Fix ✅ (January 30, 2026)
+
+- **Immediate Navigation Pattern:**
+  - Batch verify now navigates immediately to first application's review page (matching single verify behavior)
+  - Removed polling logic that caused "batch not found" errors
+  - Batch processing continues in background while user reviews first application
+  - Uses `?verify=true&batch=true` query params to trigger verification on review page
+
+### Appellation Extraction Improvements ✅ (January 30, 2026)
+
+- **Enhanced Extraction Prompts:**
+  - Added detailed appellation instructions to `getBeverageSpecificInstructions()` for wine
+  - Explicitly states state names like "VIRGINIA", "CALIFORNIA" are valid appellations
+  - Enhanced field definition in `openai-service.ts` with examples and guidance
+  - Instructions emphasize extracting state names when listed prominently and separately
+
+- **Cross-Check Field Display Fix:**
+  - Fixed display logic to show Expected/Extracted for cross-check fields even when `type === 'not_found'`
+  - Changed condition from `result.type !== 'not_found'` to `(result.type !== 'not_found' || result.expected)`
+  - Now shows "Expected: Virginia" and "Extracted: None" instead of hiding the information
+  - Changed "Field not found" to display as "None" in Extracted field for better clarity
+
+### Dashboard Banner & UI Improvements ✅ (January 30, 2026)
+
+- **Dashboard Banner Enhancements:**
+  - Added TTB logo (from `test_labels/TTB_Logo/TTB_logo_web.svg`) to dashboard banner
+  - Logo positioned left-aligned, vertically centered in blue section (68% height)
+  - Added "Alcohol Label Verifier" text next to logo in blue banner section
+  - Added prototype disclaimer text on right side: "PROTOTYPE — NOT AN OFFICIAL TTB SYSTEM" (small font)
+  - Logo and text are vertically centered within the blue section
+  - Banner maintains blue/red gradient design (#305170 / #9A3B39)
+
+- **Review Page Verification Banner:**
+  - Restored verification banner bar at top of review page during verification
+  - Banner shows "Verifying application with AI..." with animated spinner (Loader2 icon)
+  - Blue alert styling (border-blue-500 bg-blue-50) for visibility
+  - Removed duplicate "Verifying..." button from verification section when verifying is active
+  - Cleaner UX: banner shows status at top, verification section shows nothing during verification
+
+### Batch Verification & Producer Address Matching Fixes ✅ (January 30, 2026)
 
 - **Batch Verification Redirect Fix:**
   - Fixed issue where batch verification would redirect to review page even when verification failed or didn't complete
@@ -27,10 +105,10 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
   - Now properly handles cases like "FAR MOUNTAIN, Napa, CA" matching "FAR MOUNTAIN, NAPA, CALIFORNIA"
   - State matching now correctly extracts state from combined string and handles ZIP codes
 
-- **Verification UI Cleanup:**
-  - Removed blue "Verifying application with AI..." alert bar from review page
-  - Removed "Verification in progress..." text message under AI Verification Recommendations section
-  - When verifying, only the button shows "Verifying..." and is disabled (cleaner UX)
+- **Verification UI Updates:**
+  - Restored blue "Verifying application with AI..." alert bar at top of review page (with spinner)
+  - Removed duplicate "Verifying..." button from verification section when verifying is active
+  - Cleaner UX: banner shows status at top, verification section is empty during verification
 
 ### FormatChecks Implementation & Validation ✅ (January 30, 2026)
 

@@ -4,11 +4,74 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
+### Codebase Cleanup & Organization ✅ (Latest - January 30, 2026)
+
+- **File Cleanup:**
+  - Removed unnecessary `.gitkeep` files from directories with content (components, lib, types)
+  - Removed empty `utils/` directory (functionality exists in `lib/utils.ts`)
+  - Removed unused `lib/middleware.ts` (never imported)
+  - Removed empty `lib/validation/validators/beer.ts` placeholder
+  - Removed build artifact `tsconfig.tsbuildinfo`
+
+- **File Reorganization:**
+  - Consolidated `test_labels/` to `public/test_labels/` for proper Next.js serving
+  - Updated `scripts/create-batch-applications.ts` to use new path
+  - Created `lib/validation/validators/index.ts` for cleaner exports
+
+- **Dependency Cleanup:**
+  - Removed unused `next-auth` dependency (never imported)
+  - Removed unused `cookie` dependency (uses Next.js built-in cookies)
+  - Updated `package-lock.json` accordingly
+
+- **Code Quality Improvements:**
+  - Removed unused `auditLogHelpers` imports from API routes
+  - Fixed unused parameter warnings (`request` → `_request` in auth routes)
+  - Removed unused variables in `lib/validation/validators/common.ts`
+  - Fixed unused `index` parameter in `components/application-form.tsx`
+
+- **Test Updates:**
+  - Updated tests to match current application behavior
+  - Case-only differences now treated as matches (not soft mismatches)
+  - `needs_review` status removed - all applications stay `pending` for agent review
+  - Fixed alcohol content format in tests (must use valid TTB format like "5% Alc/Vol")
+
+- **Results:**
+  - All tests passing (24/24)
+  - Type-check passing
+  - Codebase cleaner and more maintainable
+  - Reduced from 1193-line common.ts to better organized structure
+
+### UI Improvements & Button Styling ✅
+
+- **Verify Button:** Added purple gradient button (`#9333ea` → `#7c3aed` → `#a855f7`) on dashboard for batch/single verification
+- **Approve Button:** Changed to solid green (`#22c55e`) on review page instead of blue
+- **Approved Badge:** Changed approved status badge to green (`#22c55e`) on queue page instead of blue
+- **Remove Button:** Renamed "Delete" button to "Remove" throughout UI for better clarity
+- **Review Page Banner:** Added full-width blue banner (`#305170`) matching dashboard style, containing navigation elements
+
+### Batch Verification Navigation Fix ✅
+
+- **Immediate Navigation:** Batch verify now navigates immediately to first application's review page (like single verify)
+- **Background Processing:** Batch verification continues in background while user reviews first application
+- **No Polling:** Removed polling logic that caused "batch not found" errors - now uses immediate navigation pattern
+
+### Appellation Extraction Improvements ✅
+
+- **Enhanced Prompts:** Added detailed appellation extraction instructions to wine-specific prompts
+- **State Names:** Explicitly instructs AI to extract state names like "VIRGINIA", "CALIFORNIA" as valid appellations when listed prominently
+- **Field Definition:** Enhanced appellation field definition in generic prompt with examples and state name guidance
+- **Cross-Check Display:** Fixed display to show "Expected: Virginia" and "Extracted: None" for cross-check fields even when field is not found
+
+### Dashboard Banner & UI Improvements ✅
+
+- **Dashboard Banner:** Added TTB logo and "Alcohol Label Verifier" text to blue banner section, with prototype disclaimer on right side
+- **Review Page Verification Banner:** Restored verification banner bar with spinner at top of review page, removed duplicate verifying button
+
 ### Batch Verification & Producer Address Matching Fixes ✅
 
 - **Batch Verification Redirect Fix:** Fixed issue where batch verification would redirect to review page even when verification failed or didn't complete. Now only redirects on successful completion, shows error messages otherwise.
 - **Producer Address State Matching:** Fixed bug where state abbreviations (e.g., "CA") weren't matching full state names (e.g., "CALIFORNIA"). Updated state matching logic to use `statesMatch()` function and fixed bug where `extractedAddress` was used instead of `addressToCheck`.
-- **Verification UI Cleanup:** Removed blue "Verifying application with AI..." alert bar and "Verification in progress..." text message from review page. Cleaner UX with only disabled button showing "Verifying..." during verification.
+- **Verification UI:** Restored verification banner bar with spinner at top of review page. Removed duplicate verifying button - cleaner UX with banner showing status at top.
 
 ### FormatChecks Implementation & Validation ✅
 
@@ -19,8 +82,8 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ### UI & UX Improvements ✅
 
-- **Dashboard Banner:** Added blue/red gradient banner (#305170 / #9A3B39) at top of Application Queue page
-- **Verification UI:** Removed duplicate "Verification in progress" messages - only top loading bar shows during verification
+- **Dashboard Banner:** Added blue/red gradient banner (#305170 / #9A3B39) with TTB logo, "Alcohol Label Verifier" text, and prototype disclaimer
+- **Verification UI:** Restored verification banner bar with spinner at top of review page, removed duplicate verifying button
 - **NOT_FOUND Fields Display:** Fields with expected presence (like Alcohol Content) now show only "Field not found" without Expected/Extracted labels
 - **Field Not Found Color:** Changed to grey (text-muted-foreground) for better visual consistency
 - **Error Handling:** Enhanced network error messages with guidance about firewall restrictions and system administrator contact

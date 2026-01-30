@@ -10,6 +10,7 @@ env/
 .idea/
 .vscode/
 .cursor/
+.cursorignore
 .DS_Store
 *.swp
 *.swo

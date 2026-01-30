@@ -161,8 +161,8 @@ export async function extractLabelData(
       'Alcohol content - CRITICAL: Extract COMPLETE text including any prefix (e.g., "ALC.", "ALCOHOL", "ABV") if present. Example: "ALC. 12.5% BY VOL." not "12.5% BY VOL."',
     net_contents:
       'Net contents (volume) - Extract ONLY the measurement value and unit (e.g., "750 mL", "12 FL OZ"). Do NOT include prefix words like "CONTENTS", "NET CONTENTS", or "NET".',
-    producer_name: 'Producer name - CRITICAL FOR IMPORTED BEVERAGES: If the beverage is imported (look for "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", etc.), extract the US importer/distributor name that IMMEDIATELY follows these phrases. DO NOT extract the foreign producer name. For domestic beverages, extract the producer name.',
-    producer_address: 'Producer address - CRITICAL FOR IMPORTED BEVERAGES: If the beverage is imported (look for "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", etc.), extract the US importer/distributor address that IMMEDIATELY follows these phrases. DO NOT extract the foreign producer address. For domestic beverages, extract the producer address.',
+    producer_name: 'Producer name - ⚠️ CRITICAL FOR IMPORTED BEVERAGES: Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY". Extract ONLY the US importer/distributor name that appears IMMEDIATELY after these phrases. DO NOT extract any foreign producer name that appears later on the label. Example: If you see "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu", extract "CBSE Imports, LLC" (the US importer), NOT "CORFU BREWERY S.A." (the foreign producer). For domestic beverages, extract the producer name.',
+    producer_address: 'Producer address - ⚠️ CRITICAL FOR IMPORTED BEVERAGES: Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY". Extract ONLY the US importer/distributor address that appears IMMEDIATELY after these phrases. DO NOT extract any foreign producer address that appears later on the label. Example: If you see "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu", extract "Alexandria, VA" (the US importer address), NOT "Arilas, Corfu" (the foreign producer address). For domestic beverages, extract the producer address.',
     producer_name_phrase:
       'Phrase immediately preceding producer name/address (e.g., "Bottled By", "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", or null if no such phrase). For imported beverages, extract phrases like "Imported By" or "DISTRIBUTED AND IMPORTED BY" if present.',
     health_warning: 'Government health warning statement (must be exact)',
@@ -178,7 +178,7 @@ export async function extractLabelData(
     fieldDefinitions.age_statement = 'Age statement (if applicable)';
     fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
   } else if (beverageType === 'wine') {
-    fieldDefinitions.appellation_of_origin = 'Appellation of origin - CRITICAL: Extract GEOGRAPHIC LOCATIONS here (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"). These are WHERE THE GRAPES ARE FROM, NOT grape variety names. DO NOT confuse with varietals - geographic locations go here, grape names go in class_type field.';
+    fieldDefinitions.appellation_of_origin = 'Appellation of origin - ⚠️ CRITICAL: Extract GEOGRAPHIC LOCATIONS ONLY here (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"). These are WHERE THE GRAPES ARE FROM, NOT grape variety names. DO NOT confuse with varietals - geographic locations go here, grape names go in class_type field. EXAMPLE: If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY", extract "MOON MOUNTAIN DISTRICT SONOMA COUNTY" here (NOT "CABERNET SAUVIGNON").';
     fieldDefinitions.sulfite_declaration = 'Sulfite declaration';
     fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
   } else if (beverageType === 'beer') {
@@ -230,6 +230,11 @@ export async function extractLabelData(
             role: 'system',
             content: `You are an expert at extracting structured data from alcohol beverage labels. Extract the following fields from the label images and return them as JSON. Look across ALL provided images to find each field - information may be spread across front, back, neck, or side labels. If a field is not found in any image, omit it from the response.
 
+⚠️ CRITICAL WARNING FOR WINE LABELS - DO NOT SWAP VARIETAL AND APPELLATION:
+- VARIETAL (class_type field) = GRAPE NAMES like "CABERNET SAUVIGNON", "Chardonnay", "Pinot Noir"
+- APPELLATION (appellation_of_origin field) = GEOGRAPHIC LOCATIONS like "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "California"
+- These are COMPLETELY DIFFERENT - DO NOT swap them. Grape names go in class_type, geographic locations go in appellation_of_origin.
+
 IMPORTANT - Preserve exact capitalization for ALL fields:
 - CRITICAL: For EVERY field (brand_name, fanciful_name, class_type, producer_name, producer_address, appellation_of_origin, country_of_origin, etc.), preserve the exact capitalization as it appears on the label
 - If ANY field appears in ALL CAPS on the label (e.g., "FAR MOUNTAIN", "MOON MOUNTAIN DISTRICT SONOMA COUNTY"), extract it as ALL CAPS
@@ -260,22 +265,37 @@ CRITICAL FOR ALCOHOL_CONTENT FIELD - EXTRACT COMPLETE TEXT INCLUDING PREFIXES:
   * If label shows "Alc. 13.5% by Vol." → extract "Alc. 13.5% by Vol." (NOT "13.5% by Vol.")
 - This is CRITICAL - omitting the prefix will cause validation failures
 
-CRITICAL FOR IMPORTED BEVERAGES - PRODUCER NAME/ADDRESS:
-- If the label indicates the beverage is imported (look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or country of origin indicating foreign production), you MUST extract the US importer/distributor name and address, NOT the foreign producer.
-- The importer/distributor name/address appears IMMEDIATELY after phrases like "Imported By" or "DISTRIBUTED AND IMPORTED BY".
-- The foreign producer information may also appear on the label AFTER the importer information, but you MUST IGNORE it and extract ONLY the US importer/distributor.
-- CRITICAL EXAMPLES:
-  * If label shows "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu..." → Extract "CBSE Imports, LLC" as producer_name and "Alexandria, VA" as producer_address (NOT "CORFU BREWERY S.A., Arilas, Corfu")
-  * If label shows "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA" → Extract "Geo US Trading, Inc" as producer_name and "Lombard, IL" as producer_address (NOT "LTD WINIVERIA...")
-- The US importer/distributor is ALWAYS listed FIRST after "Imported By" phrases. The foreign producer comes AFTER. Extract ONLY the first one.
+⚠️ CRITICAL FOR IMPORTED BEVERAGES - PRODUCER NAME/ADDRESS (READ THIS CAREFULLY):
+- STEP 1: Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By"
+- STEP 2: Find the text that appears IMMEDIATELY after these phrases - this is the US importer/distributor
+- STEP 3: Extract ONLY the US importer/distributor name and address - this appears RIGHT AFTER "Imported By" phrases
+- STEP 4: IGNORE any foreign producer information that appears LATER on the label - DO NOT extract it
+- CRITICAL RULE: The US importer/distributor is ALWAYS listed FIRST, immediately after "Imported By" phrases. The foreign producer information comes AFTER. Extract ONLY the first one (the US importer).
+- CRITICAL EXAMPLES - DO NOT EXTRACT FOREIGN PRODUCER:
+  * Label shows: "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu. Tel.: +30 2663052072."
+    - CORRECT: Extract "CBSE Imports, LLC" as producer_name and "Alexandria, VA" as producer_address
+    - WRONG: Do NOT extract "CORFU BREWERY S.A." or "Arilas, Corfu" (this is the foreign producer)
+  * Label shows: "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA"
+    - CORRECT: Extract "Geo US Trading, Inc" as producer_name and "Lombard, IL" as producer_address
+    - WRONG: Do NOT extract "LTD WINIVERIA..." or "TELAVI, GEORGIA" (this is the foreign producer)
 - This is CRITICAL - extracting the foreign producer instead of the US importer will cause validation failures.
 
 Return JSON in this format:
 {
   "brand_name": "...",
   "alcohol_content": "...",
+  "class_type": "...",
+  "appellation_of_origin": "...",
   ...
 }
+
+⚠️ FOR WINE LABELS - Example JSON structure:
+If label shows "CABERNET SAUVIGNON" (grape name) and "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location):
+{
+  "class_type": "CABERNET SAUVIGNON",
+  "appellation_of_origin": "MOON MOUNTAIN DISTRICT SONOMA COUNTY"
+}
+DO NOT swap these values - grape names go in class_type, locations go in appellation_of_origin.
 
 Fields to extract:
 ${fieldsList}

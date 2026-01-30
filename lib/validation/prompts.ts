@@ -381,7 +381,7 @@ export function getBeverageSpecificInstructions(beverageType: 'spirits' | 'wine'
     case 'wine':
       return `
 
-⚠️ CRITICAL WINE-SPECIFIC RULES - VARIETAL vs APPELLATION (DO NOT SWAP THESE FIELDS):
+⚠️⚠️⚠️ CRITICAL WINE-SPECIFIC RULES - VARIETAL vs APPELLATION (DO NOT SWAP THESE FIELDS) ⚠️⚠️⚠️:
 - These are COMPLETELY DIFFERENT categories - VARIETAL and APPELLATION are NOT the same thing
 - VARIETAL (class_type field): Grape variety name - examples: "Khikhvi", "Chardonnay", "Cabernet Sauvignon", "CABERNET SAUVIGNON", "Rkatsiteli", "Saperavi", "Pinot Noir"
   * These are GRAPE NAMES (what type of grape)
@@ -395,19 +395,24 @@ export function getBeverageSpecificInstructions(beverageType: 'spirits' | 'wine'
   * Can be multi-word (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY")
   * Extract as appellation_of_origin field (JSON field name: "appellation_of_origin")
   * Examples: "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = APPELLATION → Extract as appellation_of_origin
-- CRITICAL: DO NOT confuse VARIETAL with APPELLATION - DO NOT SWAP THESE:
+- ⚠️ CRITICAL: DO NOT confuse VARIETAL with APPELLATION - DO NOT SWAP THESE:
   * "CABERNET SAUVIGNON" = VARIETAL (grape name) → Extract as class_type (NOT appellation_of_origin)
   * "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = APPELLATION (geographic location) → Extract as appellation_of_origin (NOT class_type)
   * "Chardonnay" = VARIETAL (grape name) → Extract as class_type (NOT appellation_of_origin)
   * "Napa Valley" = APPELLATION (geographic location) → Extract as appellation_of_origin (NOT class_type)
+- ⚠️ REAL-WORLD EXAMPLE - If label shows both "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY":
+  * CORRECT: class_type = "CABERNET SAUVIGNON", appellation_of_origin = "MOON MOUNTAIN DISTRICT SONOMA COUNTY"
+  * WRONG: class_type = "MOON MOUNTAIN DISTRICT SONOMA COUNTY", appellation_of_origin = "CABERNET SAUVIGNON" (DO NOT DO THIS)
 - CRITICAL PRIORITY RULE FOR class_type FIELD: If BOTH a varietal (grape name) AND a class/type (e.g., "White Wine", "Red Wine", "White Dry Wine") appear on the label, you MUST extract the VARIETAL, NOT the class/type. Varietals ALWAYS take precedence over generic class/type designations.
 - CRITICAL EXAMPLES:
   * If label shows "Khikhvi" and "White Dry Wine", extract "Khikhvi" as class_type (NOT "White Dry Wine")
   * If label shows "Chardonnay" and "White Wine", extract "Chardonnay" as class_type (NOT "White Wine")
   * If label shows "Cabernet Sauvignon" and "Red Wine", extract "Cabernet Sauvignon" as class_type (NOT "Red Wine")
   * If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY":
-    - Extract "CABERNET SAUVIGNON" as class_type (varietal/grape name)
-    - Extract "MOON MOUNTAIN DISTRICT SONOMA COUNTY" as appellation_of_origin (geographic location)
+    - Extract "CABERNET SAUVIGNON" as class_type (varietal/grape name) ← THIS IS THE GRAPE NAME
+    - Extract "MOON MOUNTAIN DISTRICT SONOMA COUNTY" as appellation_of_origin (geographic location) ← THIS IS THE LOCATION
+  * ⚠️ CRITICAL REMINDER: "CABERNET SAUVIGNON" is a GRAPE NAME (varietal) → class_type field
+  * ⚠️ CRITICAL REMINDER: "MOON MOUNTAIN DISTRICT SONOMA COUNTY" is a LOCATION (appellation) → appellation_of_origin field
 - DO NOT SWAP THESE - grape names belong in class_type, geographic locations belong in appellation_of_origin
 - Only extract the class/type if NO varietal is present on the label.
 - This is a CRITICAL requirement - failure to follow this rule will cause validation errors.
@@ -507,7 +512,7 @@ CRITICAL SPIRITS-SPECIFIC RULES:
 export function getClassTypeFieldDescription(beverageType: 'spirits' | 'wine' | 'beer'): string {
   switch (beverageType) {
     case 'wine':
-      return 'Varietal (grape name like "CABERNET SAUVIGNON", "Khikhvi", "Chardonnay", "Pinot Noir") OR class/type (like "White Wine") - CRITICAL: Extract GRAPE VARIETY NAMES here. These are GRAPE NAMES, NOT geographic locations. If both varietal (grape name) and class/type appear, extract the VARIETAL, not the class/type. DO NOT confuse with appellation_of_origin - grape names go here, geographic locations go in appellation_of_origin field. Examples: "CABERNET SAUVIGNON" = varietal → extract as class_type, "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = appellation → extract as appellation_of_origin';
+      return 'Varietal (grape name like "CABERNET SAUVIGNON", "Khikhvi", "Chardonnay", "Pinot Noir") OR class/type (like "White Wine") - ⚠️ CRITICAL: Extract GRAPE VARIETY NAMES ONLY here. These are GRAPE NAMES (what type of grape), NOT geographic locations. If both varietal (grape name) and class/type appear, extract the VARIETAL, not the class/type. DO NOT confuse with appellation_of_origin - grape names go here, geographic locations go in appellation_of_origin field. EXAMPLE: If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY", extract "CABERNET SAUVIGNON" here (NOT "MOON MOUNTAIN DISTRICT SONOMA COUNTY").';
     case 'beer':
       return 'Beer style (e.g., "Ale", "Lager", "India Pale Ale", "Stout")';
     case 'spirits':

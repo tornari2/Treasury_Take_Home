@@ -699,6 +699,81 @@ export function validateProducerNameAddress(
     };
   }
 
+  // Handle cases where name or address might contain the full combined string
+  // Check if either field contains the complete expected information (name, city, state)
+  const combinedExtracted =
+    extractedName && extractedAddress
+      ? `${extractedName}, ${extractedAddress}`
+      : extractedName || extractedAddress || '';
+  const expectedCombined = `${expectedName}, ${expectedCity}, ${expectedState}`;
+  const normalizedCombined = normalizeString(combinedExtracted);
+  const normalizedExpected = normalizeString(expectedCombined);
+
+  // Check if the combined extracted value contains all expected parts (name, city, state)
+  // This handles cases like "FABBIOLI CELLARS, LEESBURG, VA 20176" matching "FABBIOLI CELLARS, LEESBURG, VA"
+  const expectedNameNorm = normalizeString(expectedName);
+  const expectedCityNorm = normalizeString(expectedCity);
+  const expectedStateNorm = normalizeString(expectedState);
+
+  // Remove ZIP code from extracted for comparison
+  const extractedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
+
+  // Check if all three parts (name, city, state) appear in the extracted value
+  const hasName = extractedWithoutZip.includes(expectedNameNorm);
+  const hasCity = extractedWithoutZip.includes(expectedCityNorm);
+  const hasState = (() => {
+    // Check state with ZIP code handling - check both address and combined string
+    const addressNorm = normalizeString(extractedAddress || '');
+    const addressWithoutZip = addressNorm.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+
+    // Check if state appears in address (with or without ZIP)
+    if (statesMatch(addressWithoutZip, expectedState) || statesMatch(addressNorm, expectedState)) {
+      return true;
+    }
+
+    // Check if state appears in combined string (after removing ZIP)
+    const combinedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
+    const stateWords = expectedStateNorm.split(/\s+/);
+
+    // For single-word states, check if it appears as a whole word
+    if (stateWords.length === 1) {
+      const stateRegex = new RegExp(
+        `\\b${expectedStateNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
+        'i'
+      );
+      return stateRegex.test(combinedWithoutZip);
+    }
+
+    // For multi-word states, check if all words appear
+    return stateWords.every((word) => combinedWithoutZip.includes(word));
+  })();
+
+  // If all parts are present in the extracted value, treat as match
+  if (hasName && hasCity && hasState) {
+    // Verify name matches - check if name appears in extracted (allows for combined format)
+    let nameMatches = false;
+    if (extractedName) {
+      nameMatches =
+        stringsMatch(expectedName, extractedName) ||
+        producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName) ||
+        normalizeString(extractedName).includes(expectedNameNorm);
+    } else {
+      // If no separate name field, check if name appears in combined string
+      nameMatches = extractedWithoutZip.includes(expectedNameNorm);
+    }
+
+    if (nameMatches) {
+      // All required parts found - treat as match
+      return {
+        field: 'producerNameAddress',
+        status: MatchStatus.MATCH,
+        expected: expectedCombined,
+        extracted: combinedExtracted,
+        rule: 'CROSS-CHECK: Producer name, city, and state match application',
+      };
+    }
+  }
+
   // Compare producer names - check if core name matches (ignoring entity suffixes)
   // This allows "CO." vs "LLC" to be considered a soft mismatch if core name matches
   const coreNameMatches =
@@ -715,34 +790,57 @@ export function validateProducerNameAddress(
   // If exactNameMatches is true, we skip soft mismatch check (case differences are acceptable)
   const hasNonCaseFormattingDifference = nameSoftMismatch && !exactNameMatches;
 
+  // Also check if the name field contains address information (combined format)
+  // This handles cases where extraction puts everything in one field
+  const nameContainsAddress =
+    extractedName &&
+    (normalizeString(extractedName).includes(normalizeString(expectedCity)) ||
+      normalizeString(extractedName).includes(normalizeString(expectedState)));
+  const addressContainsName =
+    extractedAddress && normalizeString(extractedAddress).includes(normalizeString(expectedName));
+
+  // If name contains address info, use name for city/state checking too
+  const addressToCheck = nameContainsAddress ? extractedName : extractedAddress;
+
   // Only validate city and state from the address, not the full street address
   const addressContainsCity =
-    extractedAddress && normalizeString(extractedAddress).includes(normalizeString(expectedCity));
+    addressToCheck && normalizeString(addressToCheck).includes(normalizeString(expectedCity));
 
   // Check if state matches - state names and abbreviations are EQUIVALENT
   // Extract state from address (typically at the end: "City, ST" or "City, State")
+  // Handles cases where ZIP code is included (e.g., "City, ST 12345")
+  // Also check name field if it contains address information
   let addressContainsState = false;
-  if (extractedAddress) {
+  if (addressToCheck) {
     const normalizedAddress = normalizeString(extractedAddress);
 
     // Extract potential state from address (last part after comma, or last 2-3 words)
     const parts = normalizedAddress.split(',').map((p) => p.trim());
     const lastPart = parts[parts.length - 1] || '';
 
-    // Check if last part matches the expected state (handles abbreviations)
-    if (statesMatch(lastPart, expectedState)) {
+    // Remove ZIP code from last part if present (e.g., "va 20176" -> "va")
+    // ZIP codes are typically 5 digits, optionally followed by dash and 4 digits
+    const lastPartWithoutZip = lastPart.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+    const stateToCheck = lastPartWithoutZip || lastPart;
+
+    // Check if last part (without ZIP) matches the expected state (handles abbreviations)
+    if (statesMatch(stateToCheck, expectedState)) {
       addressContainsState = true;
     } else {
       // Also check if any part of the address contains a state equivalent
       // Handle multi-word states like "New York", "North Carolina"
       const words = normalizedAddress.split(/\s+/);
       const lastWords = words.slice(-2).join(' '); // Last 2 words
-      if (statesMatch(lastWords, expectedState)) {
+      // Remove ZIP from last words if present
+      const lastWordsWithoutZip = lastWords.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+      if (statesMatch(lastWordsWithoutZip || lastWords, expectedState)) {
         addressContainsState = true;
       } else {
         // Try checking if state appears anywhere in the address
         // This handles cases where address format might vary
-        const allParts = normalizedAddress.split(/[,\s]+/);
+        // Remove ZIP codes from all parts before checking
+        const addressWithoutZip = normalizedAddress.replace(/\s+\d{5}(-\d{4})?/g, '');
+        const allParts = addressWithoutZip.split(/[,\s]+/);
         for (const part of allParts) {
           if (statesMatch(part, expectedState)) {
             addressContainsState = true;

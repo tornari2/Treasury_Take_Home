@@ -159,7 +159,8 @@ export async function extractLabelData(
     class_type: getClassTypeFieldDescription(beverageType),
     alcohol_content:
       'Alcohol content - CRITICAL: Extract COMPLETE text including any prefix (e.g., "ALC.", "ALCOHOL", "ABV") if present. Example: "ALC. 12.5% BY VOL." not "12.5% BY VOL."',
-    net_contents: 'Net contents (volume)',
+    net_contents:
+      'Net contents (volume) - Extract ONLY the measurement value and unit (e.g., "750 mL", "12 FL OZ"). Do NOT include prefix words like "CONTENTS", "NET CONTENTS", or "NET".',
     producer_name: 'Producer name',
     producer_address: 'Producer address',
     producer_name_phrase:

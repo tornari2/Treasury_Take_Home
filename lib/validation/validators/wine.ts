@@ -102,6 +102,46 @@ export function validateAppellation(
     };
   }
 
+  // Check if extracted value contains the expected appellation (handles cases like "Virginia, USA" matching "VIRGINIA")
+  const expectedNormalized = normalizeString(expected!);
+  const extractedNormalized = normalizeString(extracted!);
+
+  // Check if extracted contains expected as a whole word (to avoid partial matches)
+  // This handles cases like "Virginia, USA" containing "virginia"
+  const expectedWords = expectedNormalized.split(/\s+/);
+  if (expectedWords.length === 1) {
+    // Single word appellation (e.g., "virginia") - check if it appears as a whole word in extracted
+    const wordBoundaryRegex = new RegExp(
+      `\\b${expectedNormalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
+      'i'
+    );
+    if (wordBoundaryRegex.test(extractedNormalized)) {
+      // Extracted contains expected appellation - treat as match
+      return {
+        field: 'appellation',
+        status: MatchStatus.MATCH,
+        expected: expected!,
+        extracted: extracted!,
+        rule: 'CROSS-CHECK: Appellation matches application',
+        details: 'Appellation found in extracted value with additional text',
+      };
+    }
+  } else {
+    // Multi-word appellation - check if all words appear in extracted
+    const allWordsFound = expectedWords.every((word) => extractedNormalized.includes(word));
+    if (allWordsFound) {
+      // Extracted contains expected appellation - treat as match
+      return {
+        field: 'appellation',
+        status: MatchStatus.MATCH,
+        expected: expected!,
+        extracted: extracted!,
+        rule: 'CROSS-CHECK: Appellation matches application',
+        details: 'Appellation found in extracted value with additional text',
+      };
+    }
+  }
+
   return {
     field: 'appellation',
     status: MatchStatus.HARD_MISMATCH,
@@ -264,6 +304,8 @@ export function validateVintageDate(
 
 /**
  * Validate Sulfite Declaration (REQUIRED for wine)
+ * Rule: "No sulfites added" may be stated but must appear together with
+ * "contains naturally occurring sulfites" or "may contain naturally occurring sulfites."
  */
 export function validateSulfiteDeclaration(extracted: string | null): FieldValidationResult {
   if (!extracted) {
@@ -274,6 +316,34 @@ export function validateSulfiteDeclaration(extracted: string | null): FieldValid
       extracted: null,
       rule: 'PRESENCE: Sulfite declaration must appear on wine label',
     };
+  }
+
+  // Normalize the extracted text for checking
+  const normalized = normalizeString(extracted);
+
+  // Check if "no sulfites added" appears (case-insensitive)
+  const hasNoSulfitesAdded = /\bno\s+sulfites?\s+added\b/i.test(normalized);
+
+  if (hasNoSulfitesAdded) {
+    // If "no sulfites added" is present, check if it appears with required phrase
+    const hasContainsNaturallyOccurring = /\bcontains?\s+naturally\s+occurring\s+sulfites?\b/i.test(
+      normalized
+    );
+    const hasMayContainNaturallyOccurring =
+      /\bmay\s+contain\s+naturally\s+occurring\s+sulfites?\b/i.test(normalized);
+
+    if (!hasContainsNaturallyOccurring && !hasMayContainNaturallyOccurring) {
+      // "No sulfites added" is present but missing required phrase
+      return {
+        field: 'sulfiteDeclaration',
+        status: MatchStatus.HARD_MISMATCH,
+        expected: null,
+        extracted,
+        rule: 'FORMAT: "No sulfites added" must appear together with "contains naturally occurring sulfites" or "may contain naturally occurring sulfites"',
+        details:
+          'Label states "no sulfites added" but is missing required phrase about naturally occurring sulfites',
+      };
+    }
   }
 
   return {

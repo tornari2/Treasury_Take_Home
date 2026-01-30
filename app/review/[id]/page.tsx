@@ -573,7 +573,7 @@ export default function ReviewPage() {
                     <div className="flex items-start gap-2">
                       {getFieldStatusIcon(result)}
                       <div className="flex-1">
-                        <div className="font-semibold">
+                        <div className="font-semibold text-foreground">
                           {getFieldLabel(fieldName, application?.beverage_type)}
                         </div>
                         {result.type === 'not_applicable' ? (
@@ -582,17 +582,67 @@ export default function ReviewPage() {
                           </div>
                         ) : (
                           <>
-                            {(result.expected || result.extracted) && (
-                              <div className="text-sm mt-1">
-                                <span className="font-medium">Expected:</span>{' '}
-                                {result.expected || 'None'}
-                              </div>
-                            )}
-                            {result.extracted && (
-                              <div className="text-sm">
-                                <span className="font-medium">Extracted:</span> {result.extracted}
-                              </div>
-                            )}
+                            {(() => {
+                              // Special handling for wine classType when expected is null
+                              const isWineClassType =
+                                (fieldName === 'classType' || fieldName === 'class_type') &&
+                                (application?.beverage_type === 'wine' ||
+                                  application?.beverage_type === 'WINE');
+
+                              // Special handling for sulfite declaration when expected is null
+                              const isSulfiteDeclaration =
+                                (fieldName === 'sulfiteDeclaration' ||
+                                  fieldName === 'sulfite_declaration') &&
+                                (application?.beverage_type === 'wine' ||
+                                  application?.beverage_type === 'WINE');
+
+                              // For wine classType with null expected, show requirement statement after "Expected:"
+                              if (isWineClassType && !result.expected) {
+                                return (
+                                  <div className="text-sm mt-1 text-foreground">
+                                    <span className="font-medium">Expected:</span>{' '}
+                                    <span className="text-foreground">
+                                      A Class/Type designation is required whenever a Varietal is
+                                      not listed on the application.
+                                    </span>
+                                  </div>
+                                );
+                              }
+
+                              // For sulfite declaration with null expected, show requirement statement after "Expected:"
+                              if (isSulfiteDeclaration && !result.expected) {
+                                return (
+                                  <div className="text-sm mt-1 text-foreground">
+                                    <span className="font-medium">Expected:</span>{' '}
+                                    <span className="text-foreground">
+                                      Must appear if the product has 10 ppm or more (total) sulfur
+                                      dioxide.
+                                    </span>
+                                  </div>
+                                );
+                              }
+
+                              // Default display for other fields
+                              if (result.expected || result.extracted) {
+                                return (
+                                  <div className="text-sm mt-1 text-foreground">
+                                    <span className="font-medium">Expected:</span>{' '}
+                                    <span className="text-foreground">
+                                      {result.expected || 'None'}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                            {result.extracted &&
+                              result.type !== 'not_found' &&
+                              result.extracted !== 'Field not found' && (
+                                <div className="text-sm text-foreground">
+                                  <span className="font-medium">Extracted:</span>{' '}
+                                  <span className="text-muted-foreground">{result.extracted}</span>
+                                </div>
+                              )}
                             {result.type === 'not_found' && (
                               <div className="text-sm text-destructive mt-1">
                                 Field not found on label

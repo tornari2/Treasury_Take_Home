@@ -40,6 +40,9 @@ EXTRACTION RULES:
 3. For NET CONTENTS: Usually formatted as:
    - "12 FL OZ" or "12 fl oz" or "12 FL. OZ."
    - "355 mL" or "355ml"
+   - CRITICAL: Extract ONLY the measurement value and unit (e.g., "750 mL", "12 FL OZ")
+   - DO NOT include prefix words like "CONTENTS", "NET CONTENTS", "NET", etc.
+   - If label shows "CONTENTS 750ML" or "NET CONTENTS 750 mL", extract only "750ML" or "750 mL" (without the word "CONTENTS" or "NET CONTENTS")
 4. If a field is not visible or not present, use null
 5. If text is partially obscured but you can reasonably infer it, extract it and note in confidenceNotes
 
@@ -50,7 +53,7 @@ Return a JSON object with this exact structure:
     "brandName": "exact text or null",
     "fancifulName": "exact text or null (optional - many beers don't have one)",
     "classType": "exact beer style text (e.g., 'Ale', 'Lager', 'India Pale Ale', 'Stout') or null",
-    "netContents": "exact text (e.g., '12 FL OZ', '16 fl oz', '355 mL') or null",
+    "netContents": "exact text (e.g., '12 FL OZ', '16 fl oz', '355 mL') or null - CRITICAL: Extract ONLY the measurement value and unit. Do NOT include prefix words like 'CONTENTS', 'NET CONTENTS', or 'NET'. If label shows 'CONTENTS 750ML', extract only '750ML'.",
     "alcoholContent": "exact COMPLETE text including any prefix words (e.g., '5.0% ALC/VOL', 'ALCOHOL 14% BY VOLUME', 'ALC. 5.0% BY VOL.', 'ABV 4.5%') or null - READ CAREFULLY, this is often small. CRITICAL: Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present. If label shows 'ALC. 5.0% BY VOL.', extract as 'ALC. 5.0% BY VOL.' NOT '5.0% BY VOL.'",
     "producerName": "exact text of brewer/bottler name or null",
     "producerAddress": "exact text (city, state format) or null",
@@ -58,7 +61,7 @@ Return a JSON object with this exact structure:
     "healthWarningText": "EXACT full text preserving ALL formatting, or null",
     "countryOfOrigin": "exact text (e.g., 'Product of Mexico', 'Imported from Germany') or null if domestic/not shown",
     "colorAdditiveDisclosure": "exact text (e.g., 'Contains FD&C Yellow #5') or null",
-    "sulfiteDeclaration": "exact text (e.g., 'Contains Sulfites') or null",
+    "sulfiteDeclaration": "exact text (e.g., 'Contains Sulfites', 'No sulfites added. Contains naturally occurring sulfites.') or null - IMPORTANT: If label states 'No sulfites added', extract the COMPLETE text including any accompanying phrase about naturally occurring sulfites",
     "aspartameDeclaration": "exact text (e.g., 'PHENYLKETONURICS: CONTAINS PHENYLALANINE') or null"
   },
   "formatChecks": {
@@ -100,6 +103,7 @@ LABEL ANATOMY - Where to find each field:
   Location: Often near net contents or bottom of front label
 - NET CONTENTS: Standard sizes - "750 mL", "1 L", "1.75 L", "375 mL", "50 mL"
   Location: Usually bottom of label
+  CRITICAL: Extract ONLY the measurement value and unit. Do NOT include prefix words like "CONTENTS", "NET CONTENTS", or "NET". If label shows "CONTENTS 750ML" or "NET CONTENTS 750 mL", extract only "750ML" or "750 mL".
 - AGE STATEMENT: If present, often prominent - "Aged 12 Years", "10 Year Old"
   Note: NOT all spirits have age statements
 - PRODUCER NAME/ADDRESS: Bottom of label, often with qualifier phrase
@@ -142,7 +146,7 @@ Return a JSON object with this exact structure:
     "fancifulName": "exact text or null",
     "classType": "exact spirit type designation or null",
     "alcoholContent": "exact COMPLETE text including any prefix words and % and/or proof (e.g., 'ALCOHOL 40% BY VOLUME', '40% ALC/VOL', 'ALC. 45% BY VOL.') or null - CRITICAL: Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present. If label shows 'ALC. 45% BY VOL.', extract as 'ALC. 45% BY VOL.' NOT '45% BY VOL.'",
-    "netContents": "exact text (e.g., '750 mL') or null",
+    "netContents": "exact text (e.g., '750 mL') or null - CRITICAL: Extract ONLY the measurement value and unit. Do NOT include prefix words like 'CONTENTS', 'NET CONTENTS', or 'NET'. If label shows 'CONTENTS 750ML', extract only '750ML'.",
     "producerName": "exact text or null",
     "producerAddress": "exact text (city, state/country) or null",
     "producerNamePhrase": "qualifier like 'Distilled By', 'Bottled By', 'Imported By' or null",
@@ -190,18 +194,21 @@ LABEL ANATOMY - Where to find each field:
   European style: "Chianti", "Bordeaux", "Burgundy", "Champagne"
   CRITICAL PRIORITY RULE: If BOTH a varietal (grape name) AND a class/type (e.g., "White Wine", "Red Wine") appear on the label, ALWAYS extract the VARIETAL, not the class/type. Varietals take precedence over generic class/type designations.
 - APPELLATION: Geographic origin - can be very specific
-  US: "Napa Valley", "Sonoma Coast", "Willamette Valley", "Finger Lakes"
+  US: "Napa Valley", "Sonoma Coast", "Willamette Valley", "Finger Lakes", or state names like "Virginia", "California", "Oregon", "New York" when listed prominently and separately
   European: "Bordeaux AOC", "Chianti Classico DOCG", "Rioja DOCa", "Mosel"
+  CRITICAL: State names are valid appellations when they appear prominently and separately on the label (not just in the producer address)
 - ALCOHOL CONTENT: Usually 11-15% for table wines, higher for fortified
   Location: Often at bottom of label, small text
   Format: "13.5% Alc/Vol", "ALC. 14.1% BY VOL.", "ALC. 12.5% BY VOL.", "ALCOHOL 14% BY VOLUME"
   CRITICAL: Extract the complete text including prefix words like "ALC." or "ALCOHOL"
 - NET CONTENTS: Standard sizes - "750 mL", "1.5 L" (magnum), "375 mL" (half)
+  CRITICAL: Extract ONLY the measurement value and unit. Do NOT include prefix words like "CONTENTS", "NET CONTENTS", or "NET". If label shows "CONTENTS 750ML" or "NET CONTENTS 750 mL", extract only "750ML" or "750 mL".
 - PRODUCER NAME/ADDRESS: Winery name and location, often at bottom
   IMPORTANT: For IMPORTED wines, extract the name/address that follows "Imported By" (this is the importer, not the producer)
   For domestic wines, extract the producer name/address (may follow "Bottled By", "Produced By", etc.)
 - SULFITE DECLARATION: "Contains Sulfites" - required on most wines
   Location: Usually back label or bottom of front label, small text
+  IMPORTANT: If label states "No sulfites added", extract the COMPLETE text including any accompanying phrase like "contains naturally occurring sulfites" or "may contain naturally occurring sulfites". Extract the full statement as it appears on the label.
 - HEALTH WARNING: Block of small text, usually on back label
 - ESTATE BOTTLED: Special designation - look for exact phrase "Estate Bottled"
 
@@ -234,8 +241,12 @@ EXTRACTION RULES:
    - Fortified (Port, Sherry): 17-24%
    - Read carefully - 13.5 vs 14.5 matters
 6. APPELLATION: Extract the complete geographic designation
+   - US appellations can be: AVA names (e.g., "Napa Valley", "Sonoma Coast"), state names (e.g., "Virginia", "California", "Oregon"), or regions
+   - State names like "VIRGINIA", "CALIFORNIA", "OREGON", "NEW YORK" are valid appellations when listed separately on the label
+   - Look for geographic designations that appear prominently and separately from other text
    - Include qualifiers: "DOCG", "AOC", "AVA" if shown
    - Preserve exact capitalization as shown on label (follows same rule as all other fields)
+   - CRITICAL: If a state name appears prominently on the label (separate from producer address), extract it as the appellation
 7. ESTATE BOTTLED: Only true if exact phrase appears
    - "Estate Bottled" ✓
    - "Estate Grown" ✓  
@@ -248,15 +259,15 @@ Return a JSON object with this exact structure:
   "extraction": {
     "brandName": "exact winery/brand name or null",
     "classType": "exact varietal (grape name) or wine type or null - CRITICAL: If both a varietal (grape name like 'Khikhvi', 'Chardonnay') and a class/type (like 'White Wine', 'Red Wine') appear on the label, extract the VARIETAL, not the class/type. Varietals always take precedence.",
-    "appellation": "exact geographic designation with any qualifiers (AOC, DOCG, etc.) or null",
+    "appellation": "exact geographic designation with any qualifiers (AOC, DOCG, etc.) or null - CRITICAL: For US wines, state names like 'Virginia', 'California', 'Oregon' are valid appellations when listed prominently and separately on the label. Extract state names if they appear as geographic designations separate from producer address.",
     "alcoholContent": "exact COMPLETE text including any prefix words (e.g., '13.5% Alc/Vol', 'ALCOHOL 14% BY VOLUME', 'ALC. 13.5% BY VOL.', 'ALC. 12.5% BY VOL.') or null - CRITICAL: Extract the ENTIRE text including 'ALCOHOL', 'ALC.', or 'ABV' if present. If label shows 'ALC. 12.5% BY VOL.', extract as 'ALC. 12.5% BY VOL.' NOT '12.5% BY VOL.'",
-    "netContents": "exact text (e.g., '750 mL') or null",
+    "netContents": "exact text (e.g., '750 mL') or null - CRITICAL: Extract ONLY the measurement value and unit. Do NOT include prefix words like 'CONTENTS', 'NET CONTENTS', or 'NET'. If label shows 'CONTENTS 750ML', extract only '750ML'.",
     "producerName": "exact winery/bottler name or null",
     "producerAddress": "exact text (city, state/region, country) or null",
     "producerNamePhrase": "qualifier like 'Produced & Bottled By', 'Vinted & Bottled By', 'Imported By' or null",
     "healthWarningText": "EXACT full text preserving ALL formatting, or null",
     "countryOfOrigin": "exact text or null if domestic/not shown",
-    "sulfiteDeclaration": "exact text (e.g., 'Contains Sulfites') or null",
+    "sulfiteDeclaration": "exact text (e.g., 'Contains Sulfites', 'No sulfites added. Contains naturally occurring sulfites.') or null - IMPORTANT: If label states 'No sulfites added', extract the COMPLETE text including any accompanying phrase about naturally occurring sulfites",
     "colorIngredientDisclosure": "exact text or null",
     "foreignWinePercentage": "exact text if blended with foreign wine (e.g., '25% French Wine') or null",
     "isEstateBottled": true/false/null

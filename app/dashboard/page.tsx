@@ -175,12 +175,6 @@ export default function Dashboard() {
   };
 
   const handleDelete = async (appId: number) => {
-    if (
-      !confirm('Are you sure you want to delete this application? This action cannot be undone.')
-    ) {
-      return;
-    }
-
     setDeletingApp(appId);
     try {
       const response = await fetch(`/api/applications/${appId}`, {
@@ -195,11 +189,10 @@ export default function Dashboard() {
         setSelectedApps(newSelected);
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        alert(`Failed to delete application: ${errorData.error || 'Unknown error'}`);
+        console.error(`Failed to delete application: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Error deleting application');
     } finally {
       setDeletingApp(null);
     }
@@ -220,16 +213,6 @@ export default function Dashboard() {
 
   const handleDeleteSelected = async () => {
     if (selectedApps.size === 0) return;
-
-    const count = selectedApps.size;
-    const message =
-      count === 1
-        ? 'Are you sure you want to delete this application? This action cannot be undone.'
-        : `Are you sure you want to delete ${count} applications? This action cannot be undone.`;
-
-    if (!confirm(message)) {
-      return;
-    }
 
     setDeletingApps(new Set(selectedApps));
     const appIds = Array.from(selectedApps);
@@ -263,17 +246,16 @@ export default function Dashboard() {
       // Clear selection
       setSelectedApps(new Set());
 
-      // Show results
+      // Log results to console instead of showing alerts
       if (results.failed === 0) {
-        alert(`Successfully deleted ${results.success} application(s).`);
+        console.log(`Successfully deleted ${results.success} application(s).`);
       } else {
-        alert(
+        console.error(
           `Deleted ${results.success} application(s). Failed to delete ${results.failed} application(s).`
         );
       }
     } catch (error) {
       console.error('Batch delete error:', error);
-      alert('Error deleting applications');
     } finally {
       setDeletingApps(new Set());
     }

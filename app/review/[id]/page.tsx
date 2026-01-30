@@ -9,6 +9,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react';
 import { getFieldLabel } from '@/lib/validation/display';
 
+interface ImageQualityIssues {
+  hasPerspectiveDistortion: boolean;
+  hasLightingIssues: boolean;
+  hasGlare: boolean;
+  needsPreprocessing: boolean;
+}
+
 interface LabelImage {
   id: number;
   image_type: string;
@@ -17,6 +24,7 @@ interface LabelImage {
   verification_result: any;
   confidence_score: number | null;
   image_data_base64?: string;
+  quality_issues?: ImageQualityIssues | null;
 }
 
 interface Application {
@@ -52,6 +60,9 @@ export default function ReviewPage() {
   const currentFetchIdRef = useRef<string | null>(null);
   // Ref to prevent infinite loop when clearing verification results
   const isVerifyingRef = useRef(false);
+  // Ref to preserve previous application during transitions (prevents flicker)
+  // This stays in memory and doesn't cause quota issues
+  const previousApplicationRef = useRef<Application | null>(null);
 
   useEffect(() => {
     if (params.id) {
@@ -63,18 +74,22 @@ export default function ReviewPage() {
         return;
       }
 
-      // Only clear application if we're switching to a different application
-      // This keeps the previous app visible during transitions
+      // When switching to a different application:
+      // - Keep previous application visible (don't clear it)
+      // - Don't reset hasAttemptedFetch (prevents loading screens from showing)
+      // - Don't set isLoading (prevents overlay)
+      // - Just fetch the new application in the background
       if (application && application.id !== newId) {
-        // ID changed to a different app - keep previous app visible, show loading overlay
-        setHasAttemptedFetch(false);
+        // ID changed to a different app - keep previous app visible
         setFetchError(null);
-        setIsLoading(true);
-      } else if (!application) {
-        // No application loaded yet - reset fetch state
-        setHasAttemptedFetch(false);
+        setIsLoading(false);
+        // Keep hasAttemptedFetch as true to prevent loading screens
+      } else if (!application && !previousApplicationRef.current) {
+        // True initial load - no application ever loaded and no previous in memory
+        // Set hasAttemptedFetch immediately to prevent loading screens
+        setHasAttemptedFetch(true);
         setFetchError(null);
-        setIsLoading(true);
+        setIsLoading(false);
       }
 
       // Update the ref to track which ID we're fetching
@@ -125,6 +140,14 @@ export default function ReviewPage() {
       }
     }
   }, [params.id, searchParams]);
+
+  // Update ref whenever application changes (for smooth transitions)
+  // Keep in memory only - sessionStorage would exceed quota with image data
+  useEffect(() => {
+    if (application) {
+      previousApplicationRef.current = application;
+    }
+  }, [application]);
 
   // Initialize zoom and pan for all images
   useEffect(() => {
@@ -193,7 +216,8 @@ export default function ReviewPage() {
 
     try {
       setHasAttemptedFetch(true);
-      setIsLoading(true);
+      // Don't set isLoading to true here - we want to keep previous content visible
+      // Only show loading state if we have no application at all (handled by early return)
       const response = await fetch(`/api/applications/${fetchId}`);
 
       // Check again if params.id changed during the fetch
@@ -243,7 +267,7 @@ export default function ReviewPage() {
 
           // Only set error state if this is still the current fetch
           if (currentFetchIdRef.current === fetchId) {
-            setApplication(null);
+            // Don't clear application on error - keep previous visible
             setFetchError('not_found');
             setIsLoading(false);
           }
@@ -251,7 +275,7 @@ export default function ReviewPage() {
           // Other errors (500, network, etc.) - show error but allow retry
           console.error(`Failed to fetch application: ${response.status} ${response.statusText}`);
           if (currentFetchIdRef.current === fetchId) {
-            setApplication(null);
+            // Don't clear application on error - keep previous visible
             setFetchError('error');
             setIsLoading(false);
             // Keep hasAttemptedFetch true so we show error state
@@ -270,6 +294,7 @@ export default function ReviewPage() {
       // Only update if this is the application we're currently viewing
       if (data.application && data.application.id === Number(fetchId)) {
         setApplication(data.application);
+        previousApplicationRef.current = data.application; // Store for transitions (in memory only)
         setFetchError(null); // Clear any previous errors on successful fetch
         setIsLoading(false); // Loading complete
       }
@@ -277,7 +302,7 @@ export default function ReviewPage() {
       // Only log/update state if this is still the current fetch
       if (currentFetchIdRef.current === fetchId) {
         console.error('Error fetching application:', error);
-        setApplication(null);
+        // Don't clear application on error - keep previous visible
         setFetchError('error');
         setIsLoading(false);
         // Keep hasAttemptedFetch true so we show error state
@@ -309,6 +334,7 @@ export default function ReviewPage() {
           ...img,
           verification_result: null, // Clear verification results - use null to ensure proper clearing
           extracted_data: null, // Also clear extracted data
+          quality_issues: null, // Clear quality issues - they'll be recalculated during verification
         })),
       };
     });
@@ -516,75 +542,53 @@ export default function ReviewPage() {
     return <>{text}</>;
   };
 
-  // Check if user wants to verify (from verify button click)
-  const shouldVerifyOnLoad = searchParams?.get('verify') === 'true';
+  // Use previous application during transitions to prevent flicker
+  // Always prefer current application, fall back to previous if available
+  // NEVER show loading screens during navigation - always show previous app if available
+  const displayApplication = application || previousApplicationRef.current;
 
-  // Show loading state only if we have no application and haven't attempted fetch yet
-  if (!application && !hasAttemptedFetch) {
+  // ONLY show error states if we have a real error AND no application to display
+  // NEVER show loading screens - they cause flicker
+  if (!displayApplication && fetchError === 'not_found' && hasAttemptedFetch) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-2">
-          <div className="text-lg text-muted-foreground">
-            {shouldVerifyOnLoad
-              ? 'Loading application and starting verification...'
-              : 'Loading application...'}
-          </div>
-          {shouldVerifyOnLoad && (
-            <div className="text-sm text-muted-foreground">This may take a moment</div>
-          )}
+        <div className="text-lg text-red-600">Application not found</div>
+      </div>
+    );
+  }
+
+  if (!displayApplication && fetchError === 'error' && hasAttemptedFetch) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="space-y-2 text-center">
+          <div className="text-lg text-red-600">Error loading application</div>
+          <button
+            onClick={() => {
+              setFetchError(null);
+              fetchApplication();
+            }}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
   }
 
-  // Show error states only if we've attempted to fetch and have no application
-  if (!application && hasAttemptedFetch && params.id) {
-    if (fetchError === 'not_found') {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-lg text-red-600">Application not found</div>
-        </div>
-      );
-    } else if (fetchError === 'error') {
-      return (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="space-y-2 text-center">
-            <div className="text-lg text-red-600">Error loading application</div>
-            <button
-              onClick={() => {
-                setHasAttemptedFetch(false);
-                setFetchError(null);
-                setIsLoading(true);
-                fetchApplication();
-              }}
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      );
-    }
-    // Fallback to loading if no specific error
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg text-muted-foreground">Loading application...</div>
-      </div>
-    );
+  // If we have no application to display and no error, show nothing (or previous app)
+  // This prevents any loading screens from appearing
+  if (!displayApplication) {
+    // Return empty div instead of loading screen - prevents flicker
+    return <div className="min-h-screen bg-gray-50" />;
   }
 
-  // Don't render the rest if we don't have application data yet
-  if (!application) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg text-muted-foreground">Loading application...</div>
-      </div>
-    );
-  }
+  // Use displayApplication instead of application to prevent flicker during transitions
+  const currentApp = displayApplication;
 
   // Use the first image's verification result (they should all be the same)
   // Only use verification_result if it exists and is not null
-  const firstImageVerificationResult = application.label_images[0]?.verification_result;
+  const firstImageVerificationResult = currentApp.label_images[0]?.verification_result;
   const verificationResult =
     firstImageVerificationResult &&
     typeof firstImageVerificationResult === 'object' &&
@@ -628,12 +632,7 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8 relative">
-      {/* Loading overlay - shows during transitions while keeping previous content visible */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="text-lg text-muted-foreground">Loading application...</div>
-        </div>
-      )}
+      {/* Removed loading overlay - previous content stays visible during transitions */}
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -686,13 +685,41 @@ export default function ReviewPage() {
             <h2 className="text-xl font-semibold mb-4">Label Images</h2>
 
             <div className="space-y-6">
-              {application.label_images.map((img) => {
+              {currentApp.label_images.map((img) => {
                 const imageZoom = imageZooms[img.id] || 1;
                 const imagePan = imagePans[img.id] || { x: 0, y: 0 };
                 const isImageDragging = isDragging[img.id] || false;
+                const qualityIssues = img.quality_issues;
 
                 return (
                   <div key={img.id} className="border rounded-lg p-4 bg-gray-50">
+                    {/* Quality Issues Notification - Only show when verification is complete */}
+                    {qualityIssues?.needsPreprocessing &&
+                      !verifying &&
+                      img.verification_result !== null &&
+                      typeof img.verification_result === 'object' &&
+                      Object.keys(img.verification_result).length > 0 && (
+                        <Alert className="mb-3 border-yellow-500 bg-yellow-50">
+                          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                          <AlertDescription>
+                            <div className="font-medium text-yellow-900 mb-1">
+                              Image Quality Issues Detected
+                            </div>
+                            <div className="text-sm text-yellow-800 space-y-1">
+                              {qualityIssues.hasPerspectiveDistortion && (
+                                <div>• Weird angle/perspective distortion detected</div>
+                              )}
+                              {qualityIssues.hasLightingIssues && (
+                                <div>• Poor lighting conditions detected</div>
+                              )}
+                              {qualityIssues.hasGlare && <div>• Glare/hotspots detected</div>}
+                              <div className="text-xs text-yellow-700 mt-2 italic">
+                                Image was automatically preprocessed to improve readability
+                              </div>
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      )}
                     <div className="mb-2 flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium capitalize">{img.image_type}</span>
@@ -811,9 +838,9 @@ export default function ReviewPage() {
                           <div className="font-semibold text-foreground">
                             {getFieldLabel(
                               fieldName,
-                              application?.beverage_type,
-                              application?.expected_label_data?.originType ||
-                                application?.application_data?.originType
+                              currentApp?.beverage_type,
+                              currentApp?.expected_label_data?.originType ||
+                                currentApp?.application_data?.originType
                             )}
                           </div>
                           {result.type === 'not_applicable' ? (
@@ -829,8 +856,8 @@ export default function ReviewPage() {
                                     // Special handling for wine classType when expected is null
                                     const isWineClassType =
                                       (fieldName === 'classType' || fieldName === 'class_type') &&
-                                      (application?.beverage_type === 'wine' ||
-                                        application?.beverage_type === 'WINE');
+                                      (currentApp?.beverage_type === 'wine' ||
+                                        currentApp?.beverage_type === 'WINE');
 
                                     // Special handling for non-wine classType when expected is null (beer/spirits)
                                     const isNonWineClassType =
@@ -842,15 +869,15 @@ export default function ReviewPage() {
                                     const isSulfiteDeclaration =
                                       (fieldName === 'sulfiteDeclaration' ||
                                         fieldName === 'sulfite_declaration') &&
-                                      (application?.beverage_type === 'wine' ||
-                                        application?.beverage_type === 'WINE');
+                                      (currentApp?.beverage_type === 'wine' ||
+                                        currentApp?.beverage_type === 'WINE');
 
                                     // Special handling for age statement when not required
                                     const isAgeStatement =
                                       (fieldName === 'ageStatement' ||
                                         fieldName === 'age_statement') &&
-                                      (application?.beverage_type === 'spirits' ||
-                                        application?.beverage_type === 'SPIRITS');
+                                      (currentApp?.beverage_type === 'spirits' ||
+                                        currentApp?.beverage_type === 'SPIRITS');
 
                                     // Special handling for alcohol content (always required)
                                     const isAlcoholContent =
@@ -872,8 +899,7 @@ export default function ReviewPage() {
 
                                     // For non-wine classType (beer/spirits) with null expected, show requirement statement
                                     if (isNonWineClassType && !result.expected) {
-                                      const beverageType =
-                                        application?.beverage_type?.toLowerCase();
+                                      const beverageType = currentApp?.beverage_type?.toLowerCase();
                                       const typeDescription =
                                         beverageType === 'spirits'
                                           ? 'A Class or Type designation describing the kind of distilled spirits'

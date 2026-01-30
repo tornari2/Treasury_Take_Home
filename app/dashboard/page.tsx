@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,10 +35,15 @@ interface Application {
   review_notes?: string | null;
 }
 
+// Module-level variables to persist across component remounts
+let cachedApplications: Application[] = [];
+let hasLoadedBefore = false;
+
 export default function Dashboard() {
   const router = useRouter();
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [applications, setApplications] = useState<Application[]>(cachedApplications);
+  const [loading, setLoading] = useState(false); // Start as false to prevent loading screen
+  const previousApplicationsRef = useRef<Application[]>(cachedApplications);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedApps, setSelectedApps] = useState<Set<number>>(new Set());
   const [batchProcessing, setBatchProcessing] = useState(false);
@@ -48,13 +53,21 @@ export default function Dashboard() {
   const [deletingApps, setDeletingApps] = useState<Set<number>>(new Set());
 
   useEffect(() => {
+    // Initialize with cached applications if available (prevents flicker on navigation)
+    if (cachedApplications.length > 0) {
+      setApplications(cachedApplications);
+      previousApplicationsRef.current = cachedApplications;
+    }
     fetchApplications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedStatus]);
 
   const fetchApplications = async () => {
     try {
-      setLoading(true);
+      // Only show loading on true initial load (never loaded before)
+      if (!hasLoadedBefore && cachedApplications.length === 0) {
+        setLoading(true);
+      }
       const url =
         selectedStatus === 'all'
           ? '/api/applications'
@@ -65,25 +78,30 @@ export default function Dashboard() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('Error fetching applications:', errorData);
-        setApplications([]);
+        // Keep previous applications visible on error
         return;
       }
 
       const data = await response.json();
-      setApplications(data.applications || []);
+      const newApplications = data.applications || [];
+      setApplications(newApplications);
+      previousApplicationsRef.current = newApplications; // Store for transitions
+      cachedApplications = newApplications; // Cache at module level
+      hasLoadedBefore = true; // Mark as loaded at module level
     } catch (error) {
       console.error('Error fetching applications:', error);
-      setApplications([]);
+      // Keep previous applications visible on error
     } finally {
       setLoading(false);
     }
   };
 
   const handleSelectAll = () => {
-    if (selectedApps.size === applications.length) {
+    const currentApps = applications.length > 0 ? applications : previousApplicationsRef.current;
+    if (selectedApps.size === currentApps.length) {
       setSelectedApps(new Set());
     } else {
-      setSelectedApps(new Set(applications.map((app) => app.id)));
+      setSelectedApps(new Set(currentApps.map((app) => app.id)));
     }
   };
 
@@ -373,7 +391,13 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  // Use previous applications during loading to prevent flicker
+  const displayApplications =
+    applications.length > 0 ? applications : previousApplicationsRef.current;
+
+  // ONLY show loading screen on true initial load (never loaded before AND no cached data)
+  // During navigation, keep previous applications visible
+  if (loading && !hasLoadedBefore && displayApplications.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">Loading applications...</div>
@@ -412,7 +436,10 @@ export default function Dashboard() {
                 <TableRow>
                   <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={selectedApps.size === applications.length && applications.length > 0}
+                      checked={
+                        selectedApps.size === displayApplications.length &&
+                        displayApplications.length > 0
+                      }
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
@@ -427,14 +454,14 @@ export default function Dashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {applications.length === 0 ? (
+                {displayApplications.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       No applications found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  applications.map((app) => (
+                  displayApplications.map((app) => (
                     <TableRow
                       key={app.id}
                       className={`cursor-pointer ${selectedApps.has(app.id) ? 'bg-blue-50' : ''}`}

@@ -436,6 +436,29 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
+### Critical Verification Fix (January 29, 2025 - Latest)
+
+- **Function Export Bug Fix:**
+  - Fixed `normalizeBusinessEntitySuffix` function not being exported from `lib/validation/utils.ts`
+  - Function was imported in `lib/validation/validators/common.ts` but wasn't exported
+  - Caused runtime error: "normalizeBusinessEntitySuffix is not a function"
+  - Verification silently returned empty `{}` results, making it appear verification completed but showed no results
+  - Fixed by adding `export` keyword to function definition
+
+- **Error Handling Improvement:**
+  - Updated `verifyApplication()` to re-throw errors instead of silently returning `{}`
+  - Errors now properly propagate for debugging
+
+- **Empty Result Detection:**
+  - Review page now checks `Object.keys(verification_result).length > 0` instead of just truthiness
+  - Auto-verification retries when results are empty
+  - Added manual "Verify Application" button for retry
+
+- **Batch Testing Infrastructure:**
+  - Added `scripts/create-batch-applications.ts` for creating test applications in bulk
+  - Added `scripts/verify-batch.ts` for verifying batch creation
+  - Added GALLO beer test images to `test_labels/beer_imported/`
+
 ### Latest Improvements (January 29, 2025 - Continued)
 
 - **Confidence Score Removal:**
@@ -470,4 +493,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 29, 2025 (Image type enhancements: added 'other' as valid image type option for label images, updated database migration to support 'other' image type; Validation improvements: alcohol content validation now accepts 'XX% Alc. by Vol.' format, producer name matching improved to handle entity suffix differences (e.g., 'LLC' vs no suffix), review page now shows 'Extracted:' field even when empty if expected value exists; UI improvements: removed 'Other Information' field from application form; UI/UX improvements: removed deletion confirmation dialogs, improved field display with null handling and better text colors, wine Class/Type and sulfite declaration requirement messages, yellow border for soft mismatch fields, Class/Type requirement messages for beer/spirits; Validation enhancements: appellation matching with additional text, net contents extraction improvements, producer address ZIP code handling, sulfite declaration "No sulfites added" validation, minor misspelling detection (Levenshtein distance) for all fields, alcohol content proof statement support for spirits; Navigation improvements: fixed application not found flicker during page transitions; Dashboard improvements: Product Type column matches form labels. Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (Critical verification fix: exported normalizeBusinessEntitySuffix function that was causing verification to silently fail; Error handling: verifyApplication re-throws errors instead of returning {}; Empty result detection in review page fixed; Manual verify button added; Batch testing scripts created. Previous: Image type enhancements, validation improvements, UI/UX improvements, navigation fixes, dashboard enhancements. Ready for production deployment and testing.)_

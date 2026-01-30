@@ -10,7 +10,34 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Fanciful Name Extraction, Batch Verification, and UI Improvements ✅ (Latest - January 29, 2025)
+### Critical Verification Fix and Batch Testing Infrastructure ✅ (Latest - January 29, 2025)
+
+- **Verification Function Export Fix:**
+  - Fixed `normalizeBusinessEntitySuffix` function in `lib/validation/utils.ts` - was defined but not exported
+  - Function was being imported in `lib/validation/validators/common.ts` causing runtime error: "normalizeBusinessEntitySuffix is not a function"
+  - Verification was silently catching this error and returning empty `{}` results
+  - Fixed by adding `export` keyword to the function definition
+
+- **Error Handling Improvements:**
+  - Updated `verifyApplication()` in `lib/verification.ts` to re-throw errors instead of silently returning `{}`
+  - Errors are now properly propagated to the API layer for better debugging
+
+- **Empty Verification Result Detection:**
+  - Updated review page (`app/review/[id]/page.tsx`) to properly detect empty verification results
+  - Changed check from `img.verification_result` (truthy) to `Object.keys(img.verification_result).length > 0`
+  - Auto-verification now correctly retries when results are empty
+
+- **Manual Verify Button:**
+  - Added "Verify Application" button to review page when no verification results exist
+  - Allows users to manually trigger verification retry
+
+- **Batch Testing Infrastructure:**
+  - Created `scripts/create-batch-applications.ts` - Script to create 50 copies of test applications
+  - Created `scripts/verify-batch.ts` - Script to verify batch applications were created correctly
+  - Added GALLO beer test images to `test_labels/beer_imported/`
+  - Supports batch verification testing with realistic data
+
+### Fanciful Name Extraction, Batch Verification, and UI Improvements ✅ (January 29, 2025)
 
 - **Fanciful Name Extraction Fix:**
   - Added `fanciful_name` field to extraction for spirits and malt beverages (beer)
@@ -805,4 +832,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (Fanciful name extraction: added for spirits and malt beverages with examples in prompts; Health warning display: "GOVERNMENT WARNING" shown in bold; Batch verification: fixed async processing and status polling; UI improvements: batch buttons show "Batch (X)" when multiple selected; Code quality: fixed duplicate import. Previous: Image type enhancements, validation improvements, UI/UX improvements, navigation fixes, dashboard enhancements. Ready for production deployment and testing.)_
+_Last Updated: January 29, 2025 (Critical verification fix: exported missing normalizeBusinessEntitySuffix function that was causing verification to silently fail with empty results; Error handling: verifyApplication now re-throws errors instead of returning {}; Empty result detection: review page properly detects empty verification results and retries; Manual verify button added; Batch testing infrastructure: scripts and test images for creating 50 test applications. Previous: Fanciful name extraction, batch verification async processing, UI improvements. Ready for production deployment and testing.)_

@@ -12,6 +12,44 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ### UI/UX & Validation Improvements ✅ (Latest - January 29, 2025)
 
+- **Soft Mismatch Visual Feedback:**
+  - Fields with soft mismatch status now display a yellow border matching the warning icon color
+  - Border uses `border-yellow-600` class to match the `text-yellow-600` warning icon
+  - Improves visual consistency and makes soft mismatches more noticeable
+
+- **Minor Misspelling Detection:**
+  - Added Levenshtein distance algorithm to detect strings that differ by 1-2 characters
+  - Minor misspellings (e.g., "TOBIAS FROG" vs "Tobias Frogg") are now treated as SOFT_MISMATCH instead of HARD_MISMATCH
+  - Applied to all cross-checked fields: brand name, fanciful name, appellation, varietal, vintage date, producer name
+  - Handles common OCR errors and typos appropriately
+  - Health Warning Statement excluded (must remain exact match)
+
+- **Class/Type Requirement Messages:**
+  - Beer/Spirits Class/Type fields now show requirement messages when expected is null
+  - Spirits: "A Class or Type designation describing the kind of distilled spirits"
+  - Beer: "A Class or Type designation describing the kind of malt beverage"
+  - Replaces "Expected: None" with appropriate requirement statement
+
+- **Alcohol Content Validation Enhancement:**
+  - Updated spirits validation to allow proof statements alongside Alc/Vol format
+  - Proof statements (e.g., "80 PROOF") are allowed when combined with valid Alc/Vol statement
+  - Added `containsValidAlcoholFormat()` function that checks for valid format within text (allows additional text)
+  - Example: "40% Alc./Vol. 80 PROOF" now validates correctly
+
+- **Application Navigation Fix:**
+  - Fixed "Application Not Found" flicker when transitioning between application pages
+  - Added `hasAttemptedFetch` state to track fetch attempts
+  - Only shows "not found" message after fetch completes, not during initial render
+  - Improved loading state management prevents UI flicker during transitions
+
+- **Dashboard Product Type Column:**
+  - Updated Product Type column to match application form labels
+  - "beer" → "Malt Beverage" (instead of "Beer")
+  - "wine" → "Wine" (unchanged)
+  - "spirits" → "Distilled Spirits" (instead of "Spirits")
+
+### Previous UI/UX & Validation Improvements ✅ (January 29, 2025)
+
 - **Deletion Flow Improvements:**
   - Removed confirmation dialogs for single and batch application deletion
   - Removed success/failure alert messages after deletion
@@ -254,6 +292,7 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 - **Brand Name Validation:**
   - Case-only differences (e.g., "CROOKED HAMMOCK BREWERY" vs "Crooked Hammock Brewery") treated as MATCH
   - Only formatting differences (punctuation, whitespace) result in SOFT_MISMATCH
+  - Minor misspellings (1-2 character differences) detected via Levenshtein distance also result in SOFT_MISMATCH
   - Added `differsOnlyByCase()` utility function
 
 - **Extraction Prompt Enhancements:**
@@ -304,6 +343,7 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
   - Case-only differences (e.g., "LAKE HOUSTON BREWERY" vs "LAKE HOUSTON Brewery") now treated as MATCH
   - Only non-case formatting differences (punctuation, whitespace) result in SOFT_MISMATCH
   - Entity suffix differences still result in SOFT_MISMATCH
+  - Minor misspellings (1-2 character differences) detected via Levenshtein distance also result in SOFT_MISMATCH
 
 - **Field Not Found Display Improvements:**
   - All cross-checked fields now show actual expected values instead of "Field not found"
@@ -363,6 +403,8 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
   - Expected text is black, Extracted text is grey
   - Field titles remain black even for mismatches
   - Wine Class/Type and Sulfite Declaration show requirement messages instead of "Expected: None"
+  - Beer/Spirits Class/Type fields also show requirement messages when expected is null
+  - Soft mismatch fields display yellow border matching warning icon color
 
 - **Verification Flow:**
   - Removed "verification completed successfully" alert

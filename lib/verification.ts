@@ -10,7 +10,6 @@ import {
   SpiritsExtractionResult,
   WineExtractionResult,
   validateLabel,
-  determineApplicationStatus as determineStatusFromValidation,
 } from './validation';
 import type { ExtractedData, VerificationResult } from '@/types/database';
 

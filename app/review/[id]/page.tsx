@@ -45,7 +45,7 @@ export default function ReviewPage() {
   const [application, setApplication] = useState<Application | null>(null);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [fetchError, setFetchError] = useState<'not_found' | 'error' | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Used for error state management
   const [verifying, setVerifying] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [imageZooms, setImageZooms] = useState<Record<number, number>>({});

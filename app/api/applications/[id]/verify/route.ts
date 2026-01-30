@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { applicationHelpers, labelImageHelpers } from '@/lib/db-helpers';
-import { auditLogHelpers } from '@/lib/db-helpers';
 import {
   extractLabelData,
   validateOpenAIKey,
@@ -11,7 +10,6 @@ import {
 } from '@/lib/openai-service';
 import { verifyApplication, determineApplicationStatus } from '@/lib/verification';
 import { convertApplicationToApplicationData } from '@/lib/application-converter';
-import type { ExtractedData } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
 

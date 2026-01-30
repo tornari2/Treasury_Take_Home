@@ -30,7 +30,7 @@ export class OpenAINetworkError extends Error {
 export class OpenAIAPIError extends Error {
   constructor(
     message: string,
-    public statusCode?: number
+    public statusCode?: number // Used in error handling in route.ts
   ) {
     super(message);
     this.name = 'OpenAIAPIError';

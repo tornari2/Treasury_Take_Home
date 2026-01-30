@@ -10,7 +10,6 @@ import {
 import { verifyApplication, determineApplicationStatus } from './verification';
 import { applicationHelpers, labelImageHelpers } from './db-helpers';
 import { convertApplicationToApplicationData } from './application-converter';
-import type { ExtractedData } from '@/types/database';
 
 export interface BatchStatus {
   batch_id: string;

@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Treasury Take Home',
-  description: 'Application management and verification system',
+  title: "Treasury Take Home",
+  description: "Application management and verification system",
 };
 
 export default function RootLayout({

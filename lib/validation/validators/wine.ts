@@ -7,14 +7,14 @@ import {
   ApplicationData,
   FieldValidationResult,
   WineExtractionResult,
-} from '../types';
+} from "../types";
 import {
   stringsMatch,
   isSoftMismatch,
   isSimilarString,
   valueExists,
   normalizeString,
-} from '../utils';
+} from "../utils";
 
 /**
  * Validate Appellation of Origin (wine only)
@@ -22,7 +22,7 @@ import {
  */
 export function validateAppellation(
   application: ApplicationData,
-  extraction: WineExtractionResult['extraction']
+  extraction: WineExtractionResult["extraction"],
 ): FieldValidationResult {
   const expected = application.appellation;
   const extracted = extraction.appellation;
@@ -37,53 +37,55 @@ export function validateAppellation(
   // If appellation is required but not present on label
   if (appellationRequired && !valueExists(extracted)) {
     const reasons: string[] = [];
-    if (hasVarietal) reasons.push('varietal designation');
-    if (isEstateBottled) reasons.push('estate bottled');
+    if (hasVarietal) reasons.push("varietal designation");
+    if (isEstateBottled) reasons.push("estate bottled");
 
     // Show expected appellation if it exists in application, otherwise show requirement message
-    const expectedValue = valueExists(expected) ? expected! : 'Required (see details)';
+    const expectedValue = valueExists(expected)
+      ? expected!
+      : "Required (see details)";
 
     return {
-      field: 'appellation',
+      field: "appellation",
       status: MatchStatus.NOT_FOUND,
       expected: expectedValue,
-      extracted: 'Field not found',
-      rule: 'PRESENCE: Appellation required when label contains varietal or estate bottled',
-      details: `Appellation required because label contains: ${reasons.join(', ')}`,
+      extracted: "Field not found",
+      rule: "PRESENCE: Appellation required when label contains varietal or estate bottled",
+      details: `Appellation required because label contains: ${reasons.join(", ")}`,
     };
   }
 
   // If neither application nor label has appellation, and it's not required
   if (!valueExists(expected) && !valueExists(extracted)) {
     return {
-      field: 'appellation',
+      field: "appellation",
       status: MatchStatus.NOT_APPLICABLE,
       expected: null,
       extracted: null,
-      rule: 'CROSS-CHECK: Appellation not specified in application and not required on label',
+      rule: "CROSS-CHECK: Appellation not specified in application and not required on label",
     };
   }
 
   // If application has appellation but label doesn't (and it's not otherwise required)
   if (valueExists(expected) && !valueExists(extracted)) {
     return {
-      field: 'appellation',
+      field: "appellation",
       status: MatchStatus.NOT_FOUND,
       expected: expected!,
-      extracted: 'Field not found',
-      rule: 'CROSS-CHECK: Appellation in application must appear on label',
+      extracted: "Field not found",
+      rule: "CROSS-CHECK: Appellation in application must appear on label",
     };
   }
 
   // If label has appellation but application doesn't (CROSS-CHECK: must exist in both if exists in one)
   if (!valueExists(expected) && valueExists(extracted)) {
     return {
-      field: 'appellation',
+      field: "appellation",
       status: MatchStatus.HARD_MISMATCH,
       expected: null,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Appellation on label must be in application',
-      details: 'Label contains an appellation not listed in the application',
+      rule: "CROSS-CHECK: Appellation on label must be in application",
+      details: "Label contains an appellation not listed in the application",
     };
   }
 
@@ -91,20 +93,20 @@ export function validateAppellation(
   if (stringsMatch(expected, extracted)) {
     if (isSoftMismatch(expected, extracted)) {
       return {
-        field: 'appellation',
+        field: "appellation",
         status: MatchStatus.SOFT_MISMATCH,
         expected: expected!,
         extracted: extracted!,
-        rule: 'CROSS-CHECK: Appellation must match application',
-        details: 'Minor formatting difference',
+        rule: "CROSS-CHECK: Appellation must match application",
+        details: "Minor formatting difference",
       };
     }
     return {
-      field: 'appellation',
+      field: "appellation",
       status: MatchStatus.MATCH,
       expected: expected!,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Appellation matches application',
+      rule: "CROSS-CHECK: Appellation matches application",
     };
   }
 
@@ -118,32 +120,34 @@ export function validateAppellation(
   if (expectedWords.length === 1) {
     // Single word appellation (e.g., "virginia") - check if it appears as a whole word in extracted
     const wordBoundaryRegex = new RegExp(
-      `\\b${expectedNormalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
-      'i'
+      `\\b${expectedNormalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+      "i",
     );
     if (wordBoundaryRegex.test(extractedNormalized)) {
       // Extracted contains expected appellation - treat as match
       return {
-        field: 'appellation',
+        field: "appellation",
         status: MatchStatus.MATCH,
         expected: expected!,
         extracted: extracted!,
-        rule: 'CROSS-CHECK: Appellation matches application',
-        details: 'Appellation found in extracted value with additional text',
+        rule: "CROSS-CHECK: Appellation matches application",
+        details: "Appellation found in extracted value with additional text",
       };
     }
   } else {
     // Multi-word appellation - check if all words appear in extracted
-    const allWordsFound = expectedWords.every((word) => extractedNormalized.includes(word));
+    const allWordsFound = expectedWords.every((word) =>
+      extractedNormalized.includes(word),
+    );
     if (allWordsFound) {
       // Extracted contains expected appellation - treat as match
       return {
-        field: 'appellation',
+        field: "appellation",
         status: MatchStatus.MATCH,
         expected: expected!,
         extracted: extracted!,
-        rule: 'CROSS-CHECK: Appellation matches application',
-        details: 'Appellation found in extracted value with additional text',
+        rule: "CROSS-CHECK: Appellation matches application",
+        details: "Appellation found in extracted value with additional text",
       };
     }
   }
@@ -152,22 +156,23 @@ export function validateAppellation(
   // This handles OCR errors and typos
   if (isSimilarString(expected, extracted)) {
     return {
-      field: 'appellation',
+      field: "appellation",
       status: MatchStatus.SOFT_MISMATCH,
       expected: expected!,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Appellation must match application',
-      details: 'Minor spelling difference detected (possible OCR error or typo)',
+      rule: "CROSS-CHECK: Appellation must match application",
+      details:
+        "Minor spelling difference detected (possible OCR error or typo)",
     };
   }
 
   return {
-    field: 'appellation',
+    field: "appellation",
     status: MatchStatus.HARD_MISMATCH,
     expected: expected!,
     extracted: extracted!,
-    rule: 'CROSS-CHECK: Appellation must match application',
-    details: 'Appellation does not match application',
+    rule: "CROSS-CHECK: Appellation must match application",
+    details: "Appellation does not match application",
   };
 }
 
@@ -178,7 +183,7 @@ export function validateAppellation(
  */
 export function validateWineVarietal(
   application: ApplicationData,
-  extracted: string | null
+  extracted: string | null,
 ): FieldValidationResult {
   const expectedVarietal = application.varietal;
 
@@ -187,15 +192,15 @@ export function validateWineVarietal(
     // If application has varietal, show it as expected; otherwise show requirement message
     const expectedValue = valueExists(expectedVarietal)
       ? expectedVarietal!
-      : 'Required (see details)';
+      : "Required (see details)";
 
     return {
-      field: 'classType',
+      field: "classType",
       status: MatchStatus.NOT_FOUND,
       expected: expectedValue,
-      extracted: 'Field not found',
-      rule: 'PRESENCE: Class/type designation must appear on wine label',
-      details: 'Class/type designation is required on the label',
+      extracted: "Field not found",
+      rule: "PRESENCE: Class/type designation must appear on wine label",
+      details: "Class/type designation is required on the label",
     };
   }
 
@@ -205,20 +210,20 @@ export function validateWineVarietal(
     if (stringsMatch(expectedVarietal, extracted)) {
       if (isSoftMismatch(expectedVarietal, extracted)) {
         return {
-          field: 'classType',
+          field: "classType",
           status: MatchStatus.SOFT_MISMATCH,
           expected: expectedVarietal!,
           extracted: extracted!,
-          rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) must match application',
-          details: 'Case or formatting difference detected',
+          rule: "PRESENCE + CROSS-CHECK: Class/type (varietal) must match application",
+          details: "Case or formatting difference detected",
         };
       }
       return {
-        field: 'classType',
+        field: "classType",
         status: MatchStatus.MATCH,
         expected: expectedVarietal!,
         extracted: extracted!,
-        rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) present and matches application',
+        rule: "PRESENCE + CROSS-CHECK: Class/type (varietal) present and matches application",
       };
     }
 
@@ -226,32 +231,33 @@ export function validateWineVarietal(
     // This handles OCR errors and typos
     if (isSimilarString(expectedVarietal, extracted)) {
       return {
-        field: 'classType',
+        field: "classType",
         status: MatchStatus.SOFT_MISMATCH,
         expected: expectedVarietal!,
         extracted: extracted!,
-        rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) must match application',
-        details: 'Minor spelling difference detected (possible OCR error or typo)',
+        rule: "PRESENCE + CROSS-CHECK: Class/type (varietal) must match application",
+        details:
+          "Minor spelling difference detected (possible OCR error or typo)",
       };
     }
 
     return {
-      field: 'classType',
+      field: "classType",
       status: MatchStatus.HARD_MISMATCH,
       expected: expectedVarietal!,
       extracted: extracted!,
-      rule: 'PRESENCE + CROSS-CHECK: Class/type (varietal) must match application',
-      details: 'Class/type does not match application varietal',
+      rule: "PRESENCE + CROSS-CHECK: Class/type (varietal) must match application",
+      details: "Class/type does not match application varietal",
     };
   }
 
   // Application doesn't have varietal - classType just needs to be present (no cross-check)
   return {
-    field: 'classType',
+    field: "classType",
     status: MatchStatus.MATCH,
     expected: null,
     extracted: extracted!,
-    rule: 'PRESENCE: Class/type designation present on label',
+    rule: "PRESENCE: Class/type designation present on label",
   };
 }
 
@@ -261,7 +267,7 @@ export function validateWineVarietal(
  */
 export function validateVintageDate(
   application: ApplicationData,
-  extracted: string | null
+  extracted: string | null,
 ): FieldValidationResult {
   const expected = application.vintageDate;
 
@@ -271,35 +277,36 @@ export function validateVintageDate(
   // Neither has vintage date - that's OK
   if (!expectedExists && !extractedExists) {
     return {
-      field: 'vintageDate',
+      field: "vintageDate",
       status: MatchStatus.NOT_APPLICABLE,
       expected: null,
       extracted: null,
-      rule: 'CROSS-CHECK: Vintage date not specified in application or on label',
+      rule: "CROSS-CHECK: Vintage date not specified in application or on label",
     };
   }
 
   // Application has vintage but label doesn't
   if (expectedExists && !extractedExists) {
     return {
-      field: 'vintageDate',
+      field: "vintageDate",
       status: MatchStatus.NOT_FOUND,
       expected: expected!,
-      extracted: 'Field not found',
-      rule: 'CROSS-CHECK: Vintage date in application must appear on label',
-      details: 'Application specifies a vintage date but it was not found on the label',
+      extracted: "Field not found",
+      rule: "CROSS-CHECK: Vintage date in application must appear on label",
+      details:
+        "Application specifies a vintage date but it was not found on the label",
     };
   }
 
   // Label has vintage but application doesn't
   if (!expectedExists && extractedExists) {
     return {
-      field: 'vintageDate',
+      field: "vintageDate",
       status: MatchStatus.HARD_MISMATCH,
       expected: null,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Vintage date on label must be in application',
-      details: 'Label contains a vintage date not listed in the application',
+      rule: "CROSS-CHECK: Vintage date on label must be in application",
+      details: "Label contains a vintage date not listed in the application",
     };
   }
 
@@ -307,20 +314,20 @@ export function validateVintageDate(
   if (stringsMatch(expected, extracted)) {
     if (isSoftMismatch(expected, extracted)) {
       return {
-        field: 'vintageDate',
+        field: "vintageDate",
         status: MatchStatus.SOFT_MISMATCH,
         expected: expected!,
         extracted: extracted!,
-        rule: 'CROSS-CHECK: Vintage date must match application',
-        details: 'Minor formatting difference detected',
+        rule: "CROSS-CHECK: Vintage date must match application",
+        details: "Minor formatting difference detected",
       };
     }
     return {
-      field: 'vintageDate',
+      field: "vintageDate",
       status: MatchStatus.MATCH,
       expected: expected!,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Vintage date matches application',
+      rule: "CROSS-CHECK: Vintage date matches application",
     };
   }
 
@@ -328,22 +335,23 @@ export function validateVintageDate(
   // This handles OCR errors and typos
   if (isSimilarString(expected, extracted)) {
     return {
-      field: 'vintageDate',
+      field: "vintageDate",
       status: MatchStatus.SOFT_MISMATCH,
       expected: expected!,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Vintage date must match application',
-      details: 'Minor spelling difference detected (possible OCR error or typo)',
+      rule: "CROSS-CHECK: Vintage date must match application",
+      details:
+        "Minor spelling difference detected (possible OCR error or typo)",
     };
   }
 
   return {
-    field: 'vintageDate',
+    field: "vintageDate",
     status: MatchStatus.HARD_MISMATCH,
     expected: expected!,
     extracted: extracted!,
-    rule: 'CROSS-CHECK: Vintage date must match application',
-    details: 'Vintage dates do not match',
+    rule: "CROSS-CHECK: Vintage date must match application",
+    details: "Vintage dates do not match",
   };
 }
 
@@ -352,14 +360,16 @@ export function validateVintageDate(
  * Rule: "No sulfites added" may be stated but must appear together with
  * "contains naturally occurring sulfites" or "may contain naturally occurring sulfites."
  */
-export function validateSulfiteDeclaration(extracted: string | null): FieldValidationResult {
+export function validateSulfiteDeclaration(
+  extracted: string | null,
+): FieldValidationResult {
   if (!extracted) {
     return {
-      field: 'sulfiteDeclaration',
+      field: "sulfiteDeclaration",
       status: MatchStatus.NOT_FOUND,
       expected: null,
       extracted: null,
-      rule: 'PRESENCE: Sulfite declaration must appear on wine label',
+      rule: "PRESENCE: Sulfite declaration must appear on wine label",
     };
   }
 
@@ -371,16 +381,15 @@ export function validateSulfiteDeclaration(extracted: string | null): FieldValid
 
   if (hasNoSulfitesAdded) {
     // If "no sulfites added" is present, check if it appears with required phrase
-    const hasContainsNaturallyOccurring = /\bcontains?\s+naturally\s+occurring\s+sulfites?\b/i.test(
-      normalized
-    );
+    const hasContainsNaturallyOccurring =
+      /\bcontains?\s+naturally\s+occurring\s+sulfites?\b/i.test(normalized);
     const hasMayContainNaturallyOccurring =
       /\bmay\s+contain\s+naturally\s+occurring\s+sulfites?\b/i.test(normalized);
 
     if (!hasContainsNaturallyOccurring && !hasMayContainNaturallyOccurring) {
       // "No sulfites added" is present but missing required phrase
       return {
-        field: 'sulfiteDeclaration',
+        field: "sulfiteDeclaration",
         status: MatchStatus.HARD_MISMATCH,
         expected: null,
         extracted,
@@ -392,11 +401,11 @@ export function validateSulfiteDeclaration(extracted: string | null): FieldValid
   }
 
   return {
-    field: 'sulfiteDeclaration',
+    field: "sulfiteDeclaration",
     status: MatchStatus.MATCH,
     expected: null,
     extracted,
-    rule: 'PRESENCE: Sulfite declaration present on label',
+    rule: "PRESENCE: Sulfite declaration present on label",
   };
 }
 
@@ -405,7 +414,7 @@ export function validateSulfiteDeclaration(extracted: string | null): FieldValid
  * Required on blends of American and foreign wines if any reference to foreign wine is made
  */
 export function validateForeignWinePercentage(
-  extraction: WineExtractionResult['extraction']
+  extraction: WineExtractionResult["extraction"],
 ): FieldValidationResult {
   const foreignWinePercentage = extraction.foreignWinePercentage;
 
@@ -415,39 +424,42 @@ export function validateForeignWinePercentage(
   // If no foreign wine reference, this field is not applicable
   if (!hasForeignWineReference) {
     return {
-      field: 'foreignWinePercentage',
+      field: "foreignWinePercentage",
       status: MatchStatus.NOT_APPLICABLE,
       expected: null,
       extracted: foreignWinePercentage,
-      rule: 'PRESENCE: Foreign wine percentage only required if label references foreign wine',
+      rule: "PRESENCE: Foreign wine percentage only required if label references foreign wine",
     };
   }
 
   // Foreign wine is referenced but no percentage statement
   if (!foreignWinePercentage) {
     return {
-      field: 'foreignWinePercentage',
+      field: "foreignWinePercentage",
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
+      expected: "Field not found",
       extracted: null,
-      rule: 'PRESENCE: Foreign wine percentage required when label references foreign wine',
-      details: 'Label appears to reference foreign wine but no percentage statement was found',
+      rule: "PRESENCE: Foreign wine percentage required when label references foreign wine",
+      details:
+        "Label appears to reference foreign wine but no percentage statement was found",
     };
   }
 
   return {
-    field: 'foreignWinePercentage',
+    field: "foreignWinePercentage",
     status: MatchStatus.MATCH,
     expected: null,
     extracted: foreignWinePercentage,
-    rule: 'PRESENCE: Foreign wine percentage present on label',
+    rule: "PRESENCE: Foreign wine percentage present on label",
   };
 }
 
 /**
  * Helper: Check if the wine label contains any reference to foreign wine
  */
-function checkForForeignWineReference(extraction: WineExtractionResult['extraction']): boolean {
+function checkForForeignWineReference(
+  extraction: WineExtractionResult["extraction"],
+): boolean {
   // If there's already a foreignWinePercentage, there's definitely a reference
   if (valueExists(extraction.foreignWinePercentage)) {
     return true;
@@ -455,27 +467,27 @@ function checkForForeignWineReference(extraction: WineExtractionResult['extracti
 
   // Check if appellation mentions a foreign region
   const foreignIndicators = [
-    'france',
-    'french',
-    'italy',
-    'italian',
-    'spain',
-    'spanish',
-    'germany',
-    'german',
-    'portugal',
-    'portuguese',
-    'argentina',
-    'chile',
-    'chilean',
-    'australia',
-    'australian',
-    'new zealand',
-    'south africa',
-    'austria',
-    'austrian',
-    'greece',
-    'greek',
+    "france",
+    "french",
+    "italy",
+    "italian",
+    "spain",
+    "spanish",
+    "germany",
+    "german",
+    "portugal",
+    "portuguese",
+    "argentina",
+    "chile",
+    "chilean",
+    "australia",
+    "australian",
+    "new zealand",
+    "south africa",
+    "austria",
+    "austrian",
+    "greece",
+    "greek",
   ];
 
   const appellation = normalizeString(extraction.appellation);
@@ -483,7 +495,10 @@ function checkForForeignWineReference(extraction: WineExtractionResult['extracti
 
   // If there's a non-US country of origin mentioned, check if it's for a blend
   for (const indicator of foreignIndicators) {
-    if (appellation.includes(indicator) || countryOfOrigin.includes(indicator)) {
+    if (
+      appellation.includes(indicator) ||
+      countryOfOrigin.includes(indicator)
+    ) {
       // If the entire wine is foreign (imported), foreignWinePercentage is N/A
       // This rule only applies to BLENDS of American and foreign wine
       return false; // Fully imported wines don't need percentage

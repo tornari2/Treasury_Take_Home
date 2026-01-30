@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { ApplicationData } from '@/lib/validation/types';
-import { BasicInfoSection } from './application-form/BasicInfoSection';
-import { BrandInfoSection } from './application-form/BrandInfoSection';
-import { ProducerInfoSection } from './application-form/ProducerInfoSection';
-import { WineInfoSection } from './application-form/WineInfoSection';
-import { ImageUploadSection } from './application-form/ImageUploadSection';
-import { useApplicationForm } from './application-form/useApplicationForm';
+import { Button } from "@/components/ui/button";
+import { ApplicationData } from "@/lib/validation/types";
+import { BasicInfoSection } from "./application-form/BasicInfoSection";
+import { BrandInfoSection } from "./application-form/BrandInfoSection";
+import { ProducerInfoSection } from "./application-form/ProducerInfoSection";
+import { WineInfoSection } from "./application-form/WineInfoSection";
+import { ImageUploadSection } from "./application-form/ImageUploadSection";
+import { useApplicationForm } from "./application-form/useApplicationForm";
 
 interface ApplicationFormProps {
   onSuccess: () => void;
@@ -16,7 +16,12 @@ interface ApplicationFormProps {
   initialData?: ApplicationData;
 }
 
-export function ApplicationForm({ onSuccess, onClose, applicationId, initialData }: ApplicationFormProps) {
+export function ApplicationForm({
+  onSuccess,
+  onClose,
+  applicationId,
+  initialData,
+}: ApplicationFormProps) {
   const {
     ttbId,
     beverageType,
@@ -113,17 +118,22 @@ export function ApplicationForm({ onSuccess, onClose, applicationId, initialData
 
       {/* Form Actions */}
       <div className="flex justify-end gap-3 pt-4">
-        <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting
             ? isEditMode
-              ? 'Updating...'
-              : 'Creating...'
+              ? "Updating..."
+              : "Creating..."
             : isEditMode
-              ? 'Update Application'
-              : 'Create Application'}
+              ? "Update Application"
+              : "Create Application"}
         </Button>
       </div>
     </form>

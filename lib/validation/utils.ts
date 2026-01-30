@@ -8,22 +8,22 @@ import {
   US_STATE_REVERSE_MAP,
   SPIRITS_STANDARDS_OF_FILL_ML,
   WINE_STANDARDS_OF_FILL_ML,
-} from './constants';
+} from "./constants";
 
 /**
  * Normalize string for comparison (trim, collapse whitespace, lowercase)
  */
 export function normalizeString(str: string | null | undefined): string {
-  if (!str) return '';
-  return str.trim().replace(/\s+/g, ' ').toLowerCase();
+  if (!str) return "";
+  return str.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 /**
  * Normalize string preserving case (trim, collapse whitespace only)
  */
 export function normalizeWhitespace(str: string | null | undefined): string {
-  if (!str) return '';
-  return str.trim().replace(/\s+/g, ' ');
+  if (!str) return "";
+  return str.trim().replace(/\s+/g, " ");
 }
 
 /**
@@ -35,12 +35,15 @@ export function normalizeBusinessEntitySuffix(str: string): string {
   // Remove all common business entity suffixes (case-insensitive, can be multiple)
   // Keep removing until no more suffixes found
   let result = str.trim();
-  let previousResult = '';
+  let previousResult = "";
 
   while (result !== previousResult) {
     previousResult = result;
     result = result
-      .replace(/\s*(co\.?|company|llc|inc\.?|incorporated|ltd\.?|limited)\s*$/i, '')
+      .replace(
+        /\s*(co\.?|company|llc|inc\.?|incorporated|ltd\.?|limited)\s*$/i,
+        "",
+      )
       .trim();
   }
 
@@ -52,7 +55,7 @@ export function normalizeBusinessEntitySuffix(str: string): string {
  * Removes common punctuation marks but preserves structure
  */
 function normalizePunctuation(str: string): string {
-  return str.replace(/[,;:]/g, ' ').replace(/\s+/g, ' ').trim();
+  return str.replace(/[,;:]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -63,7 +66,7 @@ function normalizePunctuation(str: string): string {
 export function stringsMatch(
   a: string | null | undefined,
   b: string | null | undefined,
-  options?: { normalizeEntitySuffix?: boolean }
+  options?: { normalizeEntitySuffix?: boolean },
 ): boolean {
   const normalizedA = normalizeString(a);
   const normalizedB = normalizeString(b);
@@ -93,7 +96,7 @@ export function stringsMatch(
  */
 export function producerNamesMatchIgnoringEntitySuffix(
   expected: string | null | undefined,
-  extracted: string | null | undefined
+  extracted: string | null | undefined,
 ): boolean {
   if (!expected || !extracted) return false;
 
@@ -104,8 +107,12 @@ export function producerNamesMatchIgnoringEntitySuffix(
   const expectedWithoutPunctuation = normalizePunctuation(normalizedExpected);
   const extractedWithoutPunctuation = normalizePunctuation(normalizedExtracted);
 
-  const expectedWithoutSuffix = normalizeBusinessEntitySuffix(expectedWithoutPunctuation);
-  const extractedWithoutSuffix = normalizeBusinessEntitySuffix(extractedWithoutPunctuation);
+  const expectedWithoutSuffix = normalizeBusinessEntitySuffix(
+    expectedWithoutPunctuation,
+  );
+  const extractedWithoutSuffix = normalizeBusinessEntitySuffix(
+    extractedWithoutPunctuation,
+  );
 
   return expectedWithoutSuffix === extractedWithoutSuffix;
 }
@@ -115,14 +122,17 @@ export function producerNamesMatchIgnoringEntitySuffix(
  */
 export function differsOnlyByCase(
   a: string | null | undefined,
-  b: string | null | undefined
+  b: string | null | undefined,
 ): boolean {
   if (!a || !b) return false;
   // Normalize whitespace for both (preserves case)
   const normalizedA = normalizeWhitespace(a);
   const normalizedB = normalizeWhitespace(b);
   // Check if they match case-insensitively but differ in case
-  return normalizedA.toLowerCase() === normalizedB.toLowerCase() && normalizedA !== normalizedB;
+  return (
+    normalizedA.toLowerCase() === normalizedB.toLowerCase() &&
+    normalizedA !== normalizedB
+  );
 }
 
 /**
@@ -131,7 +141,7 @@ export function differsOnlyByCase(
  */
 export function isSoftMismatch(
   a: string | null | undefined,
-  b: string | null | undefined
+  b: string | null | undefined,
 ): boolean {
   if (!a || !b) return false;
   const normalizedMatch = normalizeString(a) === normalizeString(b);
@@ -167,7 +177,7 @@ function levenshteinDistance(a: string, b: string): number {
         matrix[i][j] = Math.min(
           matrix[i - 1][j] + 1, // deletion
           matrix[i][j - 1] + 1, // insertion
-          matrix[i - 1][j - 1] + 1 // substitution
+          matrix[i - 1][j - 1] + 1, // substitution
         );
       }
     }
@@ -183,7 +193,7 @@ function levenshteinDistance(a: string, b: string): number {
  */
 export function isSimilarString(
   a: string | null | undefined,
-  b: string | null | undefined
+  b: string | null | undefined,
 ): boolean {
   if (!a || !b) return false;
 
@@ -208,7 +218,10 @@ export function isSimilarString(
 /**
  * Check if a string matches any of the given regex patterns
  */
-export function matchesAnyPattern(str: string | null | undefined, patterns: RegExp[]): boolean {
+export function matchesAnyPattern(
+  str: string | null | undefined,
+  patterns: RegExp[],
+): boolean {
   if (!str) return false;
   return patterns.some((pattern) => pattern.test(str.trim()));
 }
@@ -218,7 +231,9 @@ export function matchesAnyPattern(str: string | null | undefined, patterns: RegE
  * This is more lenient than matchesAnyPattern - it checks if the string contains a valid format
  * rather than requiring the entire string to match exactly
  */
-export function containsValidAlcoholFormat(str: string | null | undefined): boolean {
+export function containsValidAlcoholFormat(
+  str: string | null | undefined,
+): boolean {
   if (!str) return false;
   const trimmed = str.trim();
 
@@ -242,7 +257,7 @@ export function containsValidAlcoholFormat(str: string | null | undefined): bool
  */
 export function containsNetContentsPattern(
   str: string | null | undefined,
-  patterns: RegExp[]
+  patterns: RegExp[],
 ): boolean {
   if (!str) return false;
   const trimmed = str.trim();
@@ -252,7 +267,7 @@ export function containsNetContentsPattern(
   const containsPatterns = patterns.map((pattern) => {
     const patternStr = pattern.source;
     // Remove ^ anchor at start and $ anchor at end
-    const withoutAnchors = patternStr.replace(/^\^/, '').replace(/\$$/, '');
+    const withoutAnchors = patternStr.replace(/^\^/, "").replace(/\$$/, "");
     return new RegExp(withoutAnchors, pattern.flags);
   });
 
@@ -263,7 +278,7 @@ export function containsNetContentsPattern(
  * Check if a value exists (not null, undefined, or empty string)
  */
 export function valueExists(value: string | null | undefined): boolean {
-  return value !== null && value !== undefined && value.trim() !== '';
+  return value !== null && value !== undefined && value.trim() !== "";
 }
 
 /**
@@ -273,12 +288,12 @@ export function valueExists(value: string | null | undefined): boolean {
  */
 function normalizeHealthWarningForComparison(text: string): string {
   let normalized = normalizeWhitespace(text);
-  
+
   // Normalize spaces after colons - ensure consistent spacing
   // "GOVERNMENT WARNING:(1)" becomes "GOVERNMENT WARNING: (1)"
   // "GOVERNMENT WARNING: (1)" stays "GOVERNMENT WARNING: (1)"
-  normalized = normalized.replace(/:\s*/g, ': ');
-  
+  normalized = normalized.replace(/:\s*/g, ": ");
+
   // Split at "GOVERNMENT WARNING:" to separate prefix from remainder
   // Use case-sensitive match to ensure prefix is exactly "GOVERNMENT WARNING:"
   const match = normalized.match(/^(GOVERNMENT WARNING:)\s*(.*)$/);
@@ -287,25 +302,29 @@ function normalizeHealthWarningForComparison(text: string): string {
     // Normalize remainder to lowercase for case-insensitive comparison
     // Also normalize whitespace in remainder (collapse multiple spaces, trim)
     const prefix = match[1]; // Keep as-is (should be "GOVERNMENT WARNING:")
-    const remainder = match[2].trim().replace(/\s+/g, ' ').toLowerCase();
+    const remainder = match[2].trim().replace(/\s+/g, " ").toLowerCase();
     // Add a single space between prefix and remainder for consistent comparison
-    return prefix + ' ' + remainder;
+    return prefix + " " + remainder;
   }
   // If pattern doesn't match (prefix not in correct case), return a value that won't match
   // This ensures "Government Warning:" or "government warning:" won't match
-  return normalized.toLowerCase() + '_PREFIX_MISMATCH';
+  return normalized.toLowerCase() + "_PREFIX_MISMATCH";
 }
 
 /**
  * Check if health warning text matches EXACTLY (with whitespace flexibility)
  * Only "GOVERNMENT WARNING:" must be in ALL CAPS; remainder can have normal capitalization
  */
-export function healthWarningMatchesExact(extracted: string | null | undefined): boolean {
+export function healthWarningMatchesExact(
+  extracted: string | null | undefined,
+): boolean {
   if (!extracted) return false;
 
   // Normalize both strings for comparison
   const normalizedExtracted = normalizeHealthWarningForComparison(extracted);
-  const normalizedRequired = normalizeHealthWarningForComparison(REQUIRED_HEALTH_WARNING);
+  const normalizedRequired = normalizeHealthWarningForComparison(
+    REQUIRED_HEALTH_WARNING,
+  );
 
   return normalizedExtracted === normalizedRequired;
 }
@@ -318,16 +337,17 @@ export function healthWarningMatchesExact(extracted: string | null | undefined):
  * Returns the normalized lowercase state name (full name preferred)
  */
 export function normalizeState(state: string | null | undefined): string {
-  if (!state) return '';
+  if (!state) return "";
 
   const normalized = normalizeString(state);
-  if (!normalized) return '';
+  if (!normalized) return "";
 
   // Extract state part if zip code is present (e.g., "il 60148-1215" -> "il")
   // Zip codes are typically 5 digits, optionally followed by dash and 4 digits
-  const statePart = normalized.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+  const statePart = normalized.replace(/\s+\d{5}(-\d{4})?.*$/, "").trim();
   // Remove periods from abbreviations (e.g., "co." -> "co")
-  let stateToCheck = statePart.replace(/\.$/, '') || normalized.replace(/\.$/, '');
+  let stateToCheck =
+    statePart.replace(/\.$/, "") || normalized.replace(/\.$/, "");
 
   // Check if it's already a normalized state name
   if (US_STATE_REVERSE_MAP[stateToCheck]) {
@@ -351,7 +371,7 @@ export function normalizeState(state: string | null | undefined): string {
  */
 export function statesMatch(
   state1: string | null | undefined,
-  state2: string | null | undefined
+  state2: string | null | undefined,
 ): boolean {
   if (!state1 || !state2) return false;
 
@@ -380,15 +400,17 @@ export function statesMatch(
  * Example: "N. Littleton" = "Littleton", "North Littleton" = "Littleton"
  */
 export function normalizeCity(city: string | null | undefined): string {
-  if (!city) return '';
-  
+  if (!city) return "";
+
   let normalized = normalizeString(city);
-  if (!normalized) return '';
-  
+  if (!normalized) return "";
+
   // Remove directional prefixes (with or without periods)
   // Patterns: "n.", "s.", "e.", "w.", "north", "south", "east", "west" at the start
-  normalized = normalized.replace(/^(n\.?|s\.?|e\.?|w\.?|north|south|east|west)\s+/i, '').trim();
-  
+  normalized = normalized
+    .replace(/^(n\.?|s\.?|e\.?|w\.?|north|south|east|west)\s+/i, "")
+    .trim();
+
   return normalized;
 }
 
@@ -399,22 +421,22 @@ export function normalizeCity(city: string | null | undefined): string {
  */
 export function citiesMatch(
   city1: string | null | undefined,
-  city2: string | null | undefined
+  city2: string | null | undefined,
 ): boolean {
   if (!city1 || !city2) return false;
-  
+
   const normalized1 = normalizeCity(city1);
   const normalized2 = normalizeCity(city2);
-  
+
   // Direct match after normalization
   if (normalized1 === normalized2) return true;
-  
+
   // Also check if one contains the other (handles cases where one has additional words)
   // This handles cases like "Littleton" matching "N. Littleton" or vice versa
   if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -472,12 +494,14 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
   let totalFlOz = 0;
 
   // Parse gallons (allow optional U.S. or US prefix, and abbreviations gal./gal)
-  const gallonMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:gallon(s)?|gal\.?)/i);
+  const gallonMatch = normalized.match(
+    /(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:gallon(s)?|gal\.?)/i,
+  );
   if (gallonMatch) {
     const numStr = gallonMatch[1];
     let num: number;
-    if (numStr.includes('/')) {
-      const [n, d] = numStr.split('/').map(Number);
+    if (numStr.includes("/")) {
+      const [n, d] = numStr.split("/").map(Number);
       if (isNaN(n) || isNaN(d) || d === 0) return null;
       num = n / d;
     } else {
@@ -488,12 +512,14 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
   }
 
   // Parse quarts (allow optional U.S. or US prefix, and abbreviations qt./qt)
-  const quartMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:quart(s)?|qt\.?)/i);
+  const quartMatch = normalized.match(
+    /(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:quart(s)?|qt\.?)/i,
+  );
   if (quartMatch) {
     const numStr = quartMatch[1];
     let num: number;
-    if (numStr.includes('/')) {
-      const [n, d] = numStr.split('/').map(Number);
+    if (numStr.includes("/")) {
+      const [n, d] = numStr.split("/").map(Number);
       if (isNaN(n) || isNaN(d) || d === 0) return null;
       num = n / d;
     } else {
@@ -504,12 +530,14 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
   }
 
   // Parse pints (allow optional U.S. or US prefix, and abbreviations pt./pt)
-  const pintMatch = normalized.match(/(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:pint(s)?|pt\.?)/i);
+  const pintMatch = normalized.match(
+    /(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:U\.?S\.?)?\s*(?:pint(s)?|pt\.?)/i,
+  );
   if (pintMatch) {
     const numStr = pintMatch[1];
     let num: number;
-    if (numStr.includes('/')) {
-      const [n, d] = numStr.split('/').map(Number);
+    if (numStr.includes("/")) {
+      const [n, d] = numStr.split("/").map(Number);
       if (isNaN(n) || isNaN(d) || d === 0) return null;
       num = n / d;
     } else {
@@ -521,13 +549,13 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
 
   // Parse fluid ounces
   const flOzMatch = normalized.match(
-    /(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:fl\.?\s*oz\.?|fluid\s+ounce(s)?)/i
+    /(\d+(?:\/\d+)?(?:\.\d+)?)\s*(?:fl\.?\s*oz\.?|fluid\s+ounce(s)?)/i,
   );
   if (flOzMatch) {
     const numStr = flOzMatch[1];
     let num: number;
-    if (numStr.includes('/')) {
-      const [n, d] = numStr.split('/').map(Number);
+    if (numStr.includes("/")) {
+      const [n, d] = numStr.split("/").map(Number);
       if (isNaN(n) || isNaN(d) || d === 0) return null;
       num = n / d;
     } else {
@@ -549,7 +577,9 @@ export function parseNetContentsToFlOz(value: string | null): number | null {
  * Validate beer net contents formatting per 27 CFR 7.70
  * Returns validation error message or null if valid
  */
-export function validateBeerNetContentsFormat(value: string | null): string | null {
+export function validateBeerNetContentsFormat(
+  value: string | null,
+): string | null {
   if (!value) return null;
 
   const volumeFlOz = parseNetContentsToFlOz(value);
@@ -560,11 +590,14 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
   // Less than 1 pint (16 fl oz): must be in fluid ounces or fractions of a pint
   if (volumeFlOz < 16) {
     // Check if it's stated in fluid ounces or fractions of a pint
-    const hasFlOz = /fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce(s)?/i.test(value);
-    const hasPintFraction = /(?:pint|pt\.?)/i.test(value) && (/\//.test(value) || /\d+\s*(?:pint|pt\.?)/i.test(value));
+    const hasFlOz =
+      /fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce(s)?/i.test(value);
+    const hasPintFraction =
+      /(?:pint|pt\.?)/i.test(value) &&
+      (/\//.test(value) || /\d+\s*(?:pint|pt\.?)/i.test(value));
 
     if (!hasFlOz && !hasPintFraction) {
-      return 'For volumes less than 1 pint, net contents must be stated in fluid ounces or fractions of a pint';
+      return "For volumes less than 1 pint, net contents must be stated in fluid ounces or fractions of a pint";
     }
   }
 
@@ -599,32 +632,36 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
   // More than 1 pint but less than 1 quart (16-32 fl oz): fractions of a quart, or pints and fluid ounces
   if (volumeFlOz > 16 && volumeFlOz < 32) {
     const hasQuartFraction =
-      /(?:quart|qt\.?)/i.test(value) && (/\//.test(value) || /\d+\s*(?:quart|qt\.?)/i.test(value));
+      /(?:quart|qt\.?)/i.test(value) &&
+      (/\//.test(value) || /\d+\s*(?:quart|qt\.?)/i.test(value));
     const hasPintsAndFlOz =
-      /(?:pint|pt\.?)/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value));
+      /(?:pint|pt\.?)/i.test(value) &&
+      (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value));
 
     if (!hasQuartFraction && !hasPintsAndFlOz) {
-      return 'For volumes more than 1 pint but less than 1 quart, net contents must be stated in fractions of a quart, or in pints and fluid ounces';
+      return "For volumes more than 1 pint but less than 1 quart, net contents must be stated in fractions of a quart, or in pints and fluid ounces";
     }
   }
 
   // More than 1 quart but less than 1 gallon (32-128 fl oz): fractions of a gallon, or quarts, pints, and fluid ounces
   if (volumeFlOz > 32 && volumeFlOz < 128) {
     const hasGallonFraction =
-      /(?:gallon|gal\.?)/i.test(value) && (/\//.test(value) || /\d+\s*(?:gallon|gal\.?)/i.test(value));
+      /(?:gallon|gal\.?)/i.test(value) &&
+      (/\//.test(value) || /\d+\s*(?:gallon|gal\.?)/i.test(value));
     const hasMultipleUnits =
       /(?:quart|qt\.?)/i.test(value) ||
-      (/(?:pint|pt\.?)/i.test(value) && (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value)));
+      (/(?:pint|pt\.?)/i.test(value) &&
+        (/fl\.?\s*oz\.?/i.test(value) || /fluid\s+ounce/i.test(value)));
 
     if (!hasGallonFraction && !hasMultipleUnits) {
-      return 'For volumes more than 1 quart but less than 1 gallon, net contents must be stated in fractions of a gallon, or in quarts, pints, and fluid ounces';
+      return "For volumes more than 1 quart but less than 1 gallon, net contents must be stated in fractions of a gallon, or in quarts, pints, and fluid ounces";
     }
   }
 
   // More than 1 gallon: gallons and fractions thereof
   if (volumeFlOz > 128) {
     if (!/(?:gallon|gal\.?)/i.test(value)) {
-      return 'For volumes more than 1 gallon, net contents must be stated in gallons and fractions thereof';
+      return "For volumes more than 1 gallon, net contents must be stated in gallons and fractions thereof";
     }
   }
 
@@ -639,7 +676,9 @@ export function validateBeerNetContentsFormat(value: string | null): string | nu
  * - Containers 4-17 liters: must be expressed in whole liters (4L, 5L, 6L, etc.)
  * - Containers 18+ liters: must be expressed in liters with decimal portions accurate to nearest one-hundredth
  */
-export function validateWineNetContentsFormat(value: string | null): string | null {
+export function validateWineNetContentsFormat(
+  value: string | null,
+): string | null {
   if (!value) return null;
 
   const volumeML = parseNetContentsToML(value);
@@ -658,13 +697,16 @@ export function validateWineNetContentsFormat(value: string | null): string | nu
   if (volumeLiters >= 4 && volumeLiters <= 17) {
     // Check if it's a whole number (integer)
     if (!Number.isInteger(volumeLiters)) {
-      return 'For containers 4-17 liters, net contents must be expressed in whole liters (e.g., 4 liters, 5 liters, 6 liters). Decimal portions are not allowed.';
+      return "For containers 4-17 liters, net contents must be expressed in whole liters (e.g., 4 liters, 5 liters, 6 liters). Decimal portions are not allowed.";
     }
 
     // Check if format matches "X liters" or "X L" where X is an integer
     const integerLiters = Math.floor(volumeLiters);
     // Allow formats like "4 liters", "4 L", "4 liter", "4L", etc.
-    const formatMatch = new RegExp(`^${integerLiters}\\s*(liter(s)?|l\\.?)$`, 'i');
+    const formatMatch = new RegExp(
+      `^${integerLiters}\\s*(liter(s)?|l\\.?)$`,
+      "i",
+    );
     if (!formatMatch.test(normalized)) {
       return `For containers 4-17 liters, net contents must be expressed as "${integerLiters} liters" or "${integerLiters} L" (whole numbers only, no decimals)`;
     }
@@ -673,16 +715,16 @@ export function validateWineNetContentsFormat(value: string | null): string | nu
   // Containers 18+ liters: must be expressed in liters and decimal portions accurate to nearest one-hundredth
   if (volumeLiters >= 18) {
     // Check if decimal portion is accurate to nearest one-hundredth (max 2 decimal places)
-    const decimalPlaces = (volumeLiters.toString().split('.')[1] || '').length;
+    const decimalPlaces = (volumeLiters.toString().split(".")[1] || "").length;
     if (decimalPlaces > 2) {
-      return 'For containers 18 liters or more, net contents must be expressed in liters accurate to the nearest one-hundredth of a liter (maximum 2 decimal places)';
+      return "For containers 18 liters or more, net contents must be expressed in liters accurate to the nearest one-hundredth of a liter (maximum 2 decimal places)";
     }
 
     // Check if format matches "X.XX liters" or "X.XX L" with up to 2 decimal places
     // Also allow whole numbers (e.g., "18 liters")
     const formatMatch = /^\d+(\.\d{1,2})?\s*(liter(s)?|l\\.?)$/i;
     if (!formatMatch.test(normalized)) {
-      return 'For containers 18 liters or more, net contents must be expressed in liters and decimal portions accurate to the nearest one-hundredth of a liter (e.g., 18.50 liters, 20.25 L)';
+      return "For containers 18 liters or more, net contents must be expressed in liters and decimal portions accurate to the nearest one-hundredth of a liter (e.g., 18.50 liters, 20.25 L)";
     }
   }
 
@@ -696,7 +738,9 @@ export function isValidSpiritsStandardOfFill(volumeML: number | null): boolean {
   if (volumeML === null) return false;
 
   // Check against authorized standards (allow small tolerance for floating point)
-  return SPIRITS_STANDARDS_OF_FILL_ML.some((standard) => Math.abs(volumeML - standard) < 0.01);
+  return SPIRITS_STANDARDS_OF_FILL_ML.some(
+    (standard) => Math.abs(volumeML - standard) < 0.01,
+  );
 }
 
 /**
@@ -707,7 +751,11 @@ export function isValidWineStandardOfFill(volumeML: number | null): boolean {
   if (volumeML === null) return false;
 
   // Check against authorized standards (allow small tolerance for floating point)
-  if (WINE_STANDARDS_OF_FILL_ML.some((standard) => Math.abs(volumeML - standard) < 0.01)) {
+  if (
+    WINE_STANDARDS_OF_FILL_ML.some(
+      (standard) => Math.abs(volumeML - standard) < 0.01,
+    )
+  ) {
     return true;
   }
 
@@ -746,7 +794,7 @@ export function detectBeerAlcoholTerms(
   alcoholContent: string | null,
   classType: string | null,
   brandName: string | null,
-  fancifulName: string | null
+  fancifulName: string | null,
 ): {
   hasLowAlcohol: boolean;
   hasReducedAlcohol: boolean;
@@ -755,7 +803,7 @@ export function detectBeerAlcoholTerms(
 } {
   const allText = [alcoholContent, classType, brandName, fancifulName]
     .filter(Boolean)
-    .join(' ')
+    .join(" ")
     .toLowerCase();
 
   return {
@@ -773,9 +821,9 @@ export function isTableWineOrLightWine(classType: string | null): boolean {
   if (!classType) return false;
   const normalized = normalizeString(classType);
   return (
-    normalized.includes('table wine') ||
-    normalized.includes('light wine') ||
-    normalized === 'table wine' ||
-    normalized === 'light wine'
+    normalized.includes("table wine") ||
+    normalized.includes("light wine") ||
+    normalized === "table wine" ||
+    normalized === "light wine"
   );
 }

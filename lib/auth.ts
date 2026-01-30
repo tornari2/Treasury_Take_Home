@@ -11,7 +11,10 @@ interface User {
 /**
  * Authenticate user (stub - auth removed)
  */
-export async function authenticateUser(email: string, password: string): Promise<User | null> {
+export async function authenticateUser(
+  email: string,
+  password: string,
+): Promise<User | null> {
   void email;
   void password;
   // Authentication removed - always return null
@@ -32,7 +35,7 @@ export async function hashPassword(password: string): Promise<string> {
 export function createSession(userId: number): string {
   void userId;
   // Authentication removed - return dummy session id
-  return 'session-disabled';
+  return "session-disabled";
 }
 
 /**

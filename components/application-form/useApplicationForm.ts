@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import { BeverageType, OriginType, ApplicationData } from '@/lib/validation/types';
-import type { ImageType } from '@/types/database';
+import { useState } from "react";
+import {
+  BeverageType,
+  OriginType,
+  ApplicationData,
+} from "@/lib/validation/types";
+import type { ImageType } from "@/types/database";
 
 export interface ImageUpload {
   file: File;
@@ -23,16 +27,30 @@ export function useApplicationForm({
 }: UseApplicationFormProps) {
   const isEditMode = !!applicationId && !!initialData;
 
-  const [ttbId, setTtbId] = useState(initialData?.ttbId || '');
-  const [beverageType, setBeverageType] = useState<BeverageType | ''>(initialData?.beverageType || '');
-  const [originType, setOriginType] = useState<OriginType | ''>(initialData?.originType || '');
-  const [brandName, setBrandName] = useState(initialData?.brandName || '');
-  const [fancifulName, setFancifulName] = useState(initialData?.fancifulName || '');
-  const [producerName, setProducerName] = useState(initialData?.producerName || '');
-  const [producerCity, setProducerCity] = useState(initialData?.producerAddress?.city || '');
-  const [producerState, setProducerState] = useState(initialData?.producerAddress?.state || '');
-  const [appellation, setAppellation] = useState(initialData?.appellation || '');
-  const [varietal, setVarietal] = useState(initialData?.varietal || '');
+  const [ttbId, setTtbId] = useState(initialData?.ttbId || "");
+  const [beverageType, setBeverageType] = useState<BeverageType | "">(
+    initialData?.beverageType || "",
+  );
+  const [originType, setOriginType] = useState<OriginType | "">(
+    initialData?.originType || "",
+  );
+  const [brandName, setBrandName] = useState(initialData?.brandName || "");
+  const [fancifulName, setFancifulName] = useState(
+    initialData?.fancifulName || "",
+  );
+  const [producerName, setProducerName] = useState(
+    initialData?.producerName || "",
+  );
+  const [producerCity, setProducerCity] = useState(
+    initialData?.producerAddress?.city || "",
+  );
+  const [producerState, setProducerState] = useState(
+    initialData?.producerAddress?.state || "",
+  );
+  const [appellation, setAppellation] = useState(
+    initialData?.appellation || "",
+  );
+  const [varietal, setVarietal] = useState(initialData?.varietal || "");
   const [images, setImages] = useState<ImageUpload[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,14 +59,14 @@ export function useApplicationForm({
     const files = event.target.files;
     if (!files) return;
 
-    const imageTypes: ImageType[] = ['front', 'back', 'side', 'neck', 'other'];
+    const imageTypes: ImageType[] = ["front", "back", "side", "neck", "other"];
 
     Array.from(files).forEach((file) => {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         setErrors((prev) => ({
           ...prev,
-          images: 'Only image files are allowed',
+          images: "Only image files are allowed",
         }));
         return;
       }
@@ -57,7 +75,7 @@ export function useApplicationForm({
       if (file.size > 10 * 1024 * 1024) {
         setErrors((prev) => ({
           ...prev,
-          images: 'Image size must be less than 10MB',
+          images: "Image size must be less than 10MB",
         }));
         return;
       }
@@ -80,7 +98,7 @@ export function useApplicationForm({
     });
 
     // Clear file input
-    event.target.value = '';
+    event.target.value = "";
     setErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors.images;
@@ -109,35 +127,35 @@ export function useApplicationForm({
     const newErrors: Record<string, string> = {};
 
     if (!beverageType) {
-      newErrors.beverageType = 'Beverage type is required';
+      newErrors.beverageType = "Beverage type is required";
     }
     if (!originType) {
-      newErrors.originType = 'Origin type is required';
+      newErrors.originType = "Origin type is required";
     }
     if (!brandName.trim()) {
-      newErrors.brandName = 'Brand name is required';
+      newErrors.brandName = "Brand name is required";
     }
     if (!producerName.trim()) {
       newErrors.producerName =
         originType === OriginType.IMPORTED
-          ? 'Importer name is required'
-          : 'Producer name is required';
+          ? "Importer name is required"
+          : "Producer name is required";
     }
     if (!producerCity.trim()) {
       newErrors.producerCity =
         originType === OriginType.IMPORTED
-          ? 'Importer city is required'
-          : 'Producer city is required';
+          ? "Importer city is required"
+          : "Producer city is required";
     }
     if (!producerState.trim()) {
       newErrors.producerState =
         originType === OriginType.IMPORTED
-          ? 'Importer state is required'
-          : 'Producer state is required';
+          ? "Importer state is required"
+          : "Producer state is required";
     }
     // Images are only required when creating, not when editing
     if (!isEditMode && images.length === 0) {
-      newErrors.images = 'At least one image is required';
+      newErrors.images = "At least one image is required";
     }
 
     setErrors(newErrors);
@@ -155,37 +173,47 @@ export function useApplicationForm({
 
     try {
       // Build ApplicationData object
-      const applicationData: Omit<ApplicationData, 'id' | 'labelImages'> = {
+      const applicationData: Omit<ApplicationData, "id" | "labelImages"> = {
         ttbId: ttbId.trim() || null,
         beverageType: beverageType as BeverageType,
         originType: originType as OriginType,
         brandName: brandName.trim(),
-        fancifulName: beverageType === BeverageType.WINE ? null : fancifulName.trim() || null,
+        fancifulName:
+          beverageType === BeverageType.WINE
+            ? null
+            : fancifulName.trim() || null,
         producerName: producerName.trim(),
         producerAddress: {
           city: producerCity.trim(),
           state: producerState.trim(),
         },
         appellation:
-          beverageType === BeverageType.WINE && appellation.trim() ? appellation.trim() : null,
-        varietal: beverageType === BeverageType.WINE && varietal.trim() ? varietal.trim() : null,
+          beverageType === BeverageType.WINE && appellation.trim()
+            ? appellation.trim()
+            : null,
+        varietal:
+          beverageType === BeverageType.WINE && varietal.trim()
+            ? varietal.trim()
+            : null,
         vintageDate: null,
         other: null,
       };
 
       // Create FormData
       const formData = new FormData();
-      formData.append('applicationData', JSON.stringify(applicationData));
+      formData.append("applicationData", JSON.stringify(applicationData));
 
       // Add images with their types
       images.forEach((image) => {
-        formData.append('images', image.file);
-        formData.append('imageTypes', image.imageType);
+        formData.append("images", image.file);
+        formData.append("imageTypes", image.imageType);
       });
 
       // Submit to API
-      const url = isEditMode ? `/api/applications/${applicationId}` : '/api/applications';
-      const method = isEditMode ? 'PUT' : 'POST';
+      const url = isEditMode
+        ? `/api/applications/${applicationId}`
+        : "/api/applications";
+      const method = isEditMode ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
@@ -194,7 +222,10 @@ export function useApplicationForm({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} application`);
+        throw new Error(
+          errorData.error ||
+            `Failed to ${isEditMode ? "update" : "create"} application`,
+        );
       }
 
       // Clean up preview URLs
@@ -204,9 +235,12 @@ export function useApplicationForm({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Error submitting application:', error);
+      console.error("Error submitting application:", error);
       setErrors({
-        submit: error instanceof Error ? error.message : 'Failed to create application',
+        submit:
+          error instanceof Error
+            ? error.message
+            : "Failed to create application",
       });
     } finally {
       setIsSubmitting(false);
@@ -246,6 +280,6 @@ export function useApplicationForm({
     handleImageTypeChange,
     handleSubmit,
     // Helper
-    clearFancifulName: () => setFancifulName(''),
+    clearFancifulName: () => setFancifulName(""),
   };
 }

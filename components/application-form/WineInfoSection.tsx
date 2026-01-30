@@ -1,11 +1,11 @@
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { BeverageType } from '@/lib/validation/types';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { BeverageType } from "@/lib/validation/types";
 
 interface WineInfoSectionProps {
   appellation: string;
   varietal: string;
-  beverageType: BeverageType | '';
+  beverageType: BeverageType | "";
   onAppellationChange: (value: string) => void;
   onVarietalChange: (value: string) => void;
 }
@@ -23,7 +23,9 @@ export function WineInfoSection({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Wine-Specific Information (Optional)</h3>
+      <h3 className="text-lg font-semibold">
+        Wine-Specific Information (Optional)
+      </h3>
 
       <div className="space-y-2">
         <Label htmlFor="appellation">Appellation</Label>

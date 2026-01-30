@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import {
   extractLabelData,
   validateOpenAIKey,
@@ -6,14 +6,14 @@ import {
   OpenAITimeoutError,
   OpenAINetworkError,
   OpenAIAPIError,
-} from './openai-service';
-import { verifyApplication, determineApplicationStatus } from './verification';
-import { applicationHelpers, labelImageHelpers } from './db-helpers';
-import { convertApplicationToApplicationData } from './application-converter';
+} from "./openai-service";
+import { verifyApplication, determineApplicationStatus } from "./verification";
+import { applicationHelpers, labelImageHelpers } from "./db-helpers";
+import { convertApplicationToApplicationData } from "./application-converter";
 
 export interface BatchStatus {
   batch_id: string;
-  status: 'processing' | 'completed' | 'failed';
+  status: "processing" | "completed" | "failed";
   total_applications: number;
   processed: number;
   successful: number;
@@ -22,7 +22,7 @@ export interface BatchStatus {
   estimated_completion?: string;
   results?: Array<{
     application_id: number;
-    status: 'success' | 'failed';
+    status: "success" | "failed";
     error?: string;
   }>;
 }
@@ -42,7 +42,7 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
     const batchId = uuidv4();
     const batchStatus: BatchStatus = {
       batch_id: batchId,
-      status: 'failed',
+      status: "failed",
       total_applications: applicationIds.length,
       processed: 0,
       successful: 0,
@@ -50,8 +50,8 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
       started_at: new Date().toISOString(),
       results: applicationIds.map((id) => ({
         application_id: id,
-        status: 'failed',
-        error: keyValidation.error || 'OpenAI API key is not configured',
+        status: "failed",
+        error: keyValidation.error || "OpenAI API key is not configured",
       })),
     };
     batchStatuses.set(batchId, batchStatus);
@@ -63,7 +63,7 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
 
   const batchStatus: BatchStatus = {
     batch_id: batchId,
-    status: 'processing',
+    status: "processing",
     total_applications: applicationIds.length,
     processed: 0,
     successful: 0,
@@ -81,14 +81,20 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
       try {
         await processBatchApplications(batchId, applicationIds, batchStatus);
       } catch (error) {
-        console.error(`Error in background batch processing for ${batchId}:`, error);
-        batchStatus.status = 'failed';
+        console.error(
+          `Error in background batch processing for ${batchId}:`,
+          error,
+        );
+        batchStatus.status = "failed";
         batchStatuses.set(batchId, { ...batchStatus });
       }
     })
     .catch((error) => {
-      console.error(`Unhandled error in background batch processing for ${batchId}:`, error);
-      batchStatus.status = 'failed';
+      console.error(
+        `Unhandled error in background batch processing for ${batchId}:`,
+        error,
+      );
+      batchStatus.status = "failed";
       batchStatuses.set(batchId, { ...batchStatus });
     });
 
@@ -102,7 +108,7 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
 async function processBatchApplications(
   batchId: string,
   applicationIds: number[],
-  batchStatus: BatchStatus
+  batchStatus: BatchStatus,
 ): Promise<void> {
   // Process applications in batches of MAX_CONCURRENT
   const processBatchChunk = async (chunk: number[]) => {
@@ -120,18 +126,18 @@ async function processBatchApplications(
 
         // Reset status to "pending" when re-verifying
         // This ensures that re-verification starts fresh regardless of previous status
-        if (application.status !== 'pending') {
-          applicationHelpers.updateStatus(appId, 'pending', null);
+        if (application.status !== "pending") {
+          applicationHelpers.updateStatus(appId, "pending", null);
         }
 
         // Convert database Application to ApplicationData format
         const applicationData = convertApplicationToApplicationData(
           application,
-          labelImages.map((img) => img.id)
+          labelImages.map((img) => img.id),
         );
 
         // Process all label images together for this application
-        let finalStatus = 'pending';
+        let finalStatus = "pending";
         try {
           // Prepare all images for extraction
           const images = labelImages.map((img) => ({
@@ -142,11 +148,14 @@ async function processBatchApplications(
           // Extract data from all images using OpenAI (single API call)
           const { extractedData, processingTimeMs } = await extractLabelData(
             images,
-            application.beverage_type
+            application.beverage_type,
           );
 
           // Verify extracted data against application data
-          const verificationResult = verifyApplication(applicationData, extractedData);
+          const verificationResult = verifyApplication(
+            applicationData,
+            extractedData,
+          );
           const newStatus = determineApplicationStatus(verificationResult);
 
           // Store results in database for each image (same extracted data for all)
@@ -156,30 +165,33 @@ async function processBatchApplications(
               JSON.stringify(extractedData),
               JSON.stringify(verificationResult),
               null, // confidence_score no longer used
-              processingTimeMs
+              processingTimeMs,
             );
           }
 
           // Track the most severe status
           // Note: needs_review is no longer used - soft mismatches stay as pending
-          if (newStatus === 'needs_review') {
+          if (newStatus === "needs_review") {
             // Convert needs_review to pending
-            finalStatus = 'pending';
+            finalStatus = "pending";
           }
         } catch (error) {
-          console.error(`Error processing label images for app ${appId}:`, error);
+          console.error(
+            `Error processing label images for app ${appId}:`,
+            error,
+          );
 
           // Determine user-friendly error message
-          let errorMessage = 'Unknown error';
+          let errorMessage = "Unknown error";
           if (error instanceof OpenAIAPIKeyError) {
-            errorMessage = 'OpenAI API key is not configured or invalid';
+            errorMessage = "OpenAI API key is not configured or invalid";
           } else if (error instanceof OpenAITimeoutError) {
-            errorMessage = 'Request timed out. Please try again.';
+            errorMessage = "Request timed out. Please try again.";
           } else if (error instanceof OpenAINetworkError) {
-            errorMessage = 'Network error occurred';
+            errorMessage = "Network error occurred";
           } else if (error instanceof OpenAIAPIError) {
             if (error.statusCode === 429) {
-              errorMessage = 'Rate limit exceeded. Please wait and try again.';
+              errorMessage = "Rate limit exceeded. Please wait and try again.";
             } else {
               errorMessage = `OpenAI API error: ${error.message}`;
             }
@@ -196,14 +208,15 @@ async function processBatchApplications(
 
         batchStatus.results!.push({
           application_id: appId,
-          status: 'success',
+          status: "success",
         });
         batchStatus.successful++;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         batchStatus.results!.push({
           application_id: appId,
-          status: 'failed',
+          status: "failed",
           error: errorMessage,
         });
         batchStatus.failed++;
@@ -222,7 +235,7 @@ async function processBatchApplications(
     await processBatchChunk(chunk);
   }
 
-  batchStatus.status = 'completed';
+  batchStatus.status = "completed";
   batchStatuses.set(batchId, batchStatus);
 }
 

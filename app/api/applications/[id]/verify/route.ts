@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { applicationHelpers, labelImageHelpers } from '@/lib/db-helpers';
+import { NextRequest, NextResponse } from "next/server";
+import { applicationHelpers, labelImageHelpers } from "@/lib/db-helpers";
 import {
   extractLabelData,
   validateOpenAIKey,
@@ -7,38 +7,50 @@ import {
   OpenAITimeoutError,
   OpenAINetworkError,
   OpenAIAPIError,
-} from '@/lib/openai-service';
-import { verifyApplication, determineApplicationStatus } from '@/lib/verification';
-import { convertApplicationToApplicationData } from '@/lib/application-converter';
+} from "@/lib/openai-service";
+import {
+  verifyApplication,
+  determineApplicationStatus,
+} from "@/lib/verification";
+import { convertApplicationToApplicationData } from "@/lib/application-converter";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
   try {
     // Validate API key before processing
     const keyValidation = validateOpenAIKey();
     if (!keyValidation.valid) {
       return NextResponse.json(
         {
-          error: 'Configuration Error',
-          message: keyValidation.error || 'OpenAI API key is not configured',
+          error: "Configuration Error",
+          message: keyValidation.error || "OpenAI API key is not configured",
           details:
-            'Please configure the OPENAI_API_KEY environment variable to enable verification.',
+            "Please configure the OPENAI_API_KEY environment variable to enable verification.",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     const applicationId = parseInt(params.id);
 
     if (isNaN(applicationId)) {
-      return NextResponse.json({ error: 'Invalid application ID' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid application ID" },
+        { status: 400 },
+      );
     }
 
     const application = applicationHelpers.findById(applicationId);
 
     if (!application) {
-      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Application not found" },
+        { status: 404 },
+      );
     }
 
     // Get label images for this application
@@ -46,14 +58,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     if (labelImages.length === 0) {
       return NextResponse.json(
-        { error: 'No label images found for this application' },
-        { status: 400 }
+        { error: "No label images found for this application" },
+        { status: 400 },
       );
     }
 
     // Reset status to "pending" and clear review notes when re-verifying
     // This ensures that re-verification starts fresh regardless of previous status
-    applicationHelpers.updateStatus(applicationId, 'pending', null);
+    applicationHelpers.updateStatus(applicationId, "pending", null);
 
     // CRITICAL: Clear old verification results BEFORE processing new verification
     // This prevents showing stale verification results when re-verifying
@@ -62,7 +74,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     // Convert database Application to ApplicationData format
     const applicationData = convertApplicationToApplicationData(
       application,
-      labelImages.map((img) => img.id)
+      labelImages.map((img) => img.id),
     );
 
     const verificationResults: Record<string, any[]> = {};
@@ -82,11 +94,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           // Extract data from all images using OpenAI (single API call)
           const { extractedData, processingTimeMs } = await extractLabelData(
             images,
-            application.beverage_type
+            application.beverage_type,
           );
 
           // Verify extracted data against application data
-          const verificationResult = verifyApplication(applicationData, extractedData);
+          const verificationResult = verifyApplication(
+            applicationData,
+            extractedData,
+          );
 
           // Determine if status should change
           const newStatus = determineApplicationStatus(verificationResult);
@@ -102,7 +117,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
               extractedDataJson,
               verificationResultJson,
               null, // confidence_score no longer used
-              processingTimeMs
+              processingTimeMs,
             );
 
             // Store results as array to handle duplicate image types
@@ -118,49 +133,57 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
           // Update application status based on verification results
           // Note: needs_review status is no longer used - soft mismatches stay as pending
-          if (newStatus === 'needs_review') {
+          if (newStatus === "needs_review") {
             // Convert needs_review to pending
-            applicationHelpers.updateStatus(applicationId, 'pending', null);
+            applicationHelpers.updateStatus(applicationId, "pending", null);
           }
         })(),
         new Promise((_, reject) =>
           setTimeout(
             () =>
               reject(
-                new OpenAITimeoutError(`Verification timed out after ${verificationTimeoutMs}ms`)
+                new OpenAITimeoutError(
+                  `Verification timed out after ${verificationTimeoutMs}ms`,
+                ),
               ),
-            verificationTimeoutMs
-          )
+            verificationTimeoutMs,
+          ),
         ),
       ]);
     } catch (error) {
-      console.error(`Error processing label images for application ${applicationId}:`, error);
+      console.error(
+        `Error processing label images for application ${applicationId}:`,
+        error,
+      );
 
       // Determine error type and user-friendly message
-      let errorType = 'Processing Error';
-      let errorMessage = 'Failed to process images';
-      let userMessage = 'Verification failed. Please try again.';
+      let errorType = "Processing Error";
+      let errorMessage = "Failed to process images";
+      let userMessage = "Verification failed. Please try again.";
 
       if (error instanceof OpenAIAPIKeyError) {
-        errorType = 'Configuration Error';
-        errorMessage = error.message;
-        userMessage = 'OpenAI API key is not configured or invalid. Please contact administrator.';
-      } else if (error instanceof OpenAITimeoutError) {
-        errorType = 'Timeout Error';
+        errorType = "Configuration Error";
         errorMessage = error.message;
         userMessage =
-          'Verification timed out. The images may be too large or the service is busy. Please try again.';
-      } else if (error instanceof OpenAINetworkError) {
-        errorType = 'Network Error';
+          "OpenAI API key is not configured or invalid. Please contact administrator.";
+      } else if (error instanceof OpenAITimeoutError) {
+        errorType = "Timeout Error";
         errorMessage = error.message;
-        userMessage = 'Network error occurred. Please check your connection and try again.';
+        userMessage =
+          "Verification timed out. The images may be too large or the service is busy. Please try again.";
+      } else if (error instanceof OpenAINetworkError) {
+        errorType = "Network Error";
+        errorMessage = error.message;
+        userMessage =
+          "Network error occurred. Please check your connection and try again.";
       } else if (error instanceof OpenAIAPIError) {
-        errorType = 'API Error';
+        errorType = "API Error";
         errorMessage = error.message;
         if (error.statusCode === 429) {
-          userMessage = 'Rate limit exceeded. Please wait a moment and try again.';
+          userMessage =
+            "Rate limit exceeded. Please wait a moment and try again.";
         } else {
-          userMessage = 'OpenAI API error occurred. Please try again later.';
+          userMessage = "OpenAI API error occurred. Please try again later.";
         }
       } else if (error instanceof Error) {
         errorMessage = error.message;
@@ -191,7 +214,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         // Handle both new array format and legacy single-result format
         if (result.verification_result) {
           return Object.values(result.verification_result).filter(
-            (v) => typeof v === 'object' && v !== null && 'type' in v
+            (v) => typeof v === "object" && v !== null && "type" in v,
           );
         }
         // Legacy format or error format
@@ -199,18 +222,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           return [];
         }
         return Object.values(result).filter(
-          (v) => typeof v === 'object' && v !== null && 'type' in v
+          (v) => typeof v === "object" && v !== null && "type" in v,
         );
       });
     const hasHardMismatch = allResults.some(
-      (r: any) => r.type === 'hard_mismatch' || r.type === 'not_found'
+      (r: any) => r.type === "hard_mismatch" || r.type === "not_found",
     );
-    const hasSoftMismatch = allResults.some((r: any) => r.type === 'soft_mismatch');
+    const hasSoftMismatch = allResults.some(
+      (r: any) => r.type === "soft_mismatch",
+    );
     const overallStatus = hasHardMismatch
-      ? 'pending'
+      ? "pending"
       : hasSoftMismatch
-        ? 'pending' // Soft mismatches stay as pending (needs_review no longer used)
-        : 'pending';
+        ? "pending" // Soft mismatches stay as pending (needs_review no longer used)
+        : "pending";
 
     // Update application status based on overall verification results
     // Status was already reset to 'pending' at the start, so update it here
@@ -223,27 +248,27 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       processing_time_ms: totalProcessingTime,
     });
   } catch (error) {
-    console.error('Verify application error:', error);
+    console.error("Verify application error:", error);
 
     // Handle specific error types
     if (error instanceof OpenAIAPIKeyError) {
       return NextResponse.json(
         {
-          error: 'Configuration Error',
+          error: "Configuration Error",
           message: error.message,
-          details: 'Please configure the OPENAI_API_KEY environment variable.',
+          details: "Please configure the OPENAI_API_KEY environment variable.",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     return NextResponse.json(
       {
-        error: 'Internal Server Error',
-        message: 'An unexpected error occurred during verification',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: "Internal Server Error",
+        message: "An unexpected error occurred during verification",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

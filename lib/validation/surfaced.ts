@@ -7,28 +7,28 @@ import {
   BeerExtractionResult,
   SpiritsExtractionResult,
   WineExtractionResult,
-} from './types';
-import { valueExists } from './utils';
+} from "./types";
+import { valueExists } from "./utils";
 
 /**
  * Extract surfaced fields for BEER
  */
 export function extractBeerSurfacedFields(
-  extraction: BeerExtractionResult['extraction']
+  extraction: BeerExtractionResult["extraction"],
 ): SurfacedField[] {
   return [
     {
-      field: 'colorAdditiveDisclosure',
+      field: "colorAdditiveDisclosure",
       value: extraction.colorAdditiveDisclosure,
       present: valueExists(extraction.colorAdditiveDisclosure),
     },
     {
-      field: 'sulfiteDeclaration',
+      field: "sulfiteDeclaration",
       value: extraction.sulfiteDeclaration,
       present: valueExists(extraction.sulfiteDeclaration),
     },
     {
-      field: 'aspartameDeclaration',
+      field: "aspartameDeclaration",
       value: extraction.aspartameDeclaration,
       present: valueExists(extraction.aspartameDeclaration),
     },
@@ -39,16 +39,16 @@ export function extractBeerSurfacedFields(
  * Extract surfaced fields for SPIRITS
  */
 export function extractSpiritsSurfacedFields(
-  extraction: SpiritsExtractionResult['extraction']
+  extraction: SpiritsExtractionResult["extraction"],
 ): SurfacedField[] {
   return [
     {
-      field: 'colorIngredientDisclosure',
+      field: "colorIngredientDisclosure",
       value: extraction.colorIngredientDisclosure,
       present: valueExists(extraction.colorIngredientDisclosure),
     },
     {
-      field: 'commodityStatement',
+      field: "commodityStatement",
       value: extraction.commodityStatement,
       present: valueExists(extraction.commodityStatement),
     },
@@ -59,11 +59,11 @@ export function extractSpiritsSurfacedFields(
  * Extract surfaced fields for WINE
  */
 export function extractWineSurfacedFields(
-  extraction: WineExtractionResult['extraction']
+  extraction: WineExtractionResult["extraction"],
 ): SurfacedField[] {
   return [
     {
-      field: 'colorIngredientDisclosure',
+      field: "colorIngredientDisclosure",
       value: extraction.colorIngredientDisclosure,
       present: valueExists(extraction.colorIngredientDisclosure),
     },

@@ -1,6 +1,12 @@
-import db from './db';
-import { ensureMigrations } from './migrations';
-import type { User, Application, LabelImage, AuditLog, ImageType } from '@/types/database';
+import db from "./db";
+import { ensureMigrations } from "./migrations";
+import type {
+  User,
+  Application,
+  LabelImage,
+  AuditLog,
+  ImageType,
+} from "@/types/database";
 
 // Ensure migrations run before any database operations
 ensureMigrations();
@@ -11,7 +17,7 @@ export const userHelpers = {
     email: string,
     passwordHash: string,
     name: string,
-    role: 'agent' | 'admin' = 'agent'
+    role: "agent" | "admin" = "agent",
   ) => {
     const stmt = db.prepare(`
       INSERT INTO users (email, password_hash, name, role)
@@ -21,17 +27,19 @@ export const userHelpers = {
   },
 
   findByEmail: (email: string): User | undefined => {
-    const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+    const stmt = db.prepare("SELECT * FROM users WHERE email = ?");
     return stmt.get(email) as User | undefined;
   },
 
   findById: (id: number): User | undefined => {
-    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    const stmt = db.prepare("SELECT * FROM users WHERE id = ?");
     return stmt.get(id) as User | undefined;
   },
 
   updateLastLogin: (id: number) => {
-    const stmt = db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?');
+    const stmt = db.prepare(
+      "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+    );
     return stmt.run(id);
   },
 };
@@ -40,33 +48,46 @@ export const userHelpers = {
 export const applicationHelpers = {
   create: (
     applicantName: string,
-    beverageType: 'spirits' | 'wine' | 'beer',
+    beverageType: "spirits" | "wine" | "beer",
     applicationData: string, // JSON string of ApplicationData format
-    assignedAgentId: number | null = null
+    assignedAgentId: number | null = null,
   ) => {
     const stmt = db.prepare(`
       INSERT INTO applications (applicant_name, beverage_type, application_data, assigned_agent_id)
       VALUES (?, ?, ?, ?)
     `);
-    return stmt.run(applicantName, beverageType, applicationData, assignedAgentId);
+    return stmt.run(
+      applicantName,
+      beverageType,
+      applicationData,
+      assignedAgentId,
+    );
   },
 
   findById: (id: number): Application | undefined => {
-    const stmt = db.prepare('SELECT * FROM applications WHERE id = ?');
+    const stmt = db.prepare("SELECT * FROM applications WHERE id = ?");
     return stmt.get(id) as Application | undefined;
   },
 
   findAll: (): Application[] => {
-    const stmt = db.prepare('SELECT * FROM applications ORDER BY created_at DESC');
+    const stmt = db.prepare(
+      "SELECT * FROM applications ORDER BY created_at DESC",
+    );
     return stmt.all() as Application[];
   },
 
   findByStatus: (status: string): Application[] => {
-    const stmt = db.prepare('SELECT * FROM applications WHERE status = ? ORDER BY created_at DESC');
+    const stmt = db.prepare(
+      "SELECT * FROM applications WHERE status = ? ORDER BY created_at DESC",
+    );
     return stmt.all(status) as Application[];
   },
 
-  updateStatus: (id: number, status: string, reviewNotes: string | null = null) => {
+  updateStatus: (
+    id: number,
+    status: string,
+    reviewNotes: string | null = null,
+  ) => {
     const stmt = db.prepare(`
       UPDATE applications 
       SET status = ?, reviewed_at = CURRENT_TIMESTAMP, review_notes = ?
@@ -76,14 +97,19 @@ export const applicationHelpers = {
   },
 
   delete: (id: number) => {
-    const stmt = db.prepare('DELETE FROM applications WHERE id = ?');
+    const stmt = db.prepare("DELETE FROM applications WHERE id = ?");
     return stmt.run(id);
   },
 };
 
 // Label Image helpers
 export const labelImageHelpers = {
-  create: (applicationId: number, imageType: ImageType, imageData: Buffer, mimeType: string) => {
+  create: (
+    applicationId: number,
+    imageType: ImageType,
+    imageData: Buffer,
+    mimeType: string,
+  ) => {
     const stmt = db.prepare(`
       INSERT INTO label_images (application_id, image_type, image_data, mime_type)
       VALUES (?, ?, ?, ?)
@@ -92,7 +118,9 @@ export const labelImageHelpers = {
   },
 
   findByApplicationId: (applicationId: number): LabelImage[] => {
-    const stmt = db.prepare('SELECT * FROM label_images WHERE application_id = ?');
+    const stmt = db.prepare(
+      "SELECT * FROM label_images WHERE application_id = ?",
+    );
     return stmt.all(applicationId) as LabelImage[];
   },
 
@@ -101,7 +129,7 @@ export const labelImageHelpers = {
     extractedData: string,
     verificationResult: string,
     confidenceScore: number | null,
-    processingTimeMs: number
+    processingTimeMs: number,
   ) => {
     const stmt = db.prepare(`
       UPDATE label_images 
@@ -109,7 +137,13 @@ export const labelImageHelpers = {
           processed_at = CURRENT_TIMESTAMP, processing_time_ms = ?
       WHERE id = ?
     `);
-    return stmt.run(extractedData, verificationResult, confidenceScore, processingTimeMs, id);
+    return stmt.run(
+      extractedData,
+      verificationResult,
+      confidenceScore,
+      processingTimeMs,
+      id,
+    );
   },
 
   clearVerificationResults: (applicationId: number) => {
@@ -123,7 +157,7 @@ export const labelImageHelpers = {
   },
 
   delete: (id: number) => {
-    const stmt = db.prepare('DELETE FROM label_images WHERE id = ?');
+    const stmt = db.prepare("DELETE FROM label_images WHERE id = ?");
     return stmt.run(id);
   },
 };
@@ -134,7 +168,7 @@ export const auditLogHelpers = {
     userId: number,
     action: string,
     applicationId: number | null = null,
-    details: string | null = null
+    details: string | null = null,
   ) => {
     const stmt = db.prepare(`
       INSERT INTO audit_logs (user_id, application_id, action, details)

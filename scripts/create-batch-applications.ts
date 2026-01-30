@@ -1,10 +1,10 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import '../lib/migrations'; // Ensure migrations run
-import db from '../lib/db';
-import { applicationHelpers, labelImageHelpers } from '../lib/db-helpers';
-import { BeverageType, OriginType } from '../lib/validation/types';
-import type { ApplicationData } from '../lib/validation/types';
+import { readFileSync } from "fs";
+import { join } from "path";
+import "../lib/migrations"; // Ensure migrations run
+import db from "../lib/db";
+import { applicationHelpers, labelImageHelpers } from "../lib/db-helpers";
+import { BeverageType, OriginType } from "../lib/validation/types";
+import type { ApplicationData } from "../lib/validation/types";
 
 /**
  * Script to create 50 copies of the GALLO application for batch testing
@@ -13,19 +13,19 @@ import type { ApplicationData } from '../lib/validation/types';
  */
 
 const BATCH_SIZE = 50;
-const APPLICANT_NAME = 'Latin American Traders LLC';
+const APPLICANT_NAME = "Latin American Traders LLC";
 
 // Application data
-const applicationData: Omit<ApplicationData, 'id' | 'labelImages'> = {
-  ttbId: '25351001000005',
+const applicationData: Omit<ApplicationData, "id" | "labelImages"> = {
+  ttbId: "25351001000005",
   beverageType: BeverageType.BEER,
   originType: OriginType.IMPORTED,
-  brandName: 'GALLO',
+  brandName: "GALLO",
   fancifulName: null,
-  producerName: 'Latin American Traders LLC',
+  producerName: "Latin American Traders LLC",
   producerAddress: {
-    city: 'Doral',
-    state: 'FL',
+    city: "Doral",
+    state: "FL",
   },
   appellation: null,
   varietal: null,
@@ -41,23 +41,35 @@ async function createBatchApplications() {
     // Uploaded images from cursor
     join(
       process.cwd(),
-      '.cursor',
-      'projects',
-      'Users-michaeltornaritis-Desktop-Treasury-Take-Home',
-      'assets',
-      'gallo_front-3f9e5f96-f1c8-41ee-919d-fa1edc493930.png'
+      ".cursor",
+      "projects",
+      "Users-michaeltornaritis-Desktop-Treasury-Take-Home",
+      "assets",
+      "gallo_front-3f9e5f96-f1c8-41ee-919d-fa1edc493930.png",
     ),
     join(
       process.cwd(),
-      '.cursor',
-      'projects',
-      'Users-michaeltornaritis-Desktop-Treasury-Take-Home',
-      'assets',
-      'gallo_back-9d3d692f-e4eb-4937-8919-38f9486a77fc.png'
+      ".cursor",
+      "projects",
+      "Users-michaeltornaritis-Desktop-Treasury-Take-Home",
+      "assets",
+      "gallo_back-9d3d692f-e4eb-4937-8919-38f9486a77fc.png",
     ),
     // Test labels directory (in public folder for Next.js serving)
-    join(process.cwd(), 'public', 'test_labels', 'beer_imported', 'gallo_front.jpeg'),
-    join(process.cwd(), 'public', 'test_labels', 'beer_imported', 'gallo_back.jpeg'),
+    join(
+      process.cwd(),
+      "public",
+      "test_labels",
+      "beer_imported",
+      "gallo_front.jpeg",
+    ),
+    join(
+      process.cwd(),
+      "public",
+      "test_labels",
+      "beer_imported",
+      "gallo_back.jpeg",
+    ),
   ];
 
   let frontImagePath: string | null = null;
@@ -86,7 +98,7 @@ async function createBatchApplications() {
   }
 
   if (!frontImagePath || !backImagePath) {
-    console.error('Error: Could not find image files. Tried:');
+    console.error("Error: Could not find image files. Tried:");
     possiblePaths.forEach((p) => console.error(`  - ${p}`));
     process.exit(1);
   }
@@ -99,14 +111,20 @@ async function createBatchApplications() {
   try {
     frontImageBuffer = readFileSync(frontImagePath);
     backImageBuffer = readFileSync(backImagePath);
-    console.log(`✓ Loaded front image from ${frontImagePath} (${frontImageBuffer.length} bytes)`);
-    console.log(`✓ Loaded back image from ${backImagePath} (${backImageBuffer.length} bytes)`);
+    console.log(
+      `✓ Loaded front image from ${frontImagePath} (${frontImageBuffer.length} bytes)`,
+    );
+    console.log(
+      `✓ Loaded back image from ${backImagePath} (${backImageBuffer.length} bytes)`,
+    );
 
     // Determine mime type from extension
-    frontMimeType = frontImagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
-    backMimeType = backImagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    frontMimeType = frontImagePath.endsWith(".png")
+      ? "image/png"
+      : "image/jpeg";
+    backMimeType = backImagePath.endsWith(".png") ? "image/png" : "image/jpeg";
   } catch (error) {
-    console.error('Error reading image files:', error);
+    console.error("Error reading image files:", error);
     process.exit(1);
   }
 
@@ -121,17 +139,27 @@ async function createBatchApplications() {
         APPLICANT_NAME,
         applicationData.beverageType,
         applicationDataJson,
-        null // assigned_agent_id
+        null, // assigned_agent_id
       );
 
       const applicationId = result.lastInsertRowid as number;
       createdIds.push(applicationId);
 
       // Create front label image
-      labelImageHelpers.create(applicationId, 'front', frontImageBuffer, frontMimeType);
+      labelImageHelpers.create(
+        applicationId,
+        "front",
+        frontImageBuffer,
+        frontMimeType,
+      );
 
       // Create back label image
-      labelImageHelpers.create(applicationId, 'back', backImageBuffer, backMimeType);
+      labelImageHelpers.create(
+        applicationId,
+        "back",
+        backImageBuffer,
+        backMimeType,
+      );
 
       // Image IDs will be updated after all images are created
 
@@ -145,7 +173,7 @@ async function createBatchApplications() {
   }
 
   // Get actual image IDs and update applications
-  console.log('\nUpdating applications with correct image IDs...');
+  console.log("\nUpdating applications with correct image IDs...");
   for (const appId of createdIds) {
     const images = labelImageHelpers.findByApplicationId(appId);
     const imageIds = images.map((img) => String(img.id));
@@ -157,22 +185,24 @@ async function createBatchApplications() {
     };
 
     const updatedApplicationDataJson = JSON.stringify(updatedApplicationData);
-    const updateStmt = db.prepare('UPDATE applications SET application_data = ? WHERE id = ?');
+    const updateStmt = db.prepare(
+      "UPDATE applications SET application_data = ? WHERE id = ?",
+    );
     updateStmt.run(updatedApplicationDataJson, appId);
   }
 
   console.log(`\n✓ Successfully created ${createdIds.length} applications`);
-  console.log(`Application IDs: ${createdIds.join(', ')}`);
+  console.log(`Application IDs: ${createdIds.join(", ")}`);
   console.log(`\nYou can now test batch verification with these applications.`);
 }
 
 // Run the script
 createBatchApplications()
   .then(() => {
-    console.log('\nScript completed successfully!');
+    console.log("\nScript completed successfully!");
     process.exit(0);
   })
   .catch((error) => {
-    console.error('Script failed:', error);
+    console.error("Script failed:", error);
     process.exit(1);
   });

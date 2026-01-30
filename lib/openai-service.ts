@@ -1,39 +1,39 @@
-import OpenAI from 'openai';
-import type { ExtractedData } from '@/types/database';
+import OpenAI from "openai";
+import type { ExtractedData } from "@/types/database";
 import {
   getBeverageSpecificInstructions,
   getClassTypeFieldDescription,
-} from '@/lib/validation/prompts';
+} from "@/lib/validation/prompts";
 
 // Custom error types for better error handling
 export class OpenAIAPIKeyError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'OpenAIAPIKeyError';
+    this.name = "OpenAIAPIKeyError";
   }
 }
 
 export class OpenAITimeoutError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'OpenAITimeoutError';
+    this.name = "OpenAITimeoutError";
   }
 }
 
 export class OpenAINetworkError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'OpenAINetworkError';
+    this.name = "OpenAINetworkError";
   }
 }
 
 export class OpenAIAPIError extends Error {
   constructor(
     message: string,
-    public statusCode?: number // Used in error handling in route.ts
+    public statusCode?: number, // Used in error handling in route.ts
   ) {
     super(message);
-    this.name = 'OpenAIAPIError';
+    this.name = "OpenAIAPIError";
   }
 }
 
@@ -61,10 +61,10 @@ export function validateOpenAIKey(): { valid: boolean; error?: string } {
     return {
       valid: false,
       error:
-        'OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable.',
+        "OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable.",
     };
   }
-  if (!apiKey.startsWith('sk-')) {
+  if (!apiKey.startsWith("sk-")) {
     return {
       valid: false,
       error: 'Invalid OpenAI API key format. API keys should start with "sk-".',
@@ -77,7 +77,9 @@ function getOpenAIClient(): OpenAI {
   if (!openai) {
     const validation = validateOpenAIKey();
     if (!validation.valid) {
-      throw new OpenAIAPIKeyError(validation.error || 'OpenAI API key is not configured');
+      throw new OpenAIAPIKeyError(
+        validation.error || "OpenAI API key is not configured",
+      );
     }
     openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY!,
@@ -104,7 +106,7 @@ function createTimeoutPromise(ms: number): Promise<never> {
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = MAX_RETRIES,
-  delayMs: number = RETRY_DELAY_MS
+  delayMs: number = RETRY_DELAY_MS,
 ): Promise<T> {
   let lastError: Error;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -116,7 +118,9 @@ async function retryWithBackoff<T>(
       // Don't retry on API key errors or client errors (4xx)
       if (
         error instanceof OpenAIAPIKeyError ||
-        (error instanceof OpenAIAPIError && error.statusCode && error.statusCode < 500)
+        (error instanceof OpenAIAPIError &&
+          error.statusCode &&
+          error.statusCode < 500)
       ) {
         throw error;
       }
@@ -139,59 +143,65 @@ async function retryWithBackoff<T>(
  */
 export async function extractLabelData(
   images: Array<{ imageBuffer: Buffer; mimeType: string }>,
-  beverageType: 'spirits' | 'wine' | 'beer'
+  beverageType: "spirits" | "wine" | "beer",
 ): Promise<{ extractedData: ExtractedData; processingTimeMs: number }> {
   const startTime = Date.now();
 
   if (images.length === 0) {
-    throw new OpenAIAPIError('At least one image is required');
+    throw new OpenAIAPIError("At least one image is required");
   }
 
   // Convert all buffers to base64 data URLs
   const imageDataUrls = images.map((img) => {
-    const base64Image = img.imageBuffer.toString('base64');
+    const base64Image = img.imageBuffer.toString("base64");
     return `data:${img.mimeType};base64,${base64Image}`;
   });
 
   // Define fields to extract based on beverage type
   const fieldDefinitions: Record<string, string> = {
-    brand_name: 'Brand name - CRITICAL: Extract the COMPLETE brand name as shown on the label. Brand names may span multiple lines or have additional text directly below (e.g., "BREWERY", "BREWING COMPANY", "WINERY", "DISTILLERY"). Extract ALL parts of the brand name, even if they appear on separate lines. Examples: "FONTA FLORA BREWERY" (not just "Fonta Flora"), "BLACK ROSE GIN" (complete as shown). DO NOT truncate brand names.',
+    brand_name:
+      'Brand name - CRITICAL: Extract the COMPLETE brand name as shown on the label. Brand names may span multiple lines or have additional text directly below (e.g., "BREWERY", "BREWING COMPANY", "WINERY", "DISTILLERY"). Extract ALL parts of the brand name, even if they appear on separate lines. Examples: "FONTA FLORA BREWERY" (not just "Fonta Flora"), "BLACK ROSE GIN" (complete as shown). DO NOT truncate brand names.',
     class_type: getClassTypeFieldDescription(beverageType),
     alcohol_content:
       'Alcohol content - CRITICAL: Extract COMPLETE text including any prefix (e.g., "ALC.", "ALCOHOL", "ABV") if present. Example: "ALC. 12.5% BY VOL." not "12.5% BY VOL."',
     net_contents:
       'Net contents (volume) - Extract ONLY the measurement value and unit (e.g., "750 mL", "12 FL OZ"). Do NOT include prefix words like "CONTENTS", "NET CONTENTS", or "NET".',
-    producer_name: 'Producer name - ⚠️ CRITICAL FOR IMPORTED BEVERAGES: Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY". Extract ONLY the US importer/distributor name that appears IMMEDIATELY after these phrases. DO NOT extract any foreign producer name that appears later on the label. Example: If you see "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu", extract "CBSE Imports, LLC" (the US importer), NOT "CORFU BREWERY S.A." (the foreign producer). For domestic beverages, extract the producer name.',
-    producer_address: 'Producer address - ⚠️ CRITICAL FOR IMPORTED BEVERAGES: Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY". Extract ONLY the US importer/distributor address that appears IMMEDIATELY after these phrases. DO NOT extract any foreign producer address that appears later on the label. Example: If you see "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu", extract "Alexandria, VA" (the US importer address), NOT "Arilas, Corfu" (the foreign producer address). For domestic beverages, extract the producer address.',
+    producer_name:
+      'Producer name - ⚠️ CRITICAL FOR IMPORTED BEVERAGES: Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY". Extract ONLY the US importer/distributor name that appears IMMEDIATELY after these phrases. DO NOT extract any foreign producer name that appears later on the label. Example: If you see "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu", extract "CBSE Imports, LLC" (the US importer), NOT "CORFU BREWERY S.A." (the foreign producer). For domestic beverages, extract the producer name.',
+    producer_address:
+      'Producer address - ⚠️ CRITICAL FOR IMPORTED BEVERAGES: Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY". Extract ONLY the US importer/distributor address that appears IMMEDIATELY after these phrases. DO NOT extract any foreign producer address that appears later on the label. Example: If you see "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu", extract "Alexandria, VA" (the US importer address), NOT "Arilas, Corfu" (the foreign producer address). For domestic beverages, extract the producer address.',
     producer_name_phrase:
       'Phrase immediately preceding producer name/address (e.g., "Bottled By", "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", or null if no such phrase). For imported beverages, extract phrases like "Imported By" or "DISTRIBUTED AND IMPORTED BY" if present.',
-    health_warning: 'Government health warning statement (must be exact)',
+    health_warning: "Government health warning statement (must be exact)",
   };
 
   // Add fanciful_name for spirits and beer (not for wine)
-  if (beverageType === 'spirits' || beverageType === 'beer') {
+  if (beverageType === "spirits" || beverageType === "beer") {
     fieldDefinitions.fanciful_name =
       'Fanciful name - Optional secondary/stylized name, often near brand name. Extract exactly as shown on label, preserving capitalization. Examples: "REPOSADO", "SINGLE BARREL SELECT". Use null if not present.';
   }
 
-  if (beverageType === 'spirits') {
-    fieldDefinitions.age_statement = 'Age statement (if applicable)';
-    fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
-  } else if (beverageType === 'wine') {
-    fieldDefinitions.appellation_of_origin = '🚨 Appellation of origin - GEOGRAPHIC LOCATIONS ONLY (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"). This field is FOR LOCATIONS ONLY, NOT grape names. If you see "CABERNET SAUVIGNON" (grape name) and "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location), put ONLY "MOON MOUNTAIN DISTRICT SONOMA COUNTY" here. DO NOT put "CABERNET SAUVIGNON" here - that goes in class_type.';
-    fieldDefinitions.sulfite_declaration = 'Sulfite declaration';
-    fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
-  } else if (beverageType === 'beer') {
-    fieldDefinitions.sulfite_declaration = 'Sulfite declaration (if applicable)';
-    fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
+  if (beverageType === "spirits") {
+    fieldDefinitions.age_statement = "Age statement (if applicable)";
+    fieldDefinitions.country_of_origin = "Country of origin (if imported)";
+  } else if (beverageType === "wine") {
+    fieldDefinitions.appellation_of_origin =
+      '🚨 Appellation of origin - GEOGRAPHIC LOCATIONS ONLY (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"). This field is FOR LOCATIONS ONLY, NOT grape names. If you see "CABERNET SAUVIGNON" (grape name) and "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location), put ONLY "MOON MOUNTAIN DISTRICT SONOMA COUNTY" here. DO NOT put "CABERNET SAUVIGNON" here - that goes in class_type.';
+    fieldDefinitions.sulfite_declaration = "Sulfite declaration";
+    fieldDefinitions.country_of_origin = "Country of origin (if imported)";
+  } else if (beverageType === "beer") {
+    fieldDefinitions.sulfite_declaration =
+      "Sulfite declaration (if applicable)";
+    fieldDefinitions.country_of_origin = "Country of origin (if imported)";
   }
 
   const fieldsList = Object.entries(fieldDefinitions)
     .map(([key, desc]) => `- ${key}: ${desc}`)
-    .join('\n');
+    .join("\n");
 
   // Get beverage-specific instructions
-  const beverageSpecificInstructions = getBeverageSpecificInstructions(beverageType);
+  const beverageSpecificInstructions =
+    getBeverageSpecificInstructions(beverageType);
 
   // Calculate timeout based on number of images (60 seconds per image, max 5 minutes)
   const timeoutMs = Math.min(TIMEOUT_MS * images.length, 300000);
@@ -202,10 +212,11 @@ export async function extractLabelData(
 
       // Build content array with text prompt and all images
       const content: Array<
-        { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
+        | { type: "text"; text: string }
+        | { type: "image_url"; image_url: { url: string } }
       > = [
         {
-          type: 'text',
+          type: "text",
           text: `Extract all label information from these ${images.length} label image(s) (front, back, neck, side, etc.). Look for all fields across ALL images - information may be spread across different label panels. Pay special attention to the health warning - extract it exactly as shown on the label, preserving the capitalization and formatting as it appears.`,
         },
       ];
@@ -213,7 +224,7 @@ export async function extractLabelData(
       // Add all images to the content array
       for (const dataUrl of imageDataUrls) {
         content.push({
-          type: 'image_url',
+          type: "image_url",
           image_url: {
             url: dataUrl,
           },
@@ -223,11 +234,11 @@ export async function extractLabelData(
       // Race between API call and timeout
       // Optimized: Static content first for caching, temperature 0 for deterministic faster responses
       const apiCall = client.chat.completions.create({
-        model: 'gpt-4o',
+        model: "gpt-4o",
         temperature: 0, // Deterministic, faster, more accurate for structured extraction
         messages: [
           {
-            role: 'system',
+            role: "system",
             content: `You are an expert at extracting structured data from alcohol beverage labels.
 
 🚨🚨🚨 CRITICAL RULE FOR WINE LABELS - READ THIS FIRST 🚨🚨🚨:
@@ -313,19 +324,22 @@ ${fieldsList}
 ${beverageSpecificInstructions}`,
           },
           {
-            role: 'user',
+            role: "user",
             content,
           },
         ],
-        response_format: { type: 'json_object' },
+        response_format: { type: "json_object" },
         max_tokens: 1500, // Reduced from 2000 - structured JSON typically needs 400-800 tokens, 1500 provides safe buffer
       });
 
-      const response = await Promise.race([apiCall, createTimeoutPromise(timeoutMs)]);
+      const response = await Promise.race([
+        apiCall,
+        createTimeoutPromise(timeoutMs),
+      ]);
 
       const responseContent = response.choices[0]?.message?.content;
       if (!responseContent) {
-        throw new OpenAIAPIError('No response content from OpenAI API');
+        throw new OpenAIAPIError("No response content from OpenAI API");
       }
 
       let parsed;
@@ -333,7 +347,7 @@ ${beverageSpecificInstructions}`,
         parsed = JSON.parse(responseContent);
       } catch (parseError) {
         throw new OpenAIAPIError(
-          `Invalid JSON response from OpenAI: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`
+          `Invalid JSON response from OpenAI: ${parseError instanceof Error ? parseError.message : "Unknown error"}`,
         );
       }
 
@@ -342,7 +356,7 @@ ${beverageSpecificInstructions}`,
       // Convert response to ExtractedData format
       for (const [key, value] of Object.entries(parsed)) {
         // Handle both old format (with confidence) and new format (direct values)
-        if (value && typeof value === 'object' && 'value' in value) {
+        if (value && typeof value === "object" && "value" in value) {
           // Old format with confidence - extract just the value
           extractedData[key] = {
             value: String(value.value),
@@ -358,41 +372,106 @@ ${beverageSpecificInstructions}`,
       }
 
       // 🚨 SAFETY CHECK: Detect and fix swapped varietal/appellation for wine labels
-      if (beverageType === 'wine') {
-        const classType = extractedData.class_type?.value?.toUpperCase() || '';
-        const appellation = extractedData.appellation_of_origin?.value?.toUpperCase() || '';
-        
+      if (beverageType === "wine") {
+        const classType = extractedData.class_type?.value?.toUpperCase() || "";
+        const appellation =
+          extractedData.appellation_of_origin?.value?.toUpperCase() || "";
+
         // Common grape names (varietals) - if these appear in appellation, they're swapped
         const commonGrapes = [
-          'CABERNET SAUVIGNON', 'CABERNET', 'SAUVIGNON', 'CHARDONNAY', 'PINOT NOIR', 'PINOT',
-          'MERLOT', 'SYRAH', 'SHIRAZ', 'RIESLING', 'GEWURZTRAMINER', 'SAUVIGNON BLANC',
-          'PINOT GRIGIO', 'PINOT GRIS', 'MALBEC', 'TEMPRANILLO', 'SANGIOVESE', 'NEBBIOLO',
-          'BARBERA', 'DOLCETTO', 'GRENACHE', 'MOURVEDRE', 'CARMENERE', 'ZINFANDEL',
-          'PETITE SIRAH', 'PETIT VERDOT', 'CABERNET FRANC', 'GAMAY', 'VIOGNIER',
-          'KHIKHVI', 'RKATSITELI', 'SAPERAVI', 'MTSVANE', 'ALEXANDROULI'
+          "CABERNET SAUVIGNON",
+          "CABERNET",
+          "SAUVIGNON",
+          "CHARDONNAY",
+          "PINOT NOIR",
+          "PINOT",
+          "MERLOT",
+          "SYRAH",
+          "SHIRAZ",
+          "RIESLING",
+          "GEWURZTRAMINER",
+          "SAUVIGNON BLANC",
+          "PINOT GRIGIO",
+          "PINOT GRIS",
+          "MALBEC",
+          "TEMPRANILLO",
+          "SANGIOVESE",
+          "NEBBIOLO",
+          "BARBERA",
+          "DOLCETTO",
+          "GRENACHE",
+          "MOURVEDRE",
+          "CARMENERE",
+          "ZINFANDEL",
+          "PETITE SIRAH",
+          "PETIT VERDOT",
+          "CABERNET FRANC",
+          "GAMAY",
+          "VIOGNIER",
+          "KHIKHVI",
+          "RKATSITELI",
+          "SAPERAVI",
+          "MTSVANE",
+          "ALEXANDROULI",
         ];
-        
+
         // Common appellations (locations) - if these appear in class_type, they're swapped
         const commonAppellations = [
-          'NAPA VALLEY', 'SONOMA', 'SONOMA COUNTY', 'SONOMA COAST', 'MOON MOUNTAIN DISTRICT',
-          'MOON MOUNTAIN DISTRICT SONOMA COUNTY', 'WILLAMETTE VALLEY', 'FINGER LAKES',
-          'VIRGINIA', 'CALIFORNIA', 'OREGON', 'NEW YORK', 'WASHINGTON', 'TEXAS',
-          'BORDEAUX', 'BURGUNDY', 'CHAMPAGNE', 'CHIANTI', 'RIOJA', 'MOSEL', 'RHINE',
-          'TUSCANY', 'PIEDMONT', 'VENETO', 'LOIRE', 'RHONE', 'ALSACE', 'PROVENCE'
+          "NAPA VALLEY",
+          "SONOMA",
+          "SONOMA COUNTY",
+          "SONOMA COAST",
+          "MOON MOUNTAIN DISTRICT",
+          "MOON MOUNTAIN DISTRICT SONOMA COUNTY",
+          "WILLAMETTE VALLEY",
+          "FINGER LAKES",
+          "VIRGINIA",
+          "CALIFORNIA",
+          "OREGON",
+          "NEW YORK",
+          "WASHINGTON",
+          "TEXAS",
+          "BORDEAUX",
+          "BURGUNDY",
+          "CHAMPAGNE",
+          "CHIANTI",
+          "RIOJA",
+          "MOSEL",
+          "RHINE",
+          "TUSCANY",
+          "PIEDMONT",
+          "VENETO",
+          "LOIRE",
+          "RHONE",
+          "ALSACE",
+          "PROVENCE",
         ];
-        
-        const classTypeIsGrape = commonGrapes.some(grape => classType.includes(grape));
-        const classTypeIsLocation = commonAppellations.some(loc => classType.includes(loc));
-        const appellationIsGrape = commonGrapes.some(grape => appellation.includes(grape));
-        const appellationIsLocation = commonAppellations.some(loc => appellation.includes(loc));
-        
+
+        const classTypeIsGrape = commonGrapes.some((grape) =>
+          classType.includes(grape),
+        );
+        const classTypeIsLocation = commonAppellations.some((loc) =>
+          classType.includes(loc),
+        );
+        const appellationIsGrape = commonGrapes.some((grape) =>
+          appellation.includes(grape),
+        );
+        const appellationIsLocation = commonAppellations.some((loc) =>
+          appellation.includes(loc),
+        );
+
         // If we detect a swap (grape in appellation OR location in class_type), fix it
-        if ((appellationIsGrape && !appellationIsLocation) || (classTypeIsLocation && !classTypeIsGrape)) {
+        if (
+          (appellationIsGrape && !appellationIsLocation) ||
+          (classTypeIsLocation && !classTypeIsGrape)
+        ) {
           // Swap the values
           const temp = extractedData.class_type;
           extractedData.class_type = extractedData.appellation_of_origin;
           extractedData.appellation_of_origin = temp;
-          console.warn('⚠️ Detected swapped varietal/appellation fields - auto-corrected');
+          console.warn(
+            "⚠️ Detected swapped varietal/appellation fields - auto-corrected",
+          );
         }
       }
 
@@ -404,41 +483,55 @@ ${beverageSpecificInstructions}`,
       };
     } catch (error) {
       // Transform OpenAI SDK errors into our custom error types
-      if (error instanceof OpenAITimeoutError || error instanceof OpenAIAPIKeyError) {
+      if (
+        error instanceof OpenAITimeoutError ||
+        error instanceof OpenAIAPIKeyError
+      ) {
         throw error;
       }
 
       if (error instanceof Error) {
         // Check for network errors
         if (
-          error.message.includes('fetch') ||
-          error.message.includes('network') ||
-          error.message.includes('ECONNREFUSED')
+          error.message.includes("fetch") ||
+          error.message.includes("network") ||
+          error.message.includes("ECONNREFUSED")
         ) {
           throw new OpenAINetworkError(`Network error: ${error.message}`);
         }
 
         // Check for timeout errors
-        if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
+        if (
+          error.message.includes("timeout") ||
+          error.message.includes("TIMEOUT")
+        ) {
           throw new OpenAITimeoutError(`Request timed out: ${error.message}`);
         }
 
         // Check for API key errors
         if (
-          error.message.includes('API key') ||
-          error.message.includes('authentication') ||
-          error.message.includes('401')
+          error.message.includes("API key") ||
+          error.message.includes("authentication") ||
+          error.message.includes("401")
         ) {
-          throw new OpenAIAPIKeyError(`Invalid or missing API key: ${error.message}`);
+          throw new OpenAIAPIKeyError(
+            `Invalid or missing API key: ${error.message}`,
+          );
         }
 
         // Check for rate limit errors
-        if (error.message.includes('rate limit') || error.message.includes('429')) {
-          throw new OpenAIAPIError(`Rate limit exceeded. Please try again later.`, 429);
+        if (
+          error.message.includes("rate limit") ||
+          error.message.includes("429")
+        ) {
+          throw new OpenAIAPIError(
+            `Rate limit exceeded. Please try again later.`,
+            429,
+          );
         }
 
         // Check for other API errors
-        if (error.message.includes('OpenAI') || error.message.includes('API')) {
+        if (error.message.includes("OpenAI") || error.message.includes("API")) {
           throw new OpenAIAPIError(`OpenAI API error: ${error.message}`);
         }
       }

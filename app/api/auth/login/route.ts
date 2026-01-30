@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { authenticateUser, createSession } from '@/lib/auth';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateUser, createSession } from "@/lib/auth";
+import { cookies } from "next/headers";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,13 +10,19 @@ export async function POST(request: NextRequest) {
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 },
+      );
     }
 
     const user = await authenticateUser(email, password);
 
     if (!user) {
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 },
+      );
     }
 
     // Create session
@@ -24,12 +30,12 @@ export async function POST(request: NextRequest) {
 
     // Set secure HTTP-only cookie
     const cookieStore = await cookies();
-    cookieStore.set('session', sessionId, {
+    cookieStore.set("session", sessionId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 24 * 60 * 60, // 24 hours
-      path: '/',
+      path: "/",
     });
 
     return NextResponse.json({
@@ -42,7 +48,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

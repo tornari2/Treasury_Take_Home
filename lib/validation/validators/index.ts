@@ -24,10 +24,10 @@ export {
   validateProducerNameAddress,
   validateHealthWarning,
   validateCountryOfOrigin,
-} from './common';
+} from "./common";
 
 // Spirits-specific validators
-export { validateAgeStatement } from './spirits';
+export { validateAgeStatement } from "./spirits";
 
 // Wine-specific validators
 export {
@@ -35,4 +35,4 @@ export {
   validateWineVarietal,
   validateSulfiteDeclaration,
   validateForeignWinePercentage,
-} from './wine';
+} from "./wine";

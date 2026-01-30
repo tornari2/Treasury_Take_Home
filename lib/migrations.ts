@@ -1,4 +1,4 @@
-import db from './db';
+import db from "./db";
 
 export function runMigrations() {
   // Create users table
@@ -35,7 +35,9 @@ export function runMigrations() {
     const columns = db
       .prepare("PRAGMA table_info(applications)")
       .all() as Array<{ name: string }>;
-    const hasAssignedAgent = columns.some((column) => column.name === 'assigned_agent_id');
+    const hasAssignedAgent = columns.some(
+      (column) => column.name === "assigned_agent_id",
+    );
     if (!hasAssignedAgent) {
       db.exec(`ALTER TABLE applications ADD COLUMN assigned_agent_id INTEGER`);
     }
@@ -75,7 +77,9 @@ export function runMigrations() {
   try {
     // Check if table exists and if constraint needs updating
     const tableInfo = db
-      .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='label_images'")
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='label_images'",
+      )
       .get() as { sql: string } | undefined;
     if (tableInfo && !tableInfo.sql.includes("'other'")) {
       // Table exists but doesn't have 'other' in constraint - need to migrate
@@ -135,10 +139,11 @@ let migrationsRun = false;
 export function ensureMigrations() {
   // Skip migrations entirely during build time
   const isBuildTime =
-    process.env.NEXT_PHASE === 'phase-production-build' ||
-    process.env.NODE_ENV === 'production' ||
-    process.argv.includes('build') ||
-    (typeof process.env.npm_lifecycle_event !== 'undefined' && process.env.npm_lifecycle_event === 'build');
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.NODE_ENV === "production" ||
+    process.argv.includes("build") ||
+    (typeof process.env.npm_lifecycle_event !== "undefined" &&
+      process.env.npm_lifecycle_event === "build");
 
   if (isBuildTime && !process.env.DATABASE_PATH) {
     // Silently skip during build - database will be initialized at runtime

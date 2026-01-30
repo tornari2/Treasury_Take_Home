@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import type { ImageType } from '@/types/database';
-import { X } from 'lucide-react';
+} from "@/components/ui/select";
+import type { ImageType } from "@/types/database";
+import { X } from "lucide-react";
 
 interface ImageUpload {
   file: File;
@@ -52,13 +52,18 @@ export function ImageUploadSection({
           onChange={onImageAdd}
           className="cursor-pointer"
         />
-        {errors.images && <p className="text-sm text-red-500">{errors.images}</p>}
+        {errors.images && (
+          <p className="text-sm text-red-500">{errors.images}</p>
+        )}
       </div>
 
       {images.length > 0 && (
         <div className="space-y-3">
           {images.map((image, index) => (
-            <div key={index} className="flex items-center gap-4 p-3 border rounded-lg">
+            <div
+              key={index}
+              className="flex items-center gap-4 p-3 border rounded-lg"
+            >
               <img
                 src={image.preview}
                 alt={`Preview ${index + 1}`}
@@ -68,7 +73,9 @@ export function ImageUploadSection({
                 <p className="text-sm font-medium">{image.file.name}</p>
                 <Select
                   value={image.imageType}
-                  onValueChange={(value) => onImageTypeChange(index, value as ImageType)}
+                  onValueChange={(value) =>
+                    onImageTypeChange(index, value as ImageType)
+                  }
                 >
                   <SelectTrigger className="w-[140px]">
                     <SelectValue />

@@ -1,12 +1,12 @@
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { OriginType } from '@/lib/validation/types';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { OriginType } from "@/lib/validation/types";
 
 interface ProducerInfoSectionProps {
   producerName: string;
   producerCity: string;
   producerState: string;
-  originType: OriginType | '';
+  originType: OriginType | "";
   errors: Record<string, string>;
   onProducerNameChange: (value: string) => void;
   onProducerCityChange: (value: string) => void;
@@ -23,7 +23,8 @@ export function ProducerInfoSection({
   onProducerCityChange,
   onProducerStateChange,
 }: ProducerInfoSectionProps) {
-  const labelPrefix = originType === OriginType.IMPORTED ? 'Importer' : 'Producer';
+  const labelPrefix =
+    originType === OriginType.IMPORTED ? "Importer" : "Producer";
 
   return (
     <div className="space-y-4">
@@ -39,7 +40,9 @@ export function ProducerInfoSection({
           onChange={(e) => onProducerNameChange(e.target.value)}
           placeholder={`Enter ${labelPrefix.toLowerCase()} name`}
         />
-        {errors.producerName && <p className="text-sm text-red-500">{errors.producerName}</p>}
+        {errors.producerName && (
+          <p className="text-sm text-red-500">{errors.producerName}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -53,7 +56,9 @@ export function ProducerInfoSection({
             onChange={(e) => onProducerCityChange(e.target.value)}
             placeholder="Enter city"
           />
-          {errors.producerCity && <p className="text-sm text-red-500">{errors.producerCity}</p>}
+          {errors.producerCity && (
+            <p className="text-sm text-red-500">{errors.producerCity}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -66,7 +71,9 @@ export function ProducerInfoSection({
             onChange={(e) => onProducerStateChange(e.target.value)}
             placeholder="Enter state"
           />
-          {errors.producerState && <p className="text-sm text-red-500">{errors.producerState}</p>}
+          {errors.producerState && (
+            <p className="text-sm text-red-500">{errors.producerState}</p>
+          )}
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 // Spirits-Specific Field Validators
 // ============================================================
 
-import { MatchStatus, FieldValidationResult } from '../types';
+import { MatchStatus, FieldValidationResult } from "../types";
 
 /**
  * Approved age statement formats (regex patterns)
@@ -25,9 +25,9 @@ function isWhisky(classType: string | null): boolean {
   if (!classType) return false;
   const normalized = classType.toLowerCase();
   return (
-    normalized.includes('whisky') ||
-    normalized.includes('whiskey') ||
-    normalized.includes('whiskie')
+    normalized.includes("whisky") ||
+    normalized.includes("whiskey") ||
+    normalized.includes("whiskie")
   );
 }
 
@@ -38,12 +38,12 @@ function isGrapeLeesPomaceMarcBrandy(classType: string | null): boolean {
   if (!classType) return false;
   const normalized = classType.toLowerCase();
   return (
-    normalized.includes('grape lees') ||
-    normalized.includes('grape pomace') ||
-    normalized.includes('grape marc') ||
-    normalized.includes('lees brandy') ||
-    normalized.includes('pomace brandy') ||
-    normalized.includes('marc brandy')
+    normalized.includes("grape lees") ||
+    normalized.includes("grape pomace") ||
+    normalized.includes("grape marc") ||
+    normalized.includes("lees brandy") ||
+    normalized.includes("pomace brandy") ||
+    normalized.includes("marc brandy")
   );
 }
 
@@ -70,7 +70,7 @@ function parseAgeFromStatement(ageStatement: string): number | null {
         // Check if it's months (for "months old" or "minimum of X months")
         if (
           /months?/i.test(ageStatement) &&
-          !/years?/i.test(ageStatement.split(match[1])[1] || '')
+          !/years?/i.test(ageStatement.split(match[1])[1] || "")
         ) {
           return age / 12; // Convert months to years
         }
@@ -88,7 +88,9 @@ function parseAgeFromStatement(ageStatement: string): number | null {
  */
 function isValidAgeFormat(ageStatement: string): boolean {
   if (!ageStatement) return false;
-  return APPROVED_AGE_FORMATS.some((pattern) => pattern.test(ageStatement.trim()));
+  return APPROVED_AGE_FORMATS.some((pattern) =>
+    pattern.test(ageStatement.trim()),
+  );
 }
 
 /**
@@ -113,7 +115,10 @@ function requiresAgeStatement(classType: string | null): boolean {
 /**
  * Check if the age value makes the statement mandatory
  */
-function isAgeValueRequiringStatement(classType: string | null, age: number | null): boolean {
+function isAgeValueRequiringStatement(
+  classType: string | null,
+  age: number | null,
+): boolean {
   if (!classType || age === null) return false;
 
   if (isWhisky(classType)) {
@@ -148,7 +153,7 @@ function isAgeValueRequiringStatement(classType: string | null, age: number | nu
  */
 export function validateAgeStatement(
   extracted: string | null,
-  classType: string | null
+  classType: string | null,
 ): FieldValidationResult {
   // Check if this spirit type may require an age statement
   const mayRequireStatement = requiresAgeStatement(classType);
@@ -158,11 +163,11 @@ export function validateAgeStatement(
     // If this spirit type doesn't typically require age statements, return NOT_APPLICABLE
     if (!mayRequireStatement) {
       return {
-        field: 'ageStatement',
+        field: "ageStatement",
         status: MatchStatus.NOT_APPLICABLE,
-        expected: 'N/A - Not required for Class or Type',
+        expected: "N/A - Not required for Class or Type",
         extracted: null,
-        rule: 'Age statement not required for this spirit type',
+        rule: "Age statement not required for this spirit type",
       };
     }
 
@@ -170,24 +175,24 @@ export function validateAgeStatement(
     // without knowing the age. Since we don't have the age, we can't definitively say it's missing.
     // Return NOT_APPLICABLE with a note that it may be required.
     return {
-      field: 'ageStatement',
+      field: "ageStatement",
       status: MatchStatus.NOT_APPLICABLE,
-      expected: 'N/A - Not required for Class or Type',
+      expected: "N/A - Not required for Class or Type",
       extracted: null,
       rule: isWhisky(classType)
-        ? 'Age statement may be required for whisky aged less than 4 years (cannot verify without age statement)'
+        ? "Age statement may be required for whisky aged less than 4 years (cannot verify without age statement)"
         : isGrapeLeesPomaceMarcBrandy(classType)
-          ? 'Age statement may be required for grape lees/pomace/marc brandy aged less than 2 years (cannot verify without age statement)'
-          : 'Age statement may be required (cannot verify without age statement)',
+          ? "Age statement may be required for grape lees/pomace/marc brandy aged less than 2 years (cannot verify without age statement)"
+          : "Age statement may be required (cannot verify without age statement)",
     };
   }
 
   // Age statement is present - validate format first
   if (!isValidAgeFormat(extracted)) {
     return {
-      field: 'ageStatement',
+      field: "ageStatement",
       status: MatchStatus.HARD_MISMATCH,
-      expected: 'Age statement in approved format',
+      expected: "Age statement in approved format",
       extracted,
       rule: 'Age statement must be in an approved format. Acceptable formats: "X years old", "X months old", "Aged X years", "Aged at least X years", "Aged a minimum of X months", "Over X years old", "Aged not less than X years", or "X% whisky aged Y years; Z% whisky aged W years"',
     };
@@ -200,7 +205,7 @@ export function validateAgeStatement(
     if (wasRequired) {
       // Age statement was required and is present with valid format
       return {
-        field: 'ageStatement',
+        field: "ageStatement",
         status: MatchStatus.MATCH,
         expected: null,
         extracted,
@@ -213,10 +218,10 @@ export function validateAgeStatement(
 
   // Age statement is present with valid format (may or may not have been required)
   return {
-    field: 'ageStatement',
+    field: "ageStatement",
     status: MatchStatus.MATCH,
     expected: null,
     extracted,
-    rule: 'Age statement present and in approved format',
+    rule: "Age statement present and in approved format",
   };
 }

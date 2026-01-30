@@ -12,7 +12,7 @@ import {
   WineExtractionResult,
   ValidationResult,
   FieldValidationResult,
-} from './types';
+} from "./types";
 import {
   validateBrandName,
   validateFancifulName,
@@ -22,19 +22,19 @@ import {
   validateProducerNameAddress,
   validateHealthWarning,
   validateCountryOfOrigin,
-} from './validators/common';
-import { validateAgeStatement } from './validators/spirits';
+} from "./validators/common";
+import { validateAgeStatement } from "./validators/spirits";
 import {
   validateAppellation,
   validateWineVarietal,
   validateSulfiteDeclaration,
   validateForeignWinePercentage,
-} from './validators/wine';
+} from "./validators/wine";
 import {
   extractBeerSurfacedFields,
   extractSpiritsSurfacedFields,
   extractWineSurfacedFields,
-} from './surfaced';
+} from "./surfaced";
 
 /**
  * Calculate overall validation status based on field results
@@ -43,9 +43,11 @@ import {
  */
 export function calculateOverallStatus(
   fieldResults: FieldValidationResult[],
-  nonFailingFields: string[] = []
+  nonFailingFields: string[] = [],
 ): MatchStatus {
-  const applicableResults = fieldResults.filter((r) => r.status !== MatchStatus.NOT_APPLICABLE);
+  const applicableResults = fieldResults.filter(
+    (r) => r.status !== MatchStatus.NOT_APPLICABLE,
+  );
 
   // Check for hard mismatches, excluding non-failing fields from NOT_FOUND check
   const hasHardMismatch = applicableResults.some((r) => {
@@ -63,7 +65,9 @@ export function calculateOverallStatus(
     return MatchStatus.HARD_MISMATCH;
   }
 
-  const hasSoftMismatch = applicableResults.some((r) => r.status === MatchStatus.SOFT_MISMATCH);
+  const hasSoftMismatch = applicableResults.some(
+    (r) => r.status === MatchStatus.SOFT_MISMATCH,
+  );
   if (hasSoftMismatch) {
     return MatchStatus.SOFT_MISMATCH;
   }
@@ -76,7 +80,7 @@ export function calculateOverallStatus(
  */
 export function validateBeerLabel(
   application: ApplicationData,
-  aiResult: BeerExtractionResult
+  aiResult: BeerExtractionResult,
 ): ValidationResult {
   const startTime = Date.now();
   const fieldResults: FieldValidationResult[] = [];
@@ -86,21 +90,32 @@ export function validateBeerLabel(
   fieldResults.push(validateBrandName(application, extraction.brandName));
   fieldResults.push(validateFancifulName(application, extraction.fancifulName));
   fieldResults.push(validateClassType(extraction.classType));
-  fieldResults.push(validateNetContents(extraction.netContents, BeverageType.BEER));
   fieldResults.push(
-    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress, {
-      beverageType: BeverageType.BEER,
-      producerNamePhrase: extraction.producerNamePhrase,
-    })
+    validateNetContents(extraction.netContents, BeverageType.BEER),
   );
-  fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
-  fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
+  fieldResults.push(
+    validateProducerNameAddress(
+      application,
+      extraction.producerName,
+      extraction.producerAddress,
+      {
+        beverageType: BeverageType.BEER,
+        producerNamePhrase: extraction.producerNamePhrase,
+      },
+    ),
+  );
+  fieldResults.push(
+    validateHealthWarning(extraction.healthWarningText, formatChecks),
+  );
+  fieldResults.push(
+    validateCountryOfOrigin(application.originType, extraction.countryOfOrigin),
+  );
   fieldResults.push(
     validateAlcoholContent(extraction.alcoholContent, BeverageType.BEER, {
       classType: extraction.classType,
       brandName: extraction.brandName,
       fancifulName: extraction.fancifulName,
-    })
+    }),
   );
 
   // Surfaced fields
@@ -122,7 +137,7 @@ export function validateBeerLabel(
  */
 export function validateSpiritsLabel(
   application: ApplicationData,
-  aiResult: SpiritsExtractionResult
+  aiResult: SpiritsExtractionResult,
 ): ValidationResult {
   const startTime = Date.now();
   const fieldResults: FieldValidationResult[] = [];
@@ -132,17 +147,32 @@ export function validateSpiritsLabel(
   fieldResults.push(validateBrandName(application, extraction.brandName));
   fieldResults.push(validateFancifulName(application, extraction.fancifulName));
   fieldResults.push(validateClassType(extraction.classType));
-  fieldResults.push(validateAlcoholContent(extraction.alcoholContent, BeverageType.SPIRITS));
-  fieldResults.push(validateNetContents(extraction.netContents, BeverageType.SPIRITS));
   fieldResults.push(
-    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress, {
-      beverageType: BeverageType.SPIRITS,
-      producerNamePhrase: extraction.producerNamePhrase,
-    })
+    validateAlcoholContent(extraction.alcoholContent, BeverageType.SPIRITS),
   );
-  fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
-  fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
-  fieldResults.push(validateAgeStatement(extraction.ageStatement, extraction.classType)); // Conditionally required based on classType
+  fieldResults.push(
+    validateNetContents(extraction.netContents, BeverageType.SPIRITS),
+  );
+  fieldResults.push(
+    validateProducerNameAddress(
+      application,
+      extraction.producerName,
+      extraction.producerAddress,
+      {
+        beverageType: BeverageType.SPIRITS,
+        producerNamePhrase: extraction.producerNamePhrase,
+      },
+    ),
+  );
+  fieldResults.push(
+    validateHealthWarning(extraction.healthWarningText, formatChecks),
+  );
+  fieldResults.push(
+    validateCountryOfOrigin(application.originType, extraction.countryOfOrigin),
+  );
+  fieldResults.push(
+    validateAgeStatement(extraction.ageStatement, extraction.classType),
+  ); // Conditionally required based on classType
 
   // Surfaced fields
   const surfacedFields = extractSpiritsSurfacedFields(extraction);
@@ -163,7 +193,7 @@ export function validateSpiritsLabel(
  */
 export function validateWineLabel(
   application: ApplicationData,
-  aiResult: WineExtractionResult
+  aiResult: WineExtractionResult,
 ): ValidationResult {
   const startTime = Date.now();
   const fieldResults: FieldValidationResult[] = [];
@@ -175,17 +205,28 @@ export function validateWineLabel(
   fieldResults.push(
     validateAlcoholContent(extraction.alcoholContent, BeverageType.WINE, {
       classType: extraction.classType,
-    })
+    }),
   );
-  fieldResults.push(validateNetContents(extraction.netContents, BeverageType.WINE));
   fieldResults.push(
-    validateProducerNameAddress(application, extraction.producerName, extraction.producerAddress, {
-      beverageType: BeverageType.WINE,
-      producerNamePhrase: extraction.producerNamePhrase,
-    })
+    validateNetContents(extraction.netContents, BeverageType.WINE),
   );
-  fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
-  fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
+  fieldResults.push(
+    validateProducerNameAddress(
+      application,
+      extraction.producerName,
+      extraction.producerAddress,
+      {
+        beverageType: BeverageType.WINE,
+        producerNamePhrase: extraction.producerNamePhrase,
+      },
+    ),
+  );
+  fieldResults.push(
+    validateHealthWarning(extraction.healthWarningText, formatChecks),
+  );
+  fieldResults.push(
+    validateCountryOfOrigin(application.originType, extraction.countryOfOrigin),
+  );
   fieldResults.push(validateAppellation(application, extraction)); // Now takes full extraction for context
   fieldResults.push(validateSulfiteDeclaration(extraction.sulfiteDeclaration)); // REQUIRED for wine
   fieldResults.push(validateForeignWinePercentage(extraction)); // Required if label references foreign wine
@@ -209,13 +250,16 @@ export function validateWineLabel(
  */
 export function validateLabel(
   application: ApplicationData,
-  aiResult: AIExtractionResult
+  aiResult: AIExtractionResult,
 ): ValidationResult {
   switch (application.beverageType) {
     case BeverageType.BEER:
       return validateBeerLabel(application, aiResult as BeerExtractionResult);
     case BeverageType.SPIRITS:
-      return validateSpiritsLabel(application, aiResult as SpiritsExtractionResult);
+      return validateSpiritsLabel(
+        application,
+        aiResult as SpiritsExtractionResult,
+      );
     case BeverageType.WINE:
       return validateWineLabel(application, aiResult as WineExtractionResult);
     default:
@@ -227,17 +271,17 @@ export function validateLabel(
  * Determine application status based on validation result
  */
 export function determineApplicationStatus(
-  validationResult: ValidationResult
-): 'pending' | 'needs_review' | 'approved' | 'rejected' {
+  validationResult: ValidationResult,
+): "pending" | "needs_review" | "approved" | "rejected" {
   switch (validationResult.overallStatus) {
     case MatchStatus.MATCH:
-      return 'pending';
+      return "pending";
     case MatchStatus.SOFT_MISMATCH:
-      return 'pending'; // Soft mismatches stay pending (no longer flagged for review)
+      return "pending"; // Soft mismatches stay pending (no longer flagged for review)
     case MatchStatus.HARD_MISMATCH:
     case MatchStatus.NOT_FOUND:
-      return 'pending';
+      return "pending";
     default:
-      return 'pending';
+      return "pending";
   }
 }

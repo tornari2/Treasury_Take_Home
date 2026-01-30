@@ -2,14 +2,19 @@
 // Common Field Validators (used across all beverage types)
 // ============================================================
 
-import { MatchStatus, ApplicationData, FieldValidationResult, BeverageType } from '../types';
+import {
+  MatchStatus,
+  ApplicationData,
+  FieldValidationResult,
+  BeverageType,
+} from "../types";
 import {
   ALCOHOL_CONTENT_PATTERNS,
   NET_CONTENTS_PATTERNS,
   REQUIRED_HEALTH_WARNING,
   NUMBER_WITHOUT_UNIT_PATTERN,
-} from '../constants';
-import { OriginType } from '../types';
+} from "../constants";
+import { OriginType } from "../types";
 import {
   stringsMatch,
   isSoftMismatch,
@@ -33,24 +38,24 @@ import {
   normalizeBusinessEntitySuffix,
   producerNamesMatchIgnoringEntitySuffix,
   validateWineNetContentsFormat,
-} from '../utils';
+} from "../utils";
 
 /**
  * Validate Brand Name
  */
 export function validateBrandName(
   application: ApplicationData,
-  extracted: string | null
+  extracted: string | null,
 ): FieldValidationResult {
   const expected = application.brandName;
 
   if (!extracted) {
     return {
-      field: 'brandName',
+      field: "brandName",
       status: MatchStatus.NOT_FOUND,
       expected: expected,
-      extracted: 'Field not found',
-      rule: 'PRESENCE: Brand name must appear on label',
+      extracted: "Field not found",
+      rule: "PRESENCE: Brand name must appear on label",
     };
   }
 
@@ -58,30 +63,30 @@ export function validateBrandName(
     // Case-only differences are considered equivalent (MATCH)
     if (differsOnlyByCase(expected, extracted)) {
       return {
-        field: 'brandName',
+        field: "brandName",
         status: MatchStatus.MATCH,
         expected,
         extracted,
-        rule: 'CROSS-CHECK: Brand name must match application',
+        rule: "CROSS-CHECK: Brand name must match application",
       };
     }
     // Other formatting differences (punctuation, whitespace) are SOFT_MISMATCH
     if (isSoftMismatch(expected, extracted)) {
       return {
-        field: 'brandName',
+        field: "brandName",
         status: MatchStatus.SOFT_MISMATCH,
         expected,
         extracted,
-        rule: 'CROSS-CHECK: Brand name must match application',
-        details: 'Formatting difference detected (punctuation or whitespace)',
+        rule: "CROSS-CHECK: Brand name must match application",
+        details: "Formatting difference detected (punctuation or whitespace)",
       };
     }
     return {
-      field: 'brandName',
+      field: "brandName",
       status: MatchStatus.MATCH,
       expected,
       extracted,
-      rule: 'CROSS-CHECK: Brand name must match application',
+      rule: "CROSS-CHECK: Brand name must match application",
     };
   }
 
@@ -89,22 +94,23 @@ export function validateBrandName(
   // This handles OCR errors and typos like "FROG" vs "Frogg"
   if (isSimilarString(expected, extracted)) {
     return {
-      field: 'brandName',
+      field: "brandName",
       status: MatchStatus.SOFT_MISMATCH,
       expected,
       extracted,
-      rule: 'CROSS-CHECK: Brand name must match application',
-      details: 'Minor spelling difference detected (possible OCR error or typo)',
+      rule: "CROSS-CHECK: Brand name must match application",
+      details:
+        "Minor spelling difference detected (possible OCR error or typo)",
     };
   }
 
   return {
-    field: 'brandName',
+    field: "brandName",
     status: MatchStatus.HARD_MISMATCH,
     expected,
     extracted,
-    rule: 'CROSS-CHECK: Brand name must match application',
-    details: 'Brand names do not match',
+    rule: "CROSS-CHECK: Brand name must match application",
+    details: "Brand names do not match",
   };
 }
 
@@ -113,7 +119,7 @@ export function validateBrandName(
  */
 export function validateFancifulName(
   application: ApplicationData,
-  extracted: string | null
+  extracted: string | null,
 ): FieldValidationResult {
   const expected = application.fancifulName;
 
@@ -122,53 +128,54 @@ export function validateFancifulName(
 
   if (!expectedExists && !extractedExists) {
     return {
-      field: 'fancifulName',
+      field: "fancifulName",
       status: MatchStatus.NOT_APPLICABLE,
       expected: null,
       extracted: null,
-      rule: 'CROSS-CHECK: Fanciful name not present in application or on label',
+      rule: "CROSS-CHECK: Fanciful name not present in application or on label",
     };
   }
 
   if (expectedExists && !extractedExists) {
     return {
-      field: 'fancifulName',
+      field: "fancifulName",
       status: MatchStatus.HARD_MISMATCH,
       expected: expected!,
-      extracted: 'Field not found',
-      rule: 'CROSS-CHECK: Fanciful name in application must appear on label',
-      details: 'Application specifies a fanciful name but it was not found on the label',
+      extracted: "Field not found",
+      rule: "CROSS-CHECK: Fanciful name in application must appear on label",
+      details:
+        "Application specifies a fanciful name but it was not found on the label",
     };
   }
 
   if (!expectedExists && extractedExists) {
     return {
-      field: 'fancifulName',
+      field: "fancifulName",
       status: MatchStatus.HARD_MISMATCH,
-      expected: 'None',
+      expected: "None",
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Fanciful name on label must be in application',
-      details: 'Label contains a fanciful name not listed in the application',
+      rule: "CROSS-CHECK: Fanciful name on label must be in application",
+      details: "Label contains a fanciful name not listed in the application",
     };
   }
 
   if (stringsMatch(expected, extracted)) {
     if (isSoftMismatch(expected, extracted)) {
       return {
-        field: 'fancifulName',
+        field: "fancifulName",
         status: MatchStatus.SOFT_MISMATCH,
         expected: expected!,
         extracted: extracted!,
-        rule: 'CROSS-CHECK: Fanciful name must match application',
-        details: 'Case or formatting difference detected',
+        rule: "CROSS-CHECK: Fanciful name must match application",
+        details: "Case or formatting difference detected",
       };
     }
     return {
-      field: 'fancifulName',
+      field: "fancifulName",
       status: MatchStatus.MATCH,
       expected: expected!,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Fanciful name must match application',
+      rule: "CROSS-CHECK: Fanciful name must match application",
     };
   }
 
@@ -176,45 +183,48 @@ export function validateFancifulName(
   // This handles OCR errors and typos
   if (isSimilarString(expected, extracted)) {
     return {
-      field: 'fancifulName',
+      field: "fancifulName",
       status: MatchStatus.SOFT_MISMATCH,
       expected: expected!,
       extracted: extracted!,
-      rule: 'CROSS-CHECK: Fanciful name must match application',
-      details: 'Minor spelling difference detected (possible OCR error or typo)',
+      rule: "CROSS-CHECK: Fanciful name must match application",
+      details:
+        "Minor spelling difference detected (possible OCR error or typo)",
     };
   }
 
   return {
-    field: 'fancifulName',
+    field: "fancifulName",
     status: MatchStatus.HARD_MISMATCH,
     expected: expected!,
     extracted: extracted!,
-    rule: 'CROSS-CHECK: Fanciful name must match application',
-    details: 'Fanciful names do not match',
+    rule: "CROSS-CHECK: Fanciful name must match application",
+    details: "Fanciful names do not match",
   };
 }
 
 /**
  * Validate Class/Type Designation
  */
-export function validateClassType(extracted: string | null): FieldValidationResult {
+export function validateClassType(
+  extracted: string | null,
+): FieldValidationResult {
   if (!extracted) {
     return {
-      field: 'classType',
+      field: "classType",
       status: MatchStatus.NOT_FOUND,
       expected: null, // Return null so display logic can show requirement message
       extracted: null,
-      rule: 'PRESENCE: Class/type designation must appear on label',
+      rule: "PRESENCE: Class/type designation must appear on label",
     };
   }
 
   return {
-    field: 'classType',
+    field: "classType",
     status: MatchStatus.MATCH,
     expected: null,
     extracted,
-    rule: 'PRESENCE: Class/type designation present on label',
+    rule: "PRESENCE: Class/type designation present on label",
   };
 }
 
@@ -239,7 +249,7 @@ export function validateAlcoholContent(
     classType?: string | null;
     brandName?: string | null;
     fancifulName?: string | null;
-  }
+  },
 ): FieldValidationResult {
   const expectedFormat =
     'Format: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume"';
@@ -251,12 +261,12 @@ export function validateAlcoholContent(
   if (beverageType === BeverageType.BEER) {
     if (!extracted) {
       return {
-        field: 'alcoholContent',
+        field: "alcoholContent",
         status: MatchStatus.NOT_FOUND,
         expected: null,
         extracted: null,
-        rule: 'PRESENCE: Alcohol content must appear on label',
-        details: 'Alcohol content is required for beer/malt beverages',
+        rule: "PRESENCE: Alcohol content must appear on label",
+        details: "Alcohol content is required for beer/malt beverages",
       };
     }
 
@@ -265,14 +275,14 @@ export function validateAlcoholContent(
       extracted,
       options?.classType || null,
       options?.brandName || null,
-      options?.fancifulName || null
+      options?.fancifulName || null,
     );
 
     // Validate "Low alcohol" or "Reduced alcohol" terms
     if (terms.hasLowAlcohol || terms.hasReducedAlcohol) {
       if (alcoholPercentage === null) {
         return {
-          field: 'alcoholContent',
+          field: "alcoholContent",
           status: MatchStatus.HARD_MISMATCH,
           expected: expectedFormat,
           extracted,
@@ -283,7 +293,7 @@ export function validateAlcoholContent(
       }
       if (alcoholPercentage >= 2.5) {
         return {
-          field: 'alcoholContent',
+          field: "alcoholContent",
           status: MatchStatus.HARD_MISMATCH,
           expected:
             'Alcohol content must be less than 2.5% ABV to use "low alcohol" or "reduced alcohol"',
@@ -298,10 +308,12 @@ export function validateAlcoholContent(
     if (terms.hasNonAlcoholic) {
       // Check if required statement appears adjacent (check in alcoholContent field)
       const hasRequiredStatement =
-        /\bcontains\s+less\s+than\s+(0\.5|\.5)\s*%\s*(alcohol\s+)?by\s+volume\b/i.test(extracted);
+        /\bcontains\s+less\s+than\s+(0\.5|\.5)\s*%\s*(alcohol\s+)?by\s+volume\b/i.test(
+          extracted,
+        );
       if (!hasRequiredStatement) {
         return {
-          field: 'alcoholContent',
+          field: "alcoholContent",
           status: MatchStatus.HARD_MISMATCH,
           expected:
             'If "non-alcoholic" is used, must include statement: "contains less than 0.5% (or .5%) alcohol by volume"',
@@ -317,7 +329,7 @@ export function validateAlcoholContent(
     if (terms.hasAlcoholFree) {
       if (alcoholPercentage === null || alcoholPercentage > 0) {
         return {
-          field: 'alcoholContent',
+          field: "alcoholContent",
           status: MatchStatus.HARD_MISMATCH,
           expected: 'Alcohol content must be 0% ABV to use "alcohol free"',
           extracted,
@@ -342,11 +354,11 @@ export function validateAlcoholContent(
     // If no special terms and format doesn't match, flag format issue
     if (!hasSpecialTerms && !validFormat) {
       return {
-        field: 'alcoholContent',
+        field: "alcoholContent",
         status: MatchStatus.SOFT_MISMATCH,
         expected: expectedFormat,
         extracted,
-        rule: 'FORMAT: Alcohol content must use acceptable format',
+        rule: "FORMAT: Alcohol content must use acceptable format",
         details:
           'Format may not meet TTB requirements. Accepted formats: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume"',
       };
@@ -354,25 +366,29 @@ export function validateAlcoholContent(
 
     // If special terms are used but we can't parse percentage when required, flag it
     if (
-      (terms.hasLowAlcohol || terms.hasReducedAlcohol || terms.hasAlcoholFree) &&
+      (terms.hasLowAlcohol ||
+        terms.hasReducedAlcohol ||
+        terms.hasAlcoholFree) &&
       alcoholPercentage === null &&
       !validFormat
     ) {
       return {
-        field: 'alcoholContent',
+        field: "alcoholContent",
         status: MatchStatus.SOFT_MISMATCH,
         expected: expectedFormat,
         extracted,
-        rule: 'FORMAT: Alcohol content must use acceptable format or include required statements',
+        rule: "FORMAT: Alcohol content must use acceptable format or include required statements",
         details:
-          'Special alcohol terms require numerical alcohol content statement in acceptable format',
+          "Special alcohol terms require numerical alcohol content statement in acceptable format",
       };
     }
   }
 
   // Wine-specific validation
   if (beverageType === BeverageType.WINE) {
-    const isTableOrLightWine = isTableWineOrLightWine(options?.classType || null);
+    const isTableOrLightWine = isTableWineOrLightWine(
+      options?.classType || null,
+    );
     const parsedPercentage = parseAlcoholPercentage(extracted);
 
     if (!extracted) {
@@ -380,11 +396,11 @@ export function validateAlcoholContent(
       if (!isTableOrLightWine) {
         // If not table/light wine, numerical statement is required (could be > 14% or 7-14% without table/light designation)
         return {
-          field: 'alcoholContent',
+          field: "alcoholContent",
           status: MatchStatus.NOT_FOUND,
           expected: null,
           extracted: null,
-          rule: 'WINE RULE: Wines over 14% ABV require numerical alcohol content statement',
+          rule: "WINE RULE: Wines over 14% ABV require numerical alcohol content statement",
           details:
             'Wines over 14% ABV require a numerical alcohol content statement. Wines 7-14% ABV may omit numerical statement if "table wine" or "light wine" appears as class/type designation.',
         };
@@ -392,9 +408,9 @@ export function validateAlcoholContent(
       // If table/light wine, numerical statement is optional - this is OK
       // Still show expected format for reference
       return {
-        field: 'alcoholContent',
+        field: "alcoholContent",
         status: MatchStatus.MATCH,
-        expected: expectedFormat + ' (optional for table/light wines)',
+        expected: expectedFormat + " (optional for table/light wines)",
         extracted: null,
         rule: 'WINE RULE: For wines 7-14% ABV with "table wine" or "light wine" designation, numerical alcohol content statement is optional',
       };
@@ -404,14 +420,17 @@ export function validateAlcoholContent(
     if (parsedPercentage !== null) {
       // Wines over 14% ABV: numerical alcohol content statement is mandatory (already present, check format)
       if (parsedPercentage > 14) {
-        const validFormat = matchesAnyPattern(extracted, ALCOHOL_CONTENT_PATTERNS);
+        const validFormat = matchesAnyPattern(
+          extracted,
+          ALCOHOL_CONTENT_PATTERNS,
+        );
         if (!validFormat) {
           return {
-            field: 'alcoholContent',
+            field: "alcoholContent",
             status: MatchStatus.SOFT_MISMATCH,
             expected: expectedFormat,
             extracted,
-            rule: 'FORMAT: Alcohol content must use acceptable format',
+            rule: "FORMAT: Alcohol content must use acceptable format",
             details:
               'Format may not meet TTB requirements. Accepted formats: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume"',
           };
@@ -421,14 +440,17 @@ export function validateAlcoholContent(
       // Wines 7-14% ABV: numerical statement is optional if "table wine" or "light wine" appears
       // If present, validate format
       if (parsedPercentage >= 7 && parsedPercentage <= 14) {
-        const validFormat = matchesAnyPattern(extracted, ALCOHOL_CONTENT_PATTERNS);
+        const validFormat = matchesAnyPattern(
+          extracted,
+          ALCOHOL_CONTENT_PATTERNS,
+        );
         if (!validFormat) {
           return {
-            field: 'alcoholContent',
+            field: "alcoholContent",
             status: MatchStatus.SOFT_MISMATCH,
             expected: expectedFormat,
             extracted,
-            rule: 'FORMAT: Alcohol content must use acceptable format',
+            rule: "FORMAT: Alcohol content must use acceptable format",
             details:
               'Format may not meet TTB requirements. Accepted formats: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume"',
           };
@@ -437,14 +459,17 @@ export function validateAlcoholContent(
 
       // Wines under 7% ABV: standard format validation
       if (parsedPercentage < 7) {
-        const validFormat = matchesAnyPattern(extracted, ALCOHOL_CONTENT_PATTERNS);
+        const validFormat = matchesAnyPattern(
+          extracted,
+          ALCOHOL_CONTENT_PATTERNS,
+        );
         if (!validFormat) {
           return {
-            field: 'alcoholContent',
+            field: "alcoholContent",
             status: MatchStatus.SOFT_MISMATCH,
             expected: expectedFormat,
             extracted,
-            rule: 'FORMAT: Alcohol content must use acceptable format',
+            rule: "FORMAT: Alcohol content must use acceptable format",
             details:
               'Format may not meet TTB requirements. Accepted formats: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume"',
           };
@@ -453,29 +478,32 @@ export function validateAlcoholContent(
     } else {
       // Extracted value present but no numerical percentage found
       // Check format - if it doesn't match standard patterns, flag it
-      const validFormat = matchesAnyPattern(extracted, ALCOHOL_CONTENT_PATTERNS);
+      const validFormat = matchesAnyPattern(
+        extracted,
+        ALCOHOL_CONTENT_PATTERNS,
+      );
       if (!validFormat) {
         // If not table/light wine, this is a problem (should have numerical statement)
         if (!isTableOrLightWine) {
           return {
-            field: 'alcoholContent',
+            field: "alcoholContent",
             status: MatchStatus.HARD_MISMATCH,
             expected:
               'Numerical alcohol content statement required. For wines 7-14% ABV, statement is optional if "table wine" or "light wine" appears.',
             extracted,
-            rule: 'WINE RULE: Wines over 14% ABV require numerical alcohol content statement',
+            rule: "WINE RULE: Wines over 14% ABV require numerical alcohol content statement",
             details:
               'No numerical alcohol percentage found. Wines over 14% ABV require numerical statement. Wines 7-14% ABV may omit if "table wine" or "light wine" appears.',
           };
         }
         // If table/light wine, format issue is soft mismatch
         return {
-          field: 'alcoholContent',
+          field: "alcoholContent",
           status: MatchStatus.SOFT_MISMATCH,
           expected: expectedFormat,
           extracted,
-          rule: 'FORMAT: Alcohol content must use acceptable format',
-          details: 'Format may not meet TTB requirements',
+          rule: "FORMAT: Alcohol content must use acceptable format",
+          details: "Format may not meet TTB requirements",
         };
       }
     }
@@ -485,12 +513,12 @@ export function validateAlcoholContent(
   if (beverageType === BeverageType.SPIRITS) {
     if (!extracted) {
       return {
-        field: 'alcoholContent',
+        field: "alcoholContent",
         status: MatchStatus.NOT_FOUND,
         expected: null,
         extracted: null,
-        rule: 'PRESENCE: Alcohol content must appear on label',
-        details: 'Alcohol content is required for spirits',
+        rule: "PRESENCE: Alcohol content must appear on label",
+        details: "Alcohol content is required for spirits",
       };
     }
 
@@ -499,11 +527,11 @@ export function validateAlcoholContent(
     const validFormat = containsValidAlcoholFormat(extracted);
     if (!validFormat) {
       return {
-        field: 'alcoholContent',
+        field: "alcoholContent",
         status: MatchStatus.SOFT_MISMATCH,
         expected: expectedFormat,
         extracted,
-        rule: 'FORMAT: Alcohol content must use acceptable format',
+        rule: "FORMAT: Alcohol content must use acceptable format",
         details:
           'Format may not meet TTB requirements. Accepted formats: "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", or "XX% Alcohol by Volume". Additional text like proof statements is allowed.',
       };
@@ -513,11 +541,11 @@ export function validateAlcoholContent(
   // If we get here, validation passed
   // Return expected format so user knows what format is required (even when validation passes)
   return {
-    field: 'alcoholContent',
+    field: "alcoholContent",
     status: MatchStatus.MATCH,
     expected: expectedFormat,
     extracted,
-    rule: 'PRESENCE + FORMAT: Alcohol content present and properly formatted',
+    rule: "PRESENCE + FORMAT: Alcohol content present and properly formatted",
   };
 }
 
@@ -535,7 +563,7 @@ export function validateAlcoholContent(
  */
 export function validateNetContents(
   extracted: string | null,
-  beverageType: BeverageType
+  beverageType: BeverageType,
 ): FieldValidationResult {
   // Determine expected format based on beverage type
   const requiresMetric =
@@ -548,11 +576,11 @@ export function validateNetContents(
 
   if (!extracted) {
     return {
-      field: 'netContents',
+      field: "netContents",
       status: MatchStatus.NOT_FOUND,
-      expected: 'Field not found',
+      expected: "Field not found",
       extracted: null,
-      rule: 'PRESENCE: Net contents must appear on label',
+      rule: "PRESENCE: Net contents must appear on label",
     };
   }
 
@@ -560,24 +588,32 @@ export function validateNetContents(
   const normalized = extracted.trim();
 
   // Check which unit types match (using containsNetContentsPattern to handle cases like "710 ML / 1 PINT 8 FL OZ")
-  const matchesMetric = containsNetContentsPattern(normalized, NET_CONTENTS_PATTERNS.metric);
+  const matchesMetric = containsNetContentsPattern(
+    normalized,
+    NET_CONTENTS_PATTERNS.metric,
+  );
   const matchesUSCustomary = containsNetContentsPattern(
     normalized,
-    NET_CONTENTS_PATTERNS.usCustomary
+    NET_CONTENTS_PATTERNS.usCustomary,
   );
 
   // Check if metric is present but formatted incorrectly (has number but missing unit)
   // This is especially important for wine/spirits where metric is required
   const hasNumberButNoUnit = NUMBER_WITHOUT_UNIT_PATTERN.test(normalized);
-  if (requiresMetric && hasNumberButNoUnit && !matchesMetric && !matchesUSCustomary) {
+  if (
+    requiresMetric &&
+    hasNumberButNoUnit &&
+    !matchesMetric &&
+    !matchesUSCustomary
+  ) {
     return {
-      field: 'netContents',
+      field: "netContents",
       status: MatchStatus.HARD_MISMATCH,
       expected: expectedFormat,
       extracted,
-      rule: 'FORMAT: Wine and spirits must use metric units (mL, L)',
+      rule: "FORMAT: Wine and spirits must use metric units (mL, L)",
       details:
-        'Number detected but unit missing. Metric units (mL, L) are required for wine and spirits.',
+        "Number detected but unit missing. Metric units (mL, L) are required for wine and spirits.",
     };
   }
 
@@ -587,22 +623,24 @@ export function validateNetContents(
     if (matchesUSCustomary) {
       // Has US customary but not metric - HARD MISMATCH (wrong unit type)
       return {
-        field: 'netContents',
+        field: "netContents",
         status: MatchStatus.HARD_MISMATCH,
         expected: expectedFormat,
         extracted,
-        rule: 'FORMAT: Wine and spirits must use metric units (mL, L). U.S. customary units are optional.',
-        details: 'Metric units required for wine/spirits. Found U.S. customary units instead.',
+        rule: "FORMAT: Wine and spirits must use metric units (mL, L). U.S. customary units are optional.",
+        details:
+          "Metric units required for wine/spirits. Found U.S. customary units instead.",
       };
     }
     // Neither metric nor US customary - invalid format
     return {
-      field: 'netContents',
+      field: "netContents",
       status: MatchStatus.HARD_MISMATCH,
       expected: expectedFormat,
       extracted,
-      rule: 'FORMAT: Wine and spirits must use metric units (mL, L)',
-      details: 'Invalid format. Metric units (mL, L) are required for wine and spirits.',
+      rule: "FORMAT: Wine and spirits must use metric units (mL, L)",
+      details:
+        "Invalid format. Metric units (mL, L) are required for wine and spirits.",
     };
   }
 
@@ -611,22 +649,23 @@ export function validateNetContents(
     if (matchesMetric) {
       // Has metric but not US customary - HARD MISMATCH (wrong unit type)
       return {
-        field: 'netContents',
+        field: "netContents",
         status: MatchStatus.HARD_MISMATCH,
         expected: expectedFormat,
         extracted,
-        rule: 'FORMAT: Beer must use U.S. customary units (fl. oz., pints, quarts, gallons). Metric units are optional.',
-        details: 'U.S. customary units required for beer. Found metric units instead.',
+        rule: "FORMAT: Beer must use U.S. customary units (fl. oz., pints, quarts, gallons). Metric units are optional.",
+        details:
+          "U.S. customary units required for beer. Found metric units instead.",
       };
     }
     // Neither US customary nor metric - invalid format
     return {
-      field: 'netContents',
+      field: "netContents",
       status: MatchStatus.HARD_MISMATCH,
       expected: expectedFormat,
       extracted,
-      rule: 'FORMAT: Beer must use U.S. customary units (fl. oz., pints, quarts, gallons)',
-      details: 'Invalid format. U.S. customary units are required for beer.',
+      rule: "FORMAT: Beer must use U.S. customary units (fl. oz., pints, quarts, gallons)",
+      details: "Invalid format. U.S. customary units are required for beer.",
     };
   }
 
@@ -636,11 +675,11 @@ export function validateNetContents(
     const formatError = validateBeerNetContentsFormat(normalized);
     if (formatError) {
       return {
-        field: 'netContents',
+        field: "netContents",
         status: MatchStatus.HARD_MISMATCH,
         expected: expectedFormat,
         extracted,
-        rule: 'FORMAT: Beer net contents must follow U.S. standard measure formatting requirements (27 CFR 7.70)',
+        rule: "FORMAT: Beer net contents must follow U.S. standard measure formatting requirements (27 CFR 7.70)",
         details: formatError,
       };
     }
@@ -653,11 +692,11 @@ export function validateNetContents(
       const formatError = validateWineNetContentsFormat(normalized);
       if (formatError) {
         return {
-          field: 'netContents',
+          field: "netContents",
           status: MatchStatus.HARD_MISMATCH,
           expected: expectedFormat,
           extracted,
-          rule: 'FORMAT: Wine net contents must follow metric formatting requirements (27 CFR 4.72)',
+          rule: "FORMAT: Wine net contents must follow metric formatting requirements (27 CFR 4.72)",
           details: formatError,
         };
       }
@@ -674,14 +713,15 @@ export function validateNetContents(
 
       if (!isValidStandard) {
         // Volume doesn't match authorized standards - flag for review (SOFT_MISMATCH)
-        const beverageName = beverageType === BeverageType.SPIRITS ? 'spirits' : 'wine';
+        const beverageName =
+          beverageType === BeverageType.SPIRITS ? "spirits" : "wine";
         const standardsList =
           beverageType === BeverageType.SPIRITS
-            ? '3.75L, 3L, 2L, 1.8L, 1.75L, 1.5L, 1L, 945mL, 900mL, 750mL, 720mL, 710mL, 700mL, 570mL, 500mL, 475mL, 375mL, 355mL, 350mL, 331mL, 250mL, 200mL, 187mL, 100mL, 50mL'
-            : '3L, 2.25L, 1.8L, 1.5L, 1L, 750mL, 720mL, 700mL, 620mL, 600mL, 568mL, 550mL, 500mL, 473mL, 375mL, 360mL, 355mL, 330mL, 300mL, 250mL, 200mL, 187mL, 180mL, 100mL, 50mL (or even liters ≥4L)';
+            ? "3.75L, 3L, 2L, 1.8L, 1.75L, 1.5L, 1L, 945mL, 900mL, 750mL, 720mL, 710mL, 700mL, 570mL, 500mL, 475mL, 375mL, 355mL, 350mL, 331mL, 250mL, 200mL, 187mL, 100mL, 50mL"
+            : "3L, 2.25L, 1.8L, 1.5L, 1L, 750mL, 720mL, 700mL, 620mL, 600mL, 568mL, 550mL, 500mL, 473mL, 375mL, 360mL, 355mL, 330mL, 300mL, 250mL, 200mL, 187mL, 180mL, 100mL, 50mL (or even liters ≥4L)";
 
         return {
-          field: 'netContents',
+          field: "netContents",
           status: MatchStatus.SOFT_MISMATCH,
           expected: `${expectedFormat} Must match authorized standards of fill: ${standardsList}`,
           extracted,
@@ -695,13 +735,13 @@ export function validateNetContents(
   // Required unit type is present and (if applicable) matches standards of fill - MATCH
   // (Optional unit type may also be present, which is fine)
   return {
-    field: 'netContents',
+    field: "netContents",
     status: MatchStatus.MATCH,
     expected: expectedFormat,
     extracted,
     rule: requiresMetric
-      ? 'PRESENCE + FORMAT: Net contents present with required metric units (U.S. customary optional)'
-      : 'PRESENCE + FORMAT: Net contents present with required U.S. customary units (metric optional)',
+      ? "PRESENCE + FORMAT: Net contents present with required metric units (U.S. customary optional)"
+      : "PRESENCE + FORMAT: Net contents present with required U.S. customary units (metric optional)",
   };
 }
 
@@ -721,7 +761,9 @@ function checkCityInAddress(address: string, expectedCity: string): boolean {
   if (!address) return false;
 
   // Check if city appears in address parts (split by comma)
-  const parts = normalizeString(address).split(',').map((p) => p.trim());
+  const parts = normalizeString(address)
+    .split(",")
+    .map((p) => p.trim());
   for (const part of parts) {
     if (citiesMatch(part, expectedCity)) {
       return true;
@@ -750,18 +792,23 @@ function checkCityInAddress(address: string, expectedCity: string): boolean {
 /**
  * Check if state appears in the given address string
  */
-function checkStateInAddress(address: string | null, expectedState: string): boolean {
+function checkStateInAddress(
+  address: string | null,
+  expectedState: string,
+): boolean {
   if (!address) return false;
   if (!address) return false;
 
   const normalizedAddress = normalizeString(address);
 
   // Extract potential state from address (last part after comma, or last 2-3 words)
-  const parts = normalizedAddress.split(',').map((p) => p.trim());
-  const lastPart = parts[parts.length - 1] || '';
+  const parts = normalizedAddress.split(",").map((p) => p.trim());
+  const lastPart = parts[parts.length - 1] || "";
 
   // Remove ZIP code from last part if present (e.g., "va 20176" -> "va")
-  const lastPartWithoutZip = lastPart.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+  const lastPartWithoutZip = lastPart
+    .replace(/\s+\d{5}(-\d{4})?.*$/, "")
+    .trim();
   const stateToCheck = lastPartWithoutZip || lastPart;
 
   // Check if last part (without ZIP) matches the expected state (handles abbreviations)
@@ -772,16 +819,18 @@ function checkStateInAddress(address: string | null, expectedState: string): boo
   // Also check if any part of the address contains a state equivalent
   // Handle multi-word states like "New York", "North Carolina"
   const words = normalizedAddress.split(/\s+/);
-  const lastWords = words.slice(-2).join(' '); // Last 2 words
+  const lastWords = words.slice(-2).join(" "); // Last 2 words
   // Remove ZIP from last words if present
-  const lastWordsWithoutZip = lastWords.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+  const lastWordsWithoutZip = lastWords
+    .replace(/\s+\d{5}(-\d{4})?.*$/, "")
+    .trim();
   if (statesMatch(lastWordsWithoutZip || lastWords, expectedState)) {
     return true;
   }
 
   // Try checking if state appears anywhere in the address
   // Remove ZIP codes from all parts before checking
-  const addressWithoutZip = normalizedAddress.replace(/\s+\d{5}(-\d{4})?/g, '');
+  const addressWithoutZip = normalizedAddress.replace(/\s+\d{5}(-\d{4})?/g, "");
   const allParts = addressWithoutZip.split(/[,\s]+/);
   for (const part of allParts) {
     if (statesMatch(part, expectedState)) {
@@ -798,15 +847,19 @@ function checkStateInAddress(address: string | null, expectedState: string): boo
 function checkNameMatch(
   expectedName: string,
   extractedName: string | null,
-  extractedWithoutZip: string
+  extractedWithoutZip: string,
 ): boolean {
   if (!extractedName) {
     // If no separate name field, check if name appears in combined string
-    const extractedNameFromCombined = extractedWithoutZip.split(',')[0]?.trim() || '';
+    const extractedNameFromCombined =
+      extractedWithoutZip.split(",")[0]?.trim() || "";
     const expectedNameNorm = normalizeString(expectedName);
     return (
       extractedWithoutZip.includes(expectedNameNorm) ||
-      producerNamesMatchIgnoringEntitySuffix(expectedName, extractedNameFromCombined)
+      producerNamesMatchIgnoringEntitySuffix(
+        expectedName,
+        extractedNameFromCombined,
+      )
     );
   }
 
@@ -828,25 +881,28 @@ function checkAllPartsPresent(
   expectedState: string,
   extractedName: string | null,
   extractedAddress: string | null,
-  extractedWithoutZip: string
+  extractedWithoutZip: string,
 ): { hasName: boolean; hasCity: boolean; hasState: boolean } {
   const expectedNameNorm = normalizeString(expectedName);
-  const expectedNameWithoutSuffix = normalizeBusinessEntitySuffix(expectedNameNorm);
-  const extractedNameNorm = normalizeString(extractedName || '');
-  const extractedNameWithoutSuffix = normalizeBusinessEntitySuffix(extractedNameNorm);
+  const expectedNameWithoutSuffix =
+    normalizeBusinessEntitySuffix(expectedNameNorm);
+  const extractedNameNorm = normalizeString(extractedName || "");
+  const extractedNameWithoutSuffix =
+    normalizeBusinessEntitySuffix(extractedNameNorm);
 
   // Check if name appears
   const hasName = Boolean(
     extractedWithoutZip.includes(expectedNameNorm) ||
-      extractedWithoutZip.includes(expectedNameWithoutSuffix) ||
-      extractedNameWithoutSuffix === expectedNameWithoutSuffix ||
-      (extractedName && producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName))
+    extractedWithoutZip.includes(expectedNameWithoutSuffix) ||
+    extractedNameWithoutSuffix === expectedNameWithoutSuffix ||
+    (extractedName &&
+      producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName)),
   );
 
   // Check if city appears
   const hasCity = (() => {
     // Check if city appears in combined string
-    const parts = extractedWithoutZip.split(',').map((p) => p.trim());
+    const parts = extractedWithoutZip.split(",").map((p) => p.trim());
     for (const part of parts) {
       if (citiesMatch(part, expectedCity)) {
         return true;
@@ -873,11 +929,16 @@ function checkAllPartsPresent(
   // Check if state appears
   const hasState = (() => {
     // Check state with ZIP code handling - check both address and combined string
-    const addressNorm = normalizeString(extractedAddress || '');
-    const addressWithoutZip = addressNorm.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+    const addressNorm = normalizeString(extractedAddress || "");
+    const addressWithoutZip = addressNorm
+      .replace(/\s+\d{5}(-\d{4})?.*$/, "")
+      .trim();
 
     // Check if state appears in address (with or without ZIP)
-    if (statesMatch(addressWithoutZip, expectedState) || statesMatch(addressNorm, expectedState)) {
+    if (
+      statesMatch(addressWithoutZip, expectedState) ||
+      statesMatch(addressNorm, expectedState)
+    ) {
       return true;
     }
 
@@ -885,11 +946,13 @@ function checkAllPartsPresent(
     const combinedWithoutZip = extractedWithoutZip;
 
     // Extract potential state from combined string (last part after comma, or last 2-3 words)
-    const parts = combinedWithoutZip.split(',').map((p) => p.trim());
-    const lastPart = parts[parts.length - 1] || '';
+    const parts = combinedWithoutZip.split(",").map((p) => p.trim());
+    const lastPart = parts[parts.length - 1] || "";
 
     // Remove ZIP code from last part if present
-    const lastPartWithoutZip = lastPart.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+    const lastPartWithoutZip = lastPart
+      .replace(/\s+\d{5}(-\d{4})?.*$/, "")
+      .trim();
     const stateToCheck = lastPartWithoutZip || lastPart;
 
     // Use statesMatch to handle abbreviation vs full name equivalence
@@ -899,8 +962,10 @@ function checkAllPartsPresent(
 
     // Also check last 2 words for multi-word states like "New York", "North Carolina"
     const words = combinedWithoutZip.split(/\s+/);
-    const lastWords = words.slice(-2).join(' ');
-    const lastWordsWithoutZip = lastWords.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+    const lastWords = words.slice(-2).join(" ");
+    const lastWordsWithoutZip = lastWords
+      .replace(/\s+\d{5}(-\d{4})?.*$/, "")
+      .trim();
     if (statesMatch(lastWordsWithoutZip || lastWords, expectedState)) {
       return true;
     }
@@ -930,13 +995,15 @@ function validatePhraseRequirement(
   expectedCity: string,
   expectedState: string,
   extractedName: string | null,
-  extractedAddress: string | null
+  extractedAddress: string | null,
 ): FieldValidationResult | null {
   if (!beverageType || !extractedName || !extractedAddress) {
     return null;
   }
 
-  const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
+  const normalizedPhrase = producerNamePhrase
+    ? normalizeString(producerNamePhrase)
+    : "";
 
   // For imported beverages, enforce that extracted name/address must follow "Imported By"
   if (isImported) {
@@ -944,10 +1011,10 @@ function validatePhraseRequirement(
 
     if (!hasImportedBy) {
       return {
-        field: 'producerNameAddress',
+        field: "producerNameAddress",
         status: MatchStatus.HARD_MISMATCH,
         expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-        extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+        extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
         rule: 'CROSS-CHECK: For imported beverages, must extract the importer name/address that follows "Imported By"',
         details:
           'This appears to be an imported beverage, but the extracted name/address does not follow "Imported By". For imported beverages, extract the importer name/address (following "Imported By"), not the producer name/address.',
@@ -956,17 +1023,20 @@ function validatePhraseRequirement(
   }
 
   // Check phrase requirement for Spirits and Wine
-  if (beverageType === BeverageType.SPIRITS || beverageType === BeverageType.WINE) {
+  if (
+    beverageType === BeverageType.SPIRITS ||
+    beverageType === BeverageType.WINE
+  ) {
     const hasBottledBy = /bottled\s+by/i.test(normalizedPhrase);
     const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
 
     // For domestic beverages, require "Bottled By" phrase
     if (!isImported && !hasBottledBy && !hasImportedBy) {
       return {
-        field: 'producerNameAddress',
+        field: "producerNameAddress",
         status: MatchStatus.SOFT_MISMATCH,
         expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-        extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+        extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
         rule: 'FORMAT: Producer name and address must immediately follow "Bottled By" or "Imported By" with no intervening text',
         details:
           'Producer name/address should immediately follow "Bottled By" or "Imported By" phrase. No such phrase detected or intervening text may be present.',
@@ -980,10 +1050,10 @@ function validatePhraseRequirement(
 
     if (!hasImportedBy) {
       return {
-        field: 'producerNameAddress',
+        field: "producerNameAddress",
         status: MatchStatus.SOFT_MISMATCH,
         expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-        extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+        extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
         rule: 'FORMAT: Importer name and address must immediately follow "Imported by" or similar phrase with no intervening text',
         details:
           'Importer name/address should immediately follow "Imported by" or similar phrase. No such phrase detected or intervening text may be present.',
@@ -1001,7 +1071,7 @@ export function validateProducerNameAddress(
   options?: {
     beverageType?: BeverageType;
     producerNamePhrase?: string | null;
-  }
+  },
 ): FieldValidationResult {
   const expectedName = application.producerName;
   const expectedCity = application.producerAddress.city;
@@ -1009,11 +1079,11 @@ export function validateProducerNameAddress(
 
   if (!extractedName && !extractedAddress) {
     return {
-      field: 'producerNameAddress',
+      field: "producerNameAddress",
       status: MatchStatus.NOT_FOUND,
       expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-      extracted: 'Field not found',
-      rule: 'PRESENCE: Producer name and location (city, state) must appear on label',
+      extracted: "Field not found",
+      rule: "PRESENCE: Producer name and location (city, state) must appear on label",
     };
   }
 
@@ -1022,12 +1092,15 @@ export function validateProducerNameAddress(
   const combinedExtracted =
     extractedName && extractedAddress
       ? `${extractedName}, ${extractedAddress}`
-      : extractedName || extractedAddress || '';
+      : extractedName || extractedAddress || "";
   const expectedCombined = `${expectedName}, ${expectedCity}, ${expectedState}`;
   const normalizedCombined = normalizeString(combinedExtracted);
 
   // Remove ZIP code from extracted for comparison
-  const extractedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
+  const extractedWithoutZip = normalizedCombined.replace(
+    /\s+\d{5}(-\d{4})?/g,
+    "",
+  );
 
   // Check if all three parts (name, city, state) appear in the extracted value
   const { hasName, hasCity, hasState } = checkAllPartsPresent(
@@ -1036,22 +1109,26 @@ export function validateProducerNameAddress(
     expectedState,
     extractedName,
     extractedAddress,
-    extractedWithoutZip
+    extractedWithoutZip,
   );
 
   // If all parts are present in the extracted value, treat as match
   if (hasName && hasCity && hasState) {
     // Verify name matches - check if name appears in extracted (allows for combined format)
-    const nameMatches = checkNameMatch(expectedName, extractedName, extractedWithoutZip);
+    const nameMatches = checkNameMatch(
+      expectedName,
+      extractedName,
+      extractedWithoutZip,
+    );
 
     if (nameMatches) {
       // All required parts found - treat as match
       return {
-        field: 'producerNameAddress',
+        field: "producerNameAddress",
         status: MatchStatus.MATCH,
         expected: expectedCombined,
         extracted: combinedExtracted,
-        rule: 'CROSS-CHECK: Producer name, city, and state match application',
+        rule: "CROSS-CHECK: Producer name, city, and state match application",
       };
     }
   }
@@ -1059,9 +1136,12 @@ export function validateProducerNameAddress(
   // Compare producer names - check if core name matches (ignoring entity suffixes)
   // This allows "CO." vs "LLC" to be considered a soft mismatch if core name matches
   const coreNameMatches =
-    extractedName && producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName);
-  const exactNameMatches = extractedName && stringsMatch(expectedName, extractedName);
-  const nameSoftMismatch = extractedName && isSoftMismatch(expectedName, extractedName);
+    extractedName &&
+    producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName);
+  const exactNameMatches =
+    extractedName && stringsMatch(expectedName, extractedName);
+  const nameSoftMismatch =
+    extractedName && isSoftMismatch(expectedName, extractedName);
 
   // If names match when normalized (case-insensitive), treat as MATCH regardless of case differences
   // Case-only differences (e.g., "BREWERY" vs "Brewery") should be MATCH, not SOFT_MISMATCH
@@ -1082,8 +1162,14 @@ export function validateProducerNameAddress(
   const addressToCheck = nameContainsAddress ? extractedName : extractedAddress;
 
   // Only validate city and state from the address, not the full street address
-  const addressContainsCity = checkCityInAddress(addressToCheck || '', expectedCity);
-  const addressContainsState = checkStateInAddress(addressToCheck || '', expectedState);
+  const addressContainsCity = checkCityInAddress(
+    addressToCheck || "",
+    expectedCity,
+  );
+  const addressContainsState = checkStateInAddress(
+    addressToCheck || "",
+    expectedState,
+  );
 
   // If core name doesn't match at all, check for minor misspellings before hard mismatch
   if (!coreNameMatches && extractedName) {
@@ -1093,24 +1179,24 @@ export function validateProducerNameAddress(
       // If city and state also match, treat as soft mismatch
       if (addressContainsCity && addressContainsState) {
         return {
-          field: 'producerNameAddress',
+          field: "producerNameAddress",
           status: MatchStatus.SOFT_MISMATCH,
           expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-          rule: 'CROSS-CHECK: Producer name, city, and state must match application',
+          extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
+          rule: "CROSS-CHECK: Producer name, city, and state must match application",
           details:
-            'Minor spelling difference in producer name detected (possible OCR error or typo)',
+            "Minor spelling difference in producer name detected (possible OCR error or typo)",
         };
       }
       // If city/state don't match, still hard mismatch
     }
     return {
-      field: 'producerNameAddress',
+      field: "producerNameAddress",
       status: MatchStatus.HARD_MISMATCH,
       expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-      extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-      rule: 'CROSS-CHECK: Producer name must match application',
-      details: 'Producer name does not match',
+      extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
+      rule: "CROSS-CHECK: Producer name must match application",
+      details: "Producer name does not match",
     };
   }
 
@@ -1119,11 +1205,11 @@ export function validateProducerNameAddress(
 
   if (!addressContainsCity || !addressContainsState) {
     return {
-      field: 'producerNameAddress',
+      field: "producerNameAddress",
       status: MatchStatus.HARD_MISMATCH,
       expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-      extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-      rule: 'CROSS-CHECK: City and state must match application (street address not validated)',
+      extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
+      rule: "CROSS-CHECK: City and state must match application (street address not validated)",
       details:
         'City or state does not match (note: state abbreviations are equivalent to full names, e.g., "ME" = "Maine")',
     };
@@ -1142,7 +1228,7 @@ export function validateProducerNameAddress(
     expectedCity,
     expectedState,
     extractedName,
-    extractedAddress
+    extractedAddress,
   );
   if (phraseValidationResult) {
     return phraseValidationResult;
@@ -1155,23 +1241,23 @@ export function validateProducerNameAddress(
   // Case-only differences (e.g., "BREWERY" vs "Brewery") are treated as MATCH above
   if (hasEntitySuffixDifference || hasNonCaseFormattingDifference) {
     return {
-      field: 'producerNameAddress',
+      field: "producerNameAddress",
       status: MatchStatus.SOFT_MISMATCH,
       expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-      extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-      rule: 'CROSS-CHECK: Producer name, city, and state must match application',
+      extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
+      rule: "CROSS-CHECK: Producer name, city, and state must match application",
       details: hasEntitySuffixDifference
         ? 'Business entity suffix difference (e.g., "CO." vs "LLC") - core business name matches'
-        : 'Minor formatting difference in name (punctuation or whitespace)',
+        : "Minor formatting difference in name (punctuation or whitespace)",
     };
   }
 
   return {
-    field: 'producerNameAddress',
+    field: "producerNameAddress",
     status: MatchStatus.MATCH,
     expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-    extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-    rule: 'CROSS-CHECK: Producer name, city, and state match application',
+    extracted: `${extractedName || ""}, ${extractedAddress || ""}`,
+    rule: "CROSS-CHECK: Producer name, city, and state match application",
   };
 }
 
@@ -1187,35 +1273,36 @@ export function validateHealthWarning(
     remainderBold: boolean | null;
     surgeonCapitalized: boolean | null;
     generalCapitalized: boolean | null;
-  }
+  },
 ): FieldValidationResult {
   // Check presence
   if (!extractedText) {
     return {
-      field: 'healthWarning',
+      field: "healthWarning",
       status: MatchStatus.NOT_FOUND,
       expected: REQUIRED_HEALTH_WARNING,
-      extracted: 'Field not found',
-      rule: 'PRESENCE: Health warning statement must appear on label',
+      extracted: "Field not found",
+      rule: "PRESENCE: Health warning statement must appear on label",
     };
   }
 
   // Check EXACT text match (this is the primary validation)
   if (!healthWarningMatchesExact(extractedText)) {
     return {
-      field: 'healthWarning',
+      field: "healthWarning",
       status: MatchStatus.HARD_MISMATCH,
       expected: REQUIRED_HEALTH_WARNING,
       extracted: extractedText,
-      rule: 'FORMAT: Health warning must match EXACT required text word-for-word',
-      details: 'The entire government warning text does not match the required wording exactly',
+      rule: "FORMAT: Health warning must match EXACT required text word-for-word",
+      details:
+        "The entire government warning text does not match the required wording exactly",
     };
   }
 
   // Check "GOVERNMENT WARNING" is all caps
   if (formatChecks.governmentWarningAllCaps === false) {
     return {
-      field: 'healthWarning',
+      field: "healthWarning",
       status: MatchStatus.HARD_MISMATCH,
       expected: '"GOVERNMENT WARNING" must be in ALL CAPS',
       extracted: extractedText,
@@ -1227,7 +1314,7 @@ export function validateHealthWarning(
   // Check "GOVERNMENT WARNING" is bold
   if (formatChecks.governmentWarningBold === false) {
     return {
-      field: 'healthWarning',
+      field: "healthWarning",
       status: MatchStatus.HARD_MISMATCH,
       expected: '"GOVERNMENT WARNING" must be bold',
       extracted: extractedText,
@@ -1239,11 +1326,12 @@ export function validateHealthWarning(
   // Check remainder of warning is NOT bold (only "GOVERNMENT WARNING" should be bold)
   if (formatChecks.remainderBold === true) {
     return {
-      field: 'healthWarning',
+      field: "healthWarning",
       status: MatchStatus.HARD_MISMATCH,
-      expected: 'Only "GOVERNMENT WARNING" must be bold; remainder of warning must NOT be bold',
+      expected:
+        'Only "GOVERNMENT WARNING" must be bold; remainder of warning must NOT be bold',
       extracted: extractedText,
-      rule: 'FORMAT: Remainder of warning statement may not appear in bold type',
+      rule: "FORMAT: Remainder of warning statement may not appear in bold type",
       details:
         'The remainder of the warning statement after "GOVERNMENT WARNING:" appears in bold type, but it should not be bold',
     };
@@ -1252,7 +1340,7 @@ export function validateHealthWarning(
   // Check "Surgeon" is capitalized
   if (formatChecks.surgeonCapitalized === false) {
     return {
-      field: 'healthWarning',
+      field: "healthWarning",
       status: MatchStatus.HARD_MISMATCH,
       expected: '"Surgeon" must have capital S',
       extracted: extractedText,
@@ -1264,7 +1352,7 @@ export function validateHealthWarning(
   // Check "General" is capitalized
   if (formatChecks.generalCapitalized === false) {
     return {
-      field: 'healthWarning',
+      field: "healthWarning",
       status: MatchStatus.HARD_MISMATCH,
       expected: '"General" must have capital G',
       extracted: extractedText,
@@ -1274,11 +1362,11 @@ export function validateHealthWarning(
   }
 
   return {
-    field: 'healthWarning',
+    field: "healthWarning",
     status: MatchStatus.MATCH,
     expected: REQUIRED_HEALTH_WARNING,
     extracted: extractedText,
-    rule: 'PRESENCE + FORMAT: Health warning present with exact required text and formatting',
+    rule: "PRESENCE + FORMAT: Health warning present with exact required text and formatting",
   };
 }
 
@@ -1288,37 +1376,37 @@ export function validateHealthWarning(
  */
 export function validateCountryOfOrigin(
   originType: OriginType,
-  extracted: string | null
+  extracted: string | null,
 ): FieldValidationResult {
   // Domestic products don't require country of origin
   if (originType === OriginType.DOMESTIC) {
     return {
-      field: 'countryOfOrigin',
+      field: "countryOfOrigin",
       status: MatchStatus.NOT_APPLICABLE,
-      expected: 'N/A - Domestic',
+      expected: "N/A - Domestic",
       extracted: null,
-      rule: 'PRESENCE: Country of origin not required for domestic products',
+      rule: "PRESENCE: Country of origin not required for domestic products",
     };
   }
 
   // Imported products require country of origin (applies to all beverage types: beer, wine, spirits)
   if (!extracted) {
     return {
-      field: 'countryOfOrigin',
+      field: "countryOfOrigin",
       status: MatchStatus.NOT_FOUND,
-      expected: 'Required for imported beverages',
+      expected: "Required for imported beverages",
       extracted: null,
-      rule: 'PRESENCE: Country of origin must appear on label for all imported beverages',
+      rule: "PRESENCE: Country of origin must appear on label for all imported beverages",
     };
   }
 
   // Country of origin is present - no cross-checking needed (filled by TTB agents)
   // For imported products, show that it's required even though we don't cross-check the specific value
   return {
-    field: 'countryOfOrigin',
+    field: "countryOfOrigin",
     status: MatchStatus.MATCH,
-    expected: 'Required for imported beverages',
+    expected: "Required for imported beverages",
     extracted,
-    rule: 'PRESENCE: Country of origin present on label',
+    rule: "PRESENCE: Country of origin present on label",
   };
 }

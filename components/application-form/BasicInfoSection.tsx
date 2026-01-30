@@ -1,18 +1,18 @@
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { BeverageType, OriginType } from '@/lib/validation/types';
+} from "@/components/ui/select";
+import { BeverageType, OriginType } from "@/lib/validation/types";
 
 interface BasicInfoSectionProps {
   ttbId: string;
-  beverageType: BeverageType | '';
-  originType: OriginType | '';
+  beverageType: BeverageType | "";
+  originType: OriginType | "";
   errors: Record<string, string>;
   onTtbIdChange: (value: string) => void;
   onBeverageTypeChange: (value: BeverageType) => void;
@@ -65,17 +65,24 @@ export function BasicInfoSection({
             <SelectContent>
               <SelectItem value={BeverageType.BEER}>Malt Beverage</SelectItem>
               <SelectItem value={BeverageType.WINE}>Wine</SelectItem>
-              <SelectItem value={BeverageType.SPIRITS}>Distilled Spirits</SelectItem>
+              <SelectItem value={BeverageType.SPIRITS}>
+                Distilled Spirits
+              </SelectItem>
             </SelectContent>
           </Select>
-          {errors.beverageType && <p className="text-sm text-red-500">{errors.beverageType}</p>}
+          {errors.beverageType && (
+            <p className="text-sm text-red-500">{errors.beverageType}</p>
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="originType">
             Origin Type <span className="text-red-500">*</span>
           </Label>
-          <Select value={originType} onValueChange={(value) => onOriginTypeChange(value as OriginType)}>
+          <Select
+            value={originType}
+            onValueChange={(value) => onOriginTypeChange(value as OriginType)}
+          >
             <SelectTrigger id="originType">
               <SelectValue placeholder="Select origin type" />
             </SelectTrigger>
@@ -84,7 +91,9 @@ export function BasicInfoSection({
               <SelectItem value={OriginType.IMPORTED}>Imported</SelectItem>
             </SelectContent>
           </Select>
-          {errors.originType && <p className="text-sm text-red-500">{errors.originType}</p>}
+          {errors.originType && (
+            <p className="text-sm text-red-500">{errors.originType}</p>
+          )}
         </div>
       </div>
     </div>

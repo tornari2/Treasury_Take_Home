@@ -1,11 +1,11 @@
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { BeverageType } from '@/lib/validation/types';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { BeverageType } from "@/lib/validation/types";
 
 interface BrandInfoSectionProps {
   brandName: string;
   fancifulName: string;
-  beverageType: BeverageType | '';
+  beverageType: BeverageType | "";
   errors: Record<string, string>;
   onBrandNameChange: (value: string) => void;
   onFancifulNameChange: (value: string) => void;
@@ -33,7 +33,9 @@ export function BrandInfoSection({
           onChange={(e) => onBrandNameChange(e.target.value)}
           placeholder="Enter brand name"
         />
-        {errors.brandName && <p className="text-sm text-red-500">{errors.brandName}</p>}
+        {errors.brandName && (
+          <p className="text-sm text-red-500">{errors.brandName}</p>
+        )}
       </div>
 
       {beverageType !== BeverageType.WINE && (

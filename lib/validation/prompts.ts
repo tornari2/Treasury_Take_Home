@@ -2,7 +2,7 @@
 // TTB AI Extraction Prompts
 // ============================================================
 
-import { BeverageType } from './types';
+import { BeverageType } from "./types";
 
 /**
  * AI extraction prompt for BEER / MALT BEVERAGES
@@ -376,9 +376,11 @@ export function getExtractionPrompt(beverageType: BeverageType): string {
  * These are instructions that should be appended to the base extraction prompt
  * Returns empty string if no beverage-specific instructions needed
  */
-export function getBeverageSpecificInstructions(beverageType: 'spirits' | 'wine' | 'beer'): string {
+export function getBeverageSpecificInstructions(
+  beverageType: "spirits" | "wine" | "beer",
+): string {
   switch (beverageType) {
-    case 'wine':
+    case "wine":
       return `
 
 ⚠️⚠️⚠️ CRITICAL WINE-SPECIFIC RULES - VARIETAL vs APPELLATION (DO NOT SWAP THESE FIELDS) ⚠️⚠️⚠️:
@@ -435,7 +437,7 @@ export function getBeverageSpecificInstructions(beverageType: 'spirits' | 'wine'
 
 - SULFITE DECLARATION: Required on most wines - look carefully on back label or bottom of front label`;
 
-    case 'beer':
+    case "beer":
       return `
 
 CRITICAL BEER-SPECIFIC RULES:
@@ -461,7 +463,7 @@ CRITICAL BEER-SPECIFIC RULES:
 
 - FANCIFUL NAME: Optional - many beers don't have one. Only extract if present.`;
 
-    case 'spirits':
+    case "spirits":
       return `
 
 CRITICAL SPIRITS-SPECIFIC RULES:
@@ -502,22 +504,24 @@ CRITICAL SPIRITS-SPECIFIC RULES:
 - BRAND NAME is NOT the same as PRODUCER NAME (they are different fields)`;
 
     default:
-      return '';
+      return "";
   }
 }
 
 /**
  * Get beverage-specific field description for class_type field
  */
-export function getClassTypeFieldDescription(beverageType: 'spirits' | 'wine' | 'beer'): string {
+export function getClassTypeFieldDescription(
+  beverageType: "spirits" | "wine" | "beer",
+): string {
   switch (beverageType) {
-    case 'wine':
+    case "wine":
       return '🚨 Varietal (grape name like "CABERNET SAUVIGNON", "Khikhvi", "Chardonnay", "Pinot Noir") OR class/type (like "White Wine") - GRAPE NAMES ONLY. This field is FOR GRAPE NAMES ONLY, NOT locations. If you see "CABERNET SAUVIGNON" (grape name) and "MOON MOUNTAIN DISTRICT SONOMA COUNTY" (location), put ONLY "CABERNET SAUVIGNON" here. DO NOT put "MOON MOUNTAIN DISTRICT SONOMA COUNTY" here - that goes in appellation_of_origin. If both varietal and class/type appear, extract the VARIETAL.';
-    case 'beer':
+    case "beer":
       return 'Beer style (e.g., "Ale", "Lager", "India Pale Ale", "Stout")';
-    case 'spirits':
+    case "spirits":
       return 'Spirit type designation (e.g., "Kentucky Straight Bourbon Whiskey", "Vodka", "Gin")';
     default:
-      return 'Class/type designation';
+      return "Class/type designation";
   }
 }

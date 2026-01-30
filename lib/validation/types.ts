@@ -6,29 +6,29 @@
  * Beverage types supported by TTB
  */
 export enum BeverageType {
-  BEER = 'beer',
-  WINE = 'wine',
-  SPIRITS = 'spirits',
+  BEER = "beer",
+  WINE = "wine",
+  SPIRITS = "spirits",
 }
 
 /**
  * Origin type - indicates whether beverage is domestic or imported
  */
 export enum OriginType {
-  DOMESTIC = 'domestic',
-  IMPORTED = 'imported',
+  DOMESTIC = "domestic",
+  IMPORTED = "imported",
 }
 
 /**
  * Match status for field validation
  */
 export enum MatchStatus {
-  MATCH = 'match',
-  SOFT_MISMATCH = 'soft_mismatch',
-  HARD_MISMATCH = 'hard_mismatch',
-  NOT_FOUND = 'not_found',
-  NOT_APPLICABLE = 'not_applicable',
-  SURFACED = 'surfaced',
+  MATCH = "match",
+  SOFT_MISMATCH = "soft_mismatch",
+  HARD_MISMATCH = "hard_mismatch",
+  NOT_FOUND = "not_found",
+  NOT_APPLICABLE = "not_applicable",
+  SURFACED = "surfaced",
 }
 
 /**

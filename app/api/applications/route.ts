@@ -1,15 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { applicationHelpers, labelImageHelpers } from '@/lib/db-helpers';
-import { ApplicationData, BeverageType, OriginType } from '@/lib/validation/types';
-import type { ImageType } from '@/types/database';
-import db from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { applicationHelpers, labelImageHelpers } from "@/lib/db-helpers";
+import {
+  ApplicationData,
+  BeverageType,
+  OriginType,
+} from "@/lib/validation/types";
+import type { ImageType } from "@/types/database";
+import db from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const status = searchParams.get("status");
 
     // Skip audit logging since authentication is removed
 
@@ -21,13 +25,13 @@ export async function GET(request: NextRequest) {
         applications = applicationHelpers.findAll();
       }
     } catch (dbError: any) {
-      console.error('Database error in GET applications:', dbError);
+      console.error("Database error in GET applications:", dbError);
       // Return empty array if database is not initialized or accessible
       // This prevents blank screen and allows the UI to render
       return NextResponse.json({
         applications: [],
         count: 0,
-        error: 'Database not available',
+        error: "Database not available",
       });
     }
 
@@ -38,12 +42,16 @@ export async function GET(request: NextRequest) {
           (app as any).application_data || (app as any).expected_label_data;
         return {
           ...app,
-          application_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+          application_data: applicationDataField
+            ? JSON.parse(applicationDataField)
+            : null,
           // Keep expected_label_data for backward compatibility during migration
-          expected_label_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+          expected_label_data: applicationDataField
+            ? JSON.parse(applicationDataField)
+            : null,
         };
       } catch (parseError) {
-        console.error('Error parsing application data:', parseError);
+        console.error("Error parsing application data:", parseError);
         return {
           ...app,
           application_data: null,
@@ -57,12 +65,12 @@ export async function GET(request: NextRequest) {
       count: parsedApplications.length,
     });
   } catch (error) {
-    console.error('Get applications error:', error);
+    console.error("Get applications error:", error);
     // Return empty array instead of error to prevent blank screen
     return NextResponse.json({
       applications: [],
       count: 0,
-      error: 'Failed to fetch applications',
+      error: "Failed to fetch applications",
     });
   }
 }
@@ -71,18 +79,24 @@ export async function POST(request: NextRequest) {
   try {
     // Parse multipart/form-data
     const formData = await request.formData();
-    const applicationDataJson = formData.get('applicationData') as string;
+    const applicationDataJson = formData.get("applicationData") as string;
 
     if (!applicationDataJson) {
-      return NextResponse.json({ error: 'Application data is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Application data is required" },
+        { status: 400 },
+      );
     }
 
     // Parse and validate ApplicationData
-    let applicationData: Omit<ApplicationData, 'id' | 'labelImages'>;
+    let applicationData: Omit<ApplicationData, "id" | "labelImages">;
     try {
       applicationData = JSON.parse(applicationDataJson);
     } catch (error) {
-      return NextResponse.json({ error: 'Invalid application data format' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid application data format" },
+        { status: 400 },
+      );
     }
 
     // Validate required fields
@@ -90,24 +104,38 @@ export async function POST(request: NextRequest) {
       !applicationData.beverageType ||
       !Object.values(BeverageType).includes(applicationData.beverageType)
     ) {
-      return NextResponse.json({ error: 'Invalid beverage type' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid beverage type" },
+        { status: 400 },
+      );
     }
 
     if (
       !applicationData.originType ||
       !Object.values(OriginType).includes(applicationData.originType)
     ) {
-      return NextResponse.json({ error: 'Invalid origin type' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid origin type" },
+        { status: 400 },
+      );
     }
 
     if (!applicationData.brandName?.trim()) {
-      return NextResponse.json({ error: 'Brand name is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Brand name is required" },
+        { status: 400 },
+      );
     }
 
     if (!applicationData.producerName?.trim()) {
       const fieldLabel =
-        applicationData.originType === 'imported' ? 'Importer name' : 'Producer name';
-      return NextResponse.json({ error: `${fieldLabel} is required` }, { status: 400 });
+        applicationData.originType === "imported"
+          ? "Importer name"
+          : "Producer name";
+      return NextResponse.json(
+        { error: `${fieldLabel} is required` },
+        { status: 400 },
+      );
     }
 
     if (
@@ -115,10 +143,12 @@ export async function POST(request: NextRequest) {
       !applicationData.producerAddress?.state?.trim()
     ) {
       const fieldLabel =
-        applicationData.originType === 'imported' ? 'Importer address' : 'Producer address';
+        applicationData.originType === "imported"
+          ? "Importer address"
+          : "Producer address";
       return NextResponse.json(
         { error: `${fieldLabel} (city and state) is required` },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -128,23 +158,32 @@ export async function POST(request: NextRequest) {
       if (
         applicationData.appellation !== null &&
         applicationData.appellation !== undefined &&
-        typeof applicationData.appellation !== 'string'
+        typeof applicationData.appellation !== "string"
       ) {
-        return NextResponse.json({ error: 'Invalid appellation format' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid appellation format" },
+          { status: 400 },
+        );
       }
       if (
         applicationData.varietal !== null &&
         applicationData.varietal !== undefined &&
-        typeof applicationData.varietal !== 'string'
+        typeof applicationData.varietal !== "string"
       ) {
-        return NextResponse.json({ error: 'Invalid varietal format' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid varietal format" },
+          { status: 400 },
+        );
       }
       if (
         applicationData.vintageDate !== null &&
         applicationData.vintageDate !== undefined &&
-        typeof applicationData.vintageDate !== 'string'
+        typeof applicationData.vintageDate !== "string"
       ) {
-        return NextResponse.json({ error: 'Invalid vintage date format' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid vintage date format" },
+          { status: 400 },
+        );
       }
     } else {
       // Clear wine fields for non-wine beverages
@@ -154,18 +193,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Get images from form data
-    const imageFiles = formData.getAll('images') as File[];
-    const imageTypeValues = formData.getAll('imageTypes');
+    const imageFiles = formData.getAll("images") as File[];
+    const imageTypeValues = formData.getAll("imageTypes");
 
     if (imageFiles.length === 0) {
-      return NextResponse.json({ error: 'At least one image is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "At least one image is required" },
+        { status: 400 },
+      );
     }
 
     // Validate image types match image files
     if (imageTypeValues.length !== imageFiles.length) {
       return NextResponse.json(
-        { error: 'Image type must be specified for each image' },
-        { status: 400 }
+        { error: "Image type must be specified for each image" },
+        { status: 400 },
       );
     }
 
@@ -173,8 +215,11 @@ export async function POST(request: NextRequest) {
     const imageTypes: ImageType[] = [];
     for (const typeValue of imageTypeValues) {
       const type = String(typeValue) as ImageType;
-      if (!['front', 'back', 'side', 'neck', 'other'].includes(type)) {
-        return NextResponse.json({ error: 'Invalid image type' }, { status: 400 });
+      if (!["front", "back", "side", "neck", "other"].includes(type)) {
+        return NextResponse.json(
+          { error: "Invalid image type" },
+          { status: 400 },
+        );
       }
       imageTypes.push(type);
     }
@@ -182,17 +227,26 @@ export async function POST(request: NextRequest) {
     // Validate image files
     for (const file of imageFiles) {
       if (!(file instanceof File)) {
-        return NextResponse.json({ error: 'Invalid file format' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid file format" },
+          { status: 400 },
+        );
       }
 
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
+      if (!file.type.startsWith("image/")) {
+        return NextResponse.json(
+          { error: "Only image files are allowed" },
+          { status: 400 },
+        );
       }
 
       // Validate file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        return NextResponse.json({ error: 'Image size must be less than 10MB' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Image size must be less than 10MB" },
+          { status: 400 },
+        );
       }
     }
 
@@ -200,7 +254,7 @@ export async function POST(request: NextRequest) {
     // Use producerName as applicant_name since form only includes ApplicationData fields
     const applicationDataWithImages: ApplicationData = {
       ...applicationData,
-      id: '', // Will be set after creation
+      id: "", // Will be set after creation
       labelImages: [], // Will be populated with image IDs
     };
 
@@ -209,7 +263,7 @@ export async function POST(request: NextRequest) {
       applicationData.producerName.trim(),
       applicationData.beverageType,
       applicationDataString,
-      null // No assigned agent initially
+      null, // No assigned agent initially
     );
 
     const applicationId = result.lastInsertRowid as number;
@@ -225,10 +279,15 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(arrayBuffer);
 
       // Get mime type
-      const mimeType = file.type || 'image/jpeg';
+      const mimeType = file.type || "image/jpeg";
 
       // Store image in database
-      const imageResult = labelImageHelpers.create(applicationId, imageType, buffer, mimeType);
+      const imageResult = labelImageHelpers.create(
+        applicationId,
+        imageType,
+        buffer,
+        mimeType,
+      );
       imageIds.push(imageResult.lastInsertRowid as number);
     }
 
@@ -241,7 +300,9 @@ export async function POST(request: NextRequest) {
 
     // Update application record with image IDs
     const updatedApplicationDataString = JSON.stringify(updatedApplicationData);
-    const updateStmt = db.prepare('UPDATE applications SET application_data = ? WHERE id = ?');
+    const updateStmt = db.prepare(
+      "UPDATE applications SET application_data = ? WHERE id = ?",
+    );
     updateStmt.run(updatedApplicationDataString, applicationId);
 
     // Skip audit logging since authentication is removed
@@ -250,8 +311,8 @@ export async function POST(request: NextRequest) {
     const createdApplication = applicationHelpers.findById(applicationId);
     if (!createdApplication) {
       return NextResponse.json(
-        { error: 'Failed to retrieve created application' },
-        { status: 500 }
+        { error: "Failed to retrieve created application" },
+        { status: 500 },
       );
     }
 
@@ -261,19 +322,26 @@ export async function POST(request: NextRequest) {
       (createdApplication as any).expected_label_data;
     const parsedApplication = {
       ...createdApplication,
-      application_data: applicationDataField ? JSON.parse(applicationDataField) : null,
-      expected_label_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+      application_data: applicationDataField
+        ? JSON.parse(applicationDataField)
+        : null,
+      expected_label_data: applicationDataField
+        ? JSON.parse(applicationDataField)
+        : null,
     };
 
     return NextResponse.json(
       {
         application: parsedApplication,
-        message: 'Application created successfully',
+        message: "Application created successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
-    console.error('Create application error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Create application error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

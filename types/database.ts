@@ -6,35 +6,39 @@
 /**
  * Image type for label images
  */
-export type ImageType = 'front' | 'back' | 'side' | 'neck' | 'other';
+export type ImageType = "front" | "back" | "side" | "neck" | "other";
 
 /**
  * User role
  */
-export type UserRole = 'agent' | 'admin';
+export type UserRole = "agent" | "admin";
 
 /**
  * Beverage type
  */
-export type BeverageType = 'spirits' | 'wine' | 'beer';
+export type BeverageType = "spirits" | "wine" | "beer";
 
 /**
  * Application status
  */
-export type ApplicationStatus = 'pending' | 'needs_review' | 'approved' | 'rejected';
+export type ApplicationStatus =
+  | "pending"
+  | "needs_review"
+  | "approved"
+  | "rejected";
 
 /**
  * Audit log action
  */
 export type AuditLogAction =
-  | 'login'
-  | 'logout'
-  | 'viewed'
-  | 'verified'
-  | 'approved'
-  | 'rejected'
-  | 'status_changed'
-  | 'created';
+  | "login"
+  | "logout"
+  | "viewed"
+  | "verified"
+  | "approved"
+  | "rejected"
+  | "status_changed"
+  | "created";
 
 /**
  * User entity
@@ -109,7 +113,12 @@ export interface ExtractedData {
  * Verification result for a field
  */
 export interface FieldVerificationResult {
-  type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found' | 'not_applicable';
+  type:
+    | "match"
+    | "soft_mismatch"
+    | "hard_mismatch"
+    | "not_found"
+    | "not_applicable";
   match: boolean;
   expected?: string;
   extracted?: string;

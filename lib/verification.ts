@@ -10,15 +10,15 @@ import {
   SpiritsExtractionResult,
   WineExtractionResult,
   validateLabel,
-} from './validation';
-import type { ExtractedData, VerificationResult } from '@/types/database';
+} from "./validation";
+import type { ExtractedData, VerificationResult } from "@/types/database";
 
 /**
  * Convert ExtractedData to AIExtractionResult format
  * This converts the legacy extraction format to the new validation format
  */
 function convertToAIExtractionResult(
-  beverageType: 'spirits' | 'wine' | 'beer',
+  beverageType: "spirits" | "wine" | "beer",
   extractedData: ExtractedData,
   formatChecks?: {
     governmentWarningAllCaps: boolean | null;
@@ -26,7 +26,7 @@ function convertToAIExtractionResult(
     remainderBold: boolean | null;
     surgeonCapitalized: boolean | null;
     generalCapitalized: boolean | null;
-  }
+  },
 ): AIExtractionResult {
   const getValue = (key: string): string | null => {
     const field = extractedData[key];
@@ -34,16 +34,16 @@ function convertToAIExtractionResult(
   };
 
   const baseExtraction = {
-    brandName: getValue('brand_name'),
-    fancifulName: getValue('fanciful_name'),
-    classType: getValue('class_type'),
-    alcoholContent: getValue('alcohol_content'),
-    netContents: getValue('net_contents'),
-    producerName: getValue('producer_name'),
-    producerAddress: getValue('producer_address'),
-    producerNamePhrase: getValue('producer_name_phrase'),
-    healthWarningText: getValue('health_warning'),
-    countryOfOrigin: getValue('country_of_origin'),
+    brandName: getValue("brand_name"),
+    fancifulName: getValue("fanciful_name"),
+    classType: getValue("class_type"),
+    alcoholContent: getValue("alcohol_content"),
+    netContents: getValue("net_contents"),
+    producerName: getValue("producer_name"),
+    producerAddress: getValue("producer_address"),
+    producerNamePhrase: getValue("producer_name_phrase"),
+    healthWarningText: getValue("health_warning"),
+    countryOfOrigin: getValue("country_of_origin"),
   };
 
   // Use provided formatChecks or default to null values
@@ -58,40 +58,40 @@ function convertToAIExtractionResult(
   const confidenceNotes = null;
 
   switch (beverageType) {
-    case 'beer':
+    case "beer":
       return {
         extraction: {
           ...baseExtraction,
-          colorAdditiveDisclosure: getValue('color_additive_disclosure'),
-          sulfiteDeclaration: getValue('sulfite_declaration'),
-          aspartameDeclaration: getValue('aspartame_declaration'),
+          colorAdditiveDisclosure: getValue("color_additive_disclosure"),
+          sulfiteDeclaration: getValue("sulfite_declaration"),
+          aspartameDeclaration: getValue("aspartame_declaration"),
         },
         formatChecks: finalFormatChecks,
         confidenceNotes,
       } as BeerExtractionResult;
 
-    case 'spirits':
+    case "spirits":
       return {
         extraction: {
           ...baseExtraction,
-          ageStatement: getValue('age_statement'),
-          colorIngredientDisclosure: getValue('color_ingredient_disclosure'),
-          commodityStatement: getValue('commodity_statement'),
+          ageStatement: getValue("age_statement"),
+          colorIngredientDisclosure: getValue("color_ingredient_disclosure"),
+          commodityStatement: getValue("commodity_statement"),
         },
         formatChecks: finalFormatChecks,
         confidenceNotes,
       } as SpiritsExtractionResult;
 
-    case 'wine':
+    case "wine":
       return {
         extraction: {
           ...baseExtraction,
-          appellation: getValue('appellation_of_origin'),
+          appellation: getValue("appellation_of_origin"),
           vintageDate: null, // Vintage no longer extracted from labels
-          sulfiteDeclaration: getValue('sulfite_declaration'),
-          foreignWinePercentage: getValue('foreign_wine_percentage'),
+          sulfiteDeclaration: getValue("sulfite_declaration"),
+          foreignWinePercentage: getValue("foreign_wine_percentage"),
           isEstateBottled: null, // Not in current extraction
-          colorIngredientDisclosure: getValue('color_ingredient_disclosure'),
+          colorIngredientDisclosure: getValue("color_ingredient_disclosure"),
         },
         formatChecks: finalFormatChecks,
         confidenceNotes,
@@ -123,27 +123,33 @@ function convertToVerificationResult(validationResult: {
     const fieldName = mapFieldName(fieldResult.field);
 
     // Map MatchStatus to legacy type
-    let type: 'match' | 'soft_mismatch' | 'hard_mismatch' | 'not_found' | 'not_applicable';
+    let type:
+      | "match"
+      | "soft_mismatch"
+      | "hard_mismatch"
+      | "not_found"
+      | "not_applicable";
     switch (fieldResult.status) {
-      case 'match':
-        type = 'match';
+      case "match":
+        type = "match";
         break;
-      case 'soft_mismatch':
-        type = 'soft_mismatch';
+      case "soft_mismatch":
+        type = "soft_mismatch";
         break;
-      case 'hard_mismatch':
-      case 'not_found':
-        type = fieldResult.status === 'not_found' ? 'not_found' : 'hard_mismatch';
+      case "hard_mismatch":
+      case "not_found":
+        type =
+          fieldResult.status === "not_found" ? "not_found" : "hard_mismatch";
         break;
-      case 'not_applicable':
-        type = 'not_applicable';
+      case "not_applicable":
+        type = "not_applicable";
         break;
       default:
-        type = 'match'; // SURFACED treated as match for legacy compatibility
+        type = "match"; // SURFACED treated as match for legacy compatibility
     }
 
     result[fieldName] = {
-      match: type === 'match' || type === 'not_applicable',
+      match: type === "match" || type === "not_applicable",
       type,
       expected: fieldResult.expected || undefined,
       extracted: fieldResult.extracted || undefined,
@@ -160,27 +166,27 @@ function convertToVerificationResult(validationResult: {
  */
 function mapFieldName(field: string): string {
   const fieldMap: Record<string, string> = {
-    brandName: 'brand_name',
-    fancifulName: 'fanciful_name',
-    classType: 'class_type',
-    alcoholContent: 'alcohol_content',
-    netContents: 'net_contents',
-    producerNameAddress: 'producer_name_address', // Combined field
-    healthWarning: 'health_warning',
-    countryOfOrigin: 'country_of_origin',
-    appellation: 'appellation_of_origin',
-    vintageDate: 'vintage_date',
-    sulfiteDeclaration: 'sulfite_declaration',
-    ageStatement: 'age_statement',
-    foreignWinePercentage: 'foreign_wine_percentage',
+    brandName: "brand_name",
+    fancifulName: "fanciful_name",
+    classType: "class_type",
+    alcoholContent: "alcohol_content",
+    netContents: "net_contents",
+    producerNameAddress: "producer_name_address", // Combined field
+    healthWarning: "health_warning",
+    countryOfOrigin: "country_of_origin",
+    appellation: "appellation_of_origin",
+    vintageDate: "vintage_date",
+    sulfiteDeclaration: "sulfite_declaration",
+    ageStatement: "age_statement",
+    foreignWinePercentage: "foreign_wine_percentage",
   };
 
   return (
     fieldMap[field] ||
     field
-      .replace(/([A-Z])/g, '_$1')
+      .replace(/([A-Z])/g, "_$1")
       .toLowerCase()
-      .replace(/^_/, '')
+      .replace(/^_/, "")
   );
 }
 
@@ -190,11 +196,14 @@ function mapFieldName(field: string): string {
  */
 export function verifyApplication(
   applicationData: ApplicationData,
-  extractedData: ExtractedData
+  extractedData: ExtractedData,
 ): VerificationResult {
   try {
     // Convert extraction to new format
-    const aiResult = convertToAIExtractionResult(applicationData.beverageType, extractedData);
+    const aiResult = convertToAIExtractionResult(
+      applicationData.beverageType,
+      extractedData,
+    );
 
     // Run validation using new module
     const validationResult = validateLabel(applicationData, aiResult);
@@ -202,7 +211,7 @@ export function verifyApplication(
     // Convert back to legacy format for API compatibility
     return convertToVerificationResult(validationResult);
   } catch (error) {
-    console.error('Verification error:', error);
+    console.error("Verification error:", error);
     // Re-throw the error instead of silently returning empty result
     throw error;
   }
@@ -213,29 +222,31 @@ export function verifyApplication(
  * Maintains backward compatibility with legacy VerificationResult format
  */
 export function determineApplicationStatus(
-  verificationResult: VerificationResult
-): 'pending' | 'needs_review' | 'approved' | 'rejected' {
+  verificationResult: VerificationResult,
+): "pending" | "needs_review" | "approved" | "rejected" {
   const results = Object.values(verificationResult);
 
   // Check for hard mismatches or not found
-  const hasHardMismatch = results.some((r) => r.type === 'hard_mismatch' || r.type === 'not_found');
+  const hasHardMismatch = results.some(
+    (r) => r.type === "hard_mismatch" || r.type === "not_found",
+  );
 
   // Check for soft mismatches
-  const hasSoftMismatch = results.some((r) => r.type === 'soft_mismatch');
+  const hasSoftMismatch = results.some((r) => r.type === "soft_mismatch");
 
   // Hard mismatches or missing fields - needs agent review (stays pending)
   if (hasHardMismatch) {
-    return 'pending';
+    return "pending";
   }
 
   // Soft mismatches - stays pending (no longer flagged for review)
   if (hasSoftMismatch) {
-    return 'pending';
+    return "pending";
   }
 
   // All match - ready for agent approval (stays pending until agent approves)
-  return 'pending';
+  return "pending";
 }
 
 // Re-export utility functions for backward compatibility
-export { normalizeString as normalizeText } from './validation';
+export { normalizeString as normalizeText } from "./validation";

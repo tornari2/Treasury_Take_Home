@@ -93,12 +93,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           // Determine if status should change
           const newStatus = determineApplicationStatus(verificationResult);
 
+          // Cache JSON strings to avoid repeated stringification
+          const extractedDataJson = JSON.stringify(extractedData);
+          const verificationResultJson = JSON.stringify(verificationResult);
+
           // Store results in database for each image (same extracted data for all)
           for (const labelImage of labelImages) {
             labelImageHelpers.updateExtraction(
               labelImage.id,
-              JSON.stringify(extractedData),
-              JSON.stringify(verificationResult),
+              extractedDataJson,
+              verificationResultJson,
               null, // confidence_score no longer used
               processingTimeMs
             );

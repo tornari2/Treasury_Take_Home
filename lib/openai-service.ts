@@ -221,8 +221,10 @@ export async function extractLabelData(
       }
 
       // Race between API call and timeout
+      // Optimized: Static content first for caching, temperature 0 for deterministic faster responses
       const apiCall = client.chat.completions.create({
         model: 'gpt-4o',
+        temperature: 0, // Deterministic, faster, more accurate for structured extraction
         messages: [
           {
             role: 'system',
@@ -253,17 +255,17 @@ CRITICAL FOR IMPORTED BEVERAGES - PRODUCER NAME/ADDRESS:
 - The foreign producer information may also appear on the label, but you should IGNORE it and extract only the US importer/distributor.
 - Example: If you see "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA", extract "Geo US Trading, Inc, Lombard, IL" as producer_name/producer_address, NOT "LTD WINIVERIA..." (which is the foreign producer).
 
-${beverageSpecificInstructions}
-
-Fields to extract:
-${fieldsList}
-
 Return JSON in this format:
 {
   "brand_name": "...",
   "alcohol_content": "...",
   ...
-}`,
+}
+
+Fields to extract:
+${fieldsList}
+
+${beverageSpecificInstructions}`,
           },
           {
             role: 'user',
@@ -271,7 +273,7 @@ Return JSON in this format:
           },
         ],
         response_format: { type: 'json_object' },
-        max_tokens: 2000,
+        max_tokens: 1500, // Reduced from 2000 - structured JSON typically needs 400-800 tokens, 1500 provides safe buffer
       });
 
       const response = await Promise.race([apiCall, createTimeoutPromise(timeoutMs)]);

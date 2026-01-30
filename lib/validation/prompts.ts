@@ -382,34 +382,37 @@ export function getBeverageSpecificInstructions(beverageType: 'spirits' | 'wine'
       return `
 
 CRITICAL WINE-SPECIFIC RULES:
-- VARIETAL vs CLASS/TYPE vs APPELLATION - CRITICAL DISTINCTION:
-  * VARIETAL (classType field): Grape variety name - examples: "Khikhvi", "Chardonnay", "Cabernet Sauvignon", "CABERNET SAUVIGNON", "Rkatsiteli", "Saperavi", "Pinot Noir"
+- VARIETAL vs CLASS/TYPE vs APPELLATION - CRITICAL DISTINCTION (DO NOT CONFUSE THESE):
+  * VARIETAL (class_type field): Grape variety name - examples: "Khikhvi", "Chardonnay", "Cabernet Sauvignon", "CABERNET SAUVIGNON", "Rkatsiteli", "Saperavi", "Pinot Noir"
     - These are GRAPE NAMES (what type of grape)
     - Typically 1-2 words
-    - Extract as classType field
+    - Extract as class_type field (JSON field name: "class_type")
+    - Examples: "CABERNET SAUVIGNON" = VARIETAL → Extract as class_type
   * CLASS/TYPE: Generic wine category - examples: "White Wine", "Red Wine", "Dry Wine", "White Dry Wine"
     - Only extract if NO varietal is present
-  * APPELLATION (appellation field): Geographic origin designation - examples: "Napa Valley", "Sonoma Coast", "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Willamette Valley", "California", "Virginia"
+  * APPELLATION (appellation_of_origin field): Geographic origin designation - examples: "Napa Valley", "Sonoma Coast", "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Willamette Valley", "California", "Virginia"
     - These are GEOGRAPHIC LOCATIONS (where grapes are from)
     - Can be multi-word (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY")
-    - Extract as appellation field
+    - Extract as appellation_of_origin field (JSON field name: "appellation_of_origin")
+    - Examples: "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = APPELLATION → Extract as appellation_of_origin
 - CRITICAL: DO NOT confuse VARIETAL with APPELLATION:
-  * "CABERNET SAUVIGNON" = VARIETAL (grape name) → Extract as classType
-  * "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = APPELLATION (geographic location) → Extract as appellation
-  * "Chardonnay" = VARIETAL (grape name) → Extract as classType
-  * "Napa Valley" = APPELLATION (geographic location) → Extract as appellation
+  * "CABERNET SAUVIGNON" = VARIETAL (grape name) → Extract as class_type
+  * "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = APPELLATION (geographic location) → Extract as appellation_of_origin
+  * "Chardonnay" = VARIETAL (grape name) → Extract as class_type
+  * "Napa Valley" = APPELLATION (geographic location) → Extract as appellation_of_origin
 - CRITICAL PRIORITY RULE FOR class_type FIELD: If BOTH a varietal (grape name) AND a class/type (e.g., "White Wine", "Red Wine", "White Dry Wine") appear on the label, you MUST extract the VARIETAL, NOT the class/type. Varietals ALWAYS take precedence over generic class/type designations.
-- Examples:
+- CRITICAL EXAMPLES:
   * If label shows "Khikhvi" and "White Dry Wine", extract "Khikhvi" as class_type (NOT "White Dry Wine")
   * If label shows "Chardonnay" and "White Wine", extract "Chardonnay" as class_type (NOT "White Wine")
   * If label shows "Cabernet Sauvignon" and "Red Wine", extract "Cabernet Sauvignon" as class_type (NOT "Red Wine")
   * If label shows "CABERNET SAUVIGNON" and "MOON MOUNTAIN DISTRICT SONOMA COUNTY":
     - Extract "CABERNET SAUVIGNON" as class_type (varietal/grape name)
-    - Extract "MOON MOUNTAIN DISTRICT SONOMA COUNTY" as appellation (geographic location)
+    - Extract "MOON MOUNTAIN DISTRICT SONOMA COUNTY" as appellation_of_origin (geographic location)
+- DO NOT SWAP THESE - grape names belong in class_type, geographic locations belong in appellation_of_origin
 - Only extract the class/type if NO varietal is present on the label.
 - This is a CRITICAL requirement - failure to follow this rule will cause validation errors.
 
-- APPELLATION OF ORIGIN: CRITICAL - Extract geographic origin designation
+- APPELLATION OF ORIGIN (appellation_of_origin field): CRITICAL - Extract geographic origin designation
   * US appellations can be: AVA names (e.g., "Napa Valley", "Sonoma Coast", "Willamette Valley", "Finger Lakes"), state names (e.g., "Virginia", "California", "Oregon", "New York"), or regions
   * State names like "VIRGINIA", "CALIFORNIA", "OREGON", "NEW YORK" are valid appellations when listed prominently and separately on the label (not just in the producer address)
   * Look for geographic designations that appear prominently and separately from other text, often on the front label near the varietal/brand
@@ -417,7 +420,7 @@ CRITICAL WINE-SPECIFIC RULES:
   * Preserve exact capitalization as shown on label (e.g., if label shows "VIRGINIA" in all caps, extract as "VIRGINIA")
   * CRITICAL: If a state name appears prominently on the label (separate from producer address), extract it as the appellation
   * Examples: "Napa Valley", "Sonoma Coast", "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Virginia", "California", "Bordeaux AOC", "Chianti Classico DOCG"
-  * DO NOT confuse with varietals - geographic locations belong in appellation field, grape names belong in classType field
+  * DO NOT confuse with varietals - geographic locations belong in appellation_of_origin field, grape names belong in class_type field
 
 - ALCOHOL CONTENT: Wines typically 5.5-24% depending on type
   * Table wine: 11-14.5%
@@ -425,18 +428,22 @@ CRITICAL WINE-SPECIFIC RULES:
   * Fortified (Port, Sherry): 17-24%
   * Read carefully - 13.5 vs 14.5 matters
 
-- PRODUCER NAME/ADDRESS: CRITICAL FOR IMPORTED WINES:
-  * Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or similar variations
-  * Extract the name/address that IMMEDIATELY follows these phrases - this is the US importer/distributor, NOT the foreign producer
-  * Example: If label shows "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA", extract "Geo US Trading, Inc, Lombard, IL" (the US importer), NOT "LTD WINIVERIA..." (the foreign producer)
-  * For domestic wines, extract the producer name/address (may follow "Bottled By", "Produced By", etc.)
-
 - SULFITE DECLARATION: Required on most wines - look carefully on back label or bottom of front label`;
 
     case 'beer':
       return `
 
 CRITICAL BEER-SPECIFIC RULES:
+- BRAND NAME: CRITICAL - Extract COMPLETE brand name as shown
+  * Brand names often include words like "BREWERY", "BREWING COMPANY", "BREWING CO", "BREWING", etc.
+  * These words may appear directly below or on a separate line from the main brand name text
+  * Extract the ENTIRE brand name including all parts, even if they span multiple lines
+  * Examples:
+    - If label shows "FONTA FLORA" on one line and "BREWERY" directly below → Extract as "FONTA FLORA BREWERY" (complete)
+    - If label shows "ABC BREWING COMPANY" → Extract as "ABC BREWING COMPANY" (complete, not just "ABC")
+  * DO NOT truncate brand names - extract exactly as shown, including all words that are part of the brand name
+  * Preserve exact capitalization as shown on label
+
 - ALCOHOL CONTENT: Look carefully at small text. Common formats:
   * "X.X% ALC/VOL" or "X.X% ALC./VOL."
   * "ALC. X.X% BY VOL." or "ALCOHOL X.X% BY VOLUME"
@@ -446,12 +453,6 @@ CRITICAL BEER-SPECIFIC RULES:
 - NET CONTENTS: Usually formatted as:
   * "12 FL OZ" or "12 fl oz" or "12 FL. OZ."
   * "355 mL" or "355ml"
-
-- PRODUCER NAME/ADDRESS: CRITICAL FOR IMPORTED BEERS:
-  * Look for phrases like "Imported by", "Imported By", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or similar variations
-  * Extract the name/address that IMMEDIATELY follows these phrases - this is the US importer/distributor, NOT the foreign producer
-  * Example: If label shows "DISTRIBUTED AND IMPORTED BY Company Name, City, State" followed by foreign producer info, extract "Company Name, City, State" (the US importer), NOT the foreign producer
-  * For domestic beers, extract the producer name/address (may follow "Brewed by", "Bottled by", etc.)
 
 - FANCIFUL NAME: Optional - many beers don't have one. Only extract if present.`;
 
@@ -493,12 +494,6 @@ CRITICAL SPIRITS-SPECIFIC RULES:
   * "Aged 12 Years" ✓
   * "Aged in Oak Barrels" ✗ (no age = null)
 
-- PRODUCER NAME/ADDRESS: CRITICAL FOR IMPORTED SPIRITS:
-  * Look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or similar variations
-  * Extract the name/address that IMMEDIATELY follows these phrases - this is the US importer/distributor, NOT the foreign producer
-  * Example: If label shows "DISTRIBUTED AND IMPORTED BY Company Name, City, State" followed by foreign producer info, extract "Company Name, City, State" (the US importer), NOT the foreign producer
-  * For domestic spirits, extract the producer name/address (may follow "Bottled By", "Distilled By", etc.)
-
 - BRAND NAME is NOT the same as PRODUCER NAME (they are different fields)`;
 
     default:
@@ -512,7 +507,7 @@ CRITICAL SPIRITS-SPECIFIC RULES:
 export function getClassTypeFieldDescription(beverageType: 'spirits' | 'wine' | 'beer'): string {
   switch (beverageType) {
     case 'wine':
-      return 'Varietal (grape name like "Khikhvi", "Chardonnay") OR class/type (like "White Wine") - CRITICAL: If both varietal and class/type appear, extract the VARIETAL, not the class/type';
+      return 'Varietal (grape name like "CABERNET SAUVIGNON", "Khikhvi", "Chardonnay", "Pinot Noir") OR class/type (like "White Wine") - CRITICAL: Extract GRAPE VARIETY NAMES here. These are GRAPE NAMES, NOT geographic locations. If both varietal (grape name) and class/type appear, extract the VARIETAL, not the class/type. DO NOT confuse with appellation_of_origin - grape names go here, geographic locations go in appellation_of_origin field. Examples: "CABERNET SAUVIGNON" = varietal → extract as class_type, "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = appellation → extract as appellation_of_origin';
     case 'beer':
       return 'Beer style (e.g., "Ale", "Lager", "India Pale Ale", "Stout")';
     case 'spirits':

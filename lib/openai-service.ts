@@ -155,7 +155,7 @@ export async function extractLabelData(
 
   // Define fields to extract based on beverage type
   const fieldDefinitions: Record<string, string> = {
-    brand_name: 'Brand name',
+    brand_name: 'Brand name - CRITICAL: Extract the COMPLETE brand name as shown on the label. Brand names may span multiple lines or have additional text directly below (e.g., "BREWERY", "BREWING COMPANY", "WINERY", "DISTILLERY"). Extract ALL parts of the brand name, even if they appear on separate lines. Examples: "FONTA FLORA BREWERY" (not just "Fonta Flora"), "BLACK ROSE GIN" (complete as shown). DO NOT truncate brand names.',
     class_type: getClassTypeFieldDescription(beverageType),
     alcohol_content:
       'Alcohol content - CRITICAL: Extract COMPLETE text including any prefix (e.g., "ALC.", "ALCOHOL", "ABV") if present. Example: "ALC. 12.5% BY VOL." not "12.5% BY VOL."',
@@ -178,7 +178,7 @@ export async function extractLabelData(
     fieldDefinitions.age_statement = 'Age statement (if applicable)';
     fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
   } else if (beverageType === 'wine') {
-    fieldDefinitions.appellation_of_origin = 'Appellation of origin (if applicable)';
+    fieldDefinitions.appellation_of_origin = 'Appellation of origin - CRITICAL: Extract GEOGRAPHIC LOCATIONS here (e.g., "MOON MOUNTAIN DISTRICT SONOMA COUNTY", "Napa Valley", "Sonoma Coast", "California", "Virginia"). These are WHERE THE GRAPES ARE FROM, NOT grape variety names. DO NOT confuse with varietals - geographic locations go here, grape names go in class_type field.';
     fieldDefinitions.sulfite_declaration = 'Sulfite declaration';
     fieldDefinitions.country_of_origin = 'Country of origin (if imported)';
   } else if (beverageType === 'beer') {
@@ -237,6 +237,17 @@ IMPORTANT - Preserve exact capitalization for ALL fields:
 - Do NOT normalize or change capitalization - extract exactly as shown on the label for all fields
 
 For the health_warning field, extract the EXACT text as it appears on the label.
+
+CRITICAL FOR BRAND_NAME FIELD - EXTRACT COMPLETE BRAND NAME:
+- Brand names may span multiple lines or have additional text directly below the main name
+- Common additions include: "BREWERY", "BREWING COMPANY", "WINERY", "DISTILLERY", "VODKA", "GIN", "WHISKEY", etc.
+- Extract the ENTIRE brand name including ALL parts, even if they appear on separate lines
+- Examples of CORRECT extraction:
+  * If label shows "FONTA FLORA" on one line and "BREWERY" directly below → extract "FONTA FLORA BREWERY" (complete, NOT just "Fonta Flora")
+  * If label shows "BLACK ROSE GIN" → extract "BLACK ROSE GIN" (complete, NOT just "BLACK ROSE")
+  * If label shows "ABC BREWING COMPANY" → extract "ABC BREWING COMPANY" (complete, NOT just "ABC")
+- DO NOT truncate brand names - extract exactly as shown, including all words that are part of the brand name
+- This is CRITICAL - truncating brand names will cause validation failures
 
 CRITICAL FOR ALCOHOL_CONTENT FIELD - EXTRACT COMPLETE TEXT INCLUDING PREFIXES:
 - You MUST extract the COMPLETE text exactly as shown on the label, including ALL prefix words that appear before the percentage

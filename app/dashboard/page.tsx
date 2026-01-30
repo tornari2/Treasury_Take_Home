@@ -73,12 +73,23 @@ export default function Dashboard() {
           ? '/api/applications'
           : `/api/applications?status=${selectedStatus}`;
 
-      const response = await fetch(url);
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('Error fetching applications:', errorData);
-        // Keep previous applications visible on error
+        // Set empty array if no previous data to prevent blank screen
+        if (cachedApplications.length === 0 && previousApplicationsRef.current.length === 0) {
+          setApplications([]);
+        }
         return;
       }
 
@@ -90,7 +101,10 @@ export default function Dashboard() {
       hasLoadedBefore = true; // Mark as loaded at module level
     } catch (error) {
       console.error('Error fetching applications:', error);
-      // Keep previous applications visible on error
+      // Set empty array if no previous data to prevent blank screen
+      if (cachedApplications.length === 0 && previousApplicationsRef.current.length === 0) {
+        setApplications([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -350,8 +364,11 @@ export default function Dashboard() {
   // During navigation, keep previous applications visible
   if (loading && !hasLoadedBefore && displayApplications.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading applications...</div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <div className="text-lg text-gray-600">Loading applications...</div>
+        </div>
       </div>
     );
   }

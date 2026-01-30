@@ -14,22 +14,42 @@ export async function GET(request: NextRequest) {
     // Skip audit logging since authentication is removed
 
     let applications;
-    if (status) {
-      applications = applicationHelpers.findByStatus(status);
-    } else {
-      applications = applicationHelpers.findAll();
+    try {
+      if (status) {
+        applications = applicationHelpers.findByStatus(status);
+      } else {
+        applications = applicationHelpers.findAll();
+      }
+    } catch (dbError: any) {
+      console.error('Database error in GET applications:', dbError);
+      // Return empty array if database is not initialized or accessible
+      // This prevents blank screen and allows the UI to render
+      return NextResponse.json({
+        applications: [],
+        count: 0,
+        error: 'Database not available',
+      });
     }
 
     // Parse JSON fields
     const parsedApplications = applications.map((app) => {
-      const applicationDataField =
-        (app as any).application_data || (app as any).expected_label_data;
-      return {
-        ...app,
-        application_data: applicationDataField ? JSON.parse(applicationDataField) : null,
-        // Keep expected_label_data for backward compatibility during migration
-        expected_label_data: applicationDataField ? JSON.parse(applicationDataField) : null,
-      };
+      try {
+        const applicationDataField =
+          (app as any).application_data || (app as any).expected_label_data;
+        return {
+          ...app,
+          application_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+          // Keep expected_label_data for backward compatibility during migration
+          expected_label_data: applicationDataField ? JSON.parse(applicationDataField) : null,
+        };
+      } catch (parseError) {
+        console.error('Error parsing application data:', parseError);
+        return {
+          ...app,
+          application_data: null,
+          expected_label_data: null,
+        };
+      }
     });
 
     return NextResponse.json({
@@ -38,7 +58,12 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Get applications error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Return empty array instead of error to prevent blank screen
+    return NextResponse.json({
+      applications: [],
+      count: 0,
+      error: 'Failed to fetch applications',
+    });
   }
 }
 

@@ -160,9 +160,20 @@ export default function Dashboard() {
               return true;
             } else if (status.status === 'failed') {
               // Batch failed
-              alert(
-                `Batch verification failed: ${status.results?.find((r: any) => r.status === 'failed')?.error || 'Unknown error'}`
-              );
+              const errorMessage =
+                status.results?.find((r: any) => r.status === 'failed')?.error || 'Unknown error';
+              const isNetworkError =
+                errorMessage.toLowerCase().includes('network') ||
+                errorMessage.toLowerCase().includes('connect') ||
+                errorMessage.toLowerCase().includes('firewall');
+
+              if (isNetworkError) {
+                alert(
+                  `Batch verification failed: ${errorMessage}\n\nIf this issue persists, it may be due to network restrictions blocking access to the verification service. Please contact your system administrator.`
+                );
+              } else {
+                alert(`Batch verification failed: ${errorMessage}`);
+              }
               return false;
             } else if (Date.now() - startTime > maxWaitTime) {
               // Timeout
@@ -212,13 +223,25 @@ export default function Dashboard() {
           errorData.message ||
           errorData.error ||
           'Failed to start batch processing. Please try again.';
-        alert(`Batch Processing Error: ${errorMessage}`);
+
+        const isNetworkError =
+          errorMessage.toLowerCase().includes('network') ||
+          errorMessage.toLowerCase().includes('connect') ||
+          errorMessage.toLowerCase().includes('firewall');
+
+        if (isNetworkError) {
+          alert(
+            `Batch Processing Error: ${errorMessage}\n\nIf this issue persists, it may be due to network restrictions blocking access to the verification service. Please contact your system administrator.`
+          );
+        } else {
+          alert(`Batch Processing Error: ${errorMessage}`);
+        }
       }
     } catch (error) {
       console.error('Batch verify error:', error);
       if (error instanceof TypeError && error.message.includes('fetch')) {
         alert(
-          'Network error: Unable to connect to the server. Please check your connection and try again.'
+          'Network Error: Unable to connect to the verification service. This may be due to network restrictions or firewall settings blocking outbound connections. Please check your network connectivity or contact your system administrator.'
         );
       } else {
         alert('An unexpected error occurred while starting batch processing. Please try again.');
@@ -406,149 +429,159 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">Application Queue</h1>
-            <Button onClick={() => setIsDialogOpen(true)}>New Application</Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Banner with color scheme */}
+      <div className="relative w-full h-32 overflow-hidden">
+        {/* Top section - Deep muted blue (65-70% of height) */}
+        <div className="absolute top-0 left-0 w-full h-[68%] bg-[#305170]"></div>
+        {/* Bottom section - Rich dark red (30-35% of height) */}
+        <div className="absolute bottom-0 left-0 w-full h-[32%] bg-[#9A3B39]"></div>
+      </div>
+
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-3xl font-bold text-gray-900">Application Queue</h1>
+              <Button onClick={() => setIsDialogOpen(true)}>New Application</Button>
+            </div>
+
+            <div className="flex gap-4 items-center mb-4">
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="flex gap-4 items-center mb-4">
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="max-h-[600px] overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]">
-                    <Checkbox
-                      checked={
-                        selectedApps.size === displayApplications.length &&
-                        displayApplications.length > 0
-                      }
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Applicant</TableHead>
-                  <TableHead>Brand Name</TableHead>
-                  <TableHead>Product Type</TableHead>
-                  <TableHead>Product Source</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Review Notes</TableHead>
-                  <TableHead>Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayApplications.length === 0 ? (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="max-h-[600px] overflow-y-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                      No applications found
-                    </TableCell>
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={
+                          selectedApps.size === displayApplications.length &&
+                          displayApplications.length > 0
+                        }
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Applicant</TableHead>
+                    <TableHead>Brand Name</TableHead>
+                    <TableHead>Product Type</TableHead>
+                    <TableHead>Product Source</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Review Notes</TableHead>
+                    <TableHead>Created</TableHead>
                   </TableRow>
-                ) : (
-                  displayApplications.map((app) => (
-                    <TableRow
-                      key={app.id}
-                      className={`cursor-pointer ${selectedApps.has(app.id) ? 'bg-blue-50' : ''}`}
-                      onClick={() => handleSelectApp(app.id)}
-                    >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selectedApps.has(app.id)}
-                          onCheckedChange={() => handleSelectApp(app.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{getTtbId(app)}</TableCell>
-                      <TableCell>{app.applicant_name}</TableCell>
-                      <TableCell>{getBrandName(app)}</TableCell>
-                      <TableCell>{getProductType(app)}</TableCell>
-                      <TableCell>{getProductSource(app)}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(app.status)}>
-                          {getStatusDisplayText(app.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {app.review_notes &&
-                        (app.status === 'approved' || app.status === 'rejected') ? (
-                          <div className="relative group inline-flex items-center justify-center">
-                            <MessageSquare className="h-4 w-4 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
-                            <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-80 max-w-[calc(100vw-2rem)] p-3 bg-gray-900 text-white text-xs rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                              <div className="whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
-                                {app.review_notes}
-                              </div>
-                              <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(app.created_at).toLocaleDateString()}
+                </TableHeader>
+                <TableBody>
+                  {displayApplications.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                        No applications found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    displayApplications.map((app) => (
+                      <TableRow
+                        key={app.id}
+                        className={`cursor-pointer ${selectedApps.has(app.id) ? 'bg-blue-50' : ''}`}
+                        onClick={() => handleSelectApp(app.id)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedApps.has(app.id)}
+                            onCheckedChange={() => handleSelectApp(app.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{getTtbId(app)}</TableCell>
+                        <TableCell>{app.applicant_name}</TableCell>
+                        <TableCell>{getBrandName(app)}</TableCell>
+                        <TableCell>{getProductType(app)}</TableCell>
+                        <TableCell>{getProductSource(app)}</TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusVariant(app.status)}>
+                            {getStatusDisplayText(app.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {app.review_notes &&
+                          (app.status === 'approved' || app.status === 'rejected') ? (
+                            <div className="relative group inline-flex items-center justify-center">
+                              <MessageSquare className="h-4 w-4 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                              <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-80 max-w-[calc(100vw-2rem)] p-3 bg-gray-900 text-white text-xs rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                                <div className="whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+                                  {app.review_notes}
+                                </div>
+                                <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {new Date(app.created_at).toLocaleDateString()}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="mt-4 flex gap-3 justify-center">
-          <Button
-            onClick={handleReviewSelected}
-            variant="default"
-            disabled={selectedApps.size === 0}
-          >
-            {selectedApps.size >= 2
-              ? `Review Batch (${selectedApps.size})`
-              : selectedApps.size === 1
-                ? 'Review'
-                : 'Review'}
-          </Button>
-          <Button
-            onClick={handleBatchVerify}
-            variant="default"
-            disabled={batchProcessing || selectedApps.size === 0}
-          >
-            {batchProcessing
-              ? 'Processing...'
-              : selectedApps.size >= 2
-                ? `Verify Batch (${selectedApps.size})`
+          {/* Action Buttons */}
+          <div className="mt-4 flex gap-3 justify-center">
+            <Button
+              onClick={handleReviewSelected}
+              variant="default"
+              disabled={selectedApps.size === 0}
+            >
+              {selectedApps.size >= 2
+                ? `Review Batch (${selectedApps.size})`
                 : selectedApps.size === 1
-                  ? 'Verify'
-                  : 'Verify'}
-          </Button>
-          <Button
-            onClick={handleDeleteSelected}
-            variant="destructive"
-            disabled={deletingApps.size > 0 || selectedApps.size === 0}
-          >
-            {deletingApps.size > 0
-              ? 'Deleting...'
-              : selectedApps.size >= 2
-                ? `Delete Batch (${selectedApps.size})`
-                : selectedApps.size === 1
-                  ? 'Delete'
-                  : 'Delete'}
-          </Button>
+                  ? 'Review'
+                  : 'Review'}
+            </Button>
+            <Button
+              onClick={handleBatchVerify}
+              variant="default"
+              disabled={batchProcessing || selectedApps.size === 0}
+            >
+              {batchProcessing
+                ? 'Processing...'
+                : selectedApps.size >= 2
+                  ? `Verify Batch (${selectedApps.size})`
+                  : selectedApps.size === 1
+                    ? 'Verify'
+                    : 'Verify'}
+            </Button>
+            <Button
+              onClick={handleDeleteSelected}
+              variant="destructive"
+              disabled={deletingApps.size > 0 || selectedApps.size === 0}
+            >
+              {deletingApps.size > 0
+                ? 'Deleting...'
+                : selectedApps.size >= 2
+                  ? `Delete Batch (${selectedApps.size})`
+                  : selectedApps.size === 1
+                    ? 'Delete'
+                    : 'Delete'}
+            </Button>
+          </div>
         </div>
       </div>
 

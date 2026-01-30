@@ -20,7 +20,14 @@ import type { ExtractedData, VerificationResult } from '@/types/database';
  */
 function convertToAIExtractionResult(
   beverageType: 'spirits' | 'wine' | 'beer',
-  extractedData: ExtractedData
+  extractedData: ExtractedData,
+  formatChecks?: {
+    governmentWarningAllCaps: boolean | null;
+    governmentWarningBold: boolean | null;
+    remainderBold: boolean | null;
+    surgeonCapitalized: boolean | null;
+    generalCapitalized: boolean | null;
+  }
 ): AIExtractionResult {
   const getValue = (key: string): string | null => {
     const field = extractedData[key];
@@ -40,9 +47,11 @@ function convertToAIExtractionResult(
     countryOfOrigin: getValue('country_of_origin'),
   };
 
-  const formatChecks = {
-    governmentWarningAllCaps: null, // Not available in current extraction
+  // Use provided formatChecks or default to null values
+  const finalFormatChecks = formatChecks || {
+    governmentWarningAllCaps: null,
     governmentWarningBold: null,
+    remainderBold: null,
     surgeonCapitalized: null,
     generalCapitalized: null,
   };
@@ -58,7 +67,7 @@ function convertToAIExtractionResult(
           sulfiteDeclaration: getValue('sulfite_declaration'),
           aspartameDeclaration: getValue('aspartame_declaration'),
         },
-        formatChecks,
+        formatChecks: finalFormatChecks,
         confidenceNotes,
       } as BeerExtractionResult;
 
@@ -70,7 +79,7 @@ function convertToAIExtractionResult(
           colorIngredientDisclosure: getValue('color_ingredient_disclosure'),
           commodityStatement: getValue('commodity_statement'),
         },
-        formatChecks,
+        formatChecks: finalFormatChecks,
         confidenceNotes,
       } as SpiritsExtractionResult;
 
@@ -85,7 +94,7 @@ function convertToAIExtractionResult(
           isEstateBottled: null, // Not in current extraction
           colorIngredientDisclosure: getValue('color_ingredient_disclosure'),
         },
-        formatChecks,
+        formatChecks: finalFormatChecks,
         confidenceNotes,
       } as WineExtractionResult;
 

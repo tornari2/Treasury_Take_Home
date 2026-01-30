@@ -9,6 +9,7 @@ env/
 # IDE / OS
 .idea/
 .vscode/
+.cursor/
 .DS_Store
 *.swp
 *.swo

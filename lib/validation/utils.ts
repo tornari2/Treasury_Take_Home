@@ -31,7 +31,7 @@ export function normalizeWhitespace(str: string | null | undefined): string {
  * Removes common business entity suffixes: CO, CO., COMPANY, LLC, INC, INC., INCORPORATED, LTD, LIMITED
  * Handles multiple suffixes (e.g., "Co LLC" -> removes both)
  */
-function normalizeBusinessEntitySuffix(str: string): string {
+export function normalizeBusinessEntitySuffix(str: string): string {
   // Remove all common business entity suffixes (case-insensitive, can be multiple)
   // Keep removing until no more suffixes found
   let result = str.trim();

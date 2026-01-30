@@ -187,7 +187,10 @@ export default function ReviewPage() {
       // Auto-trigger verification if not already verified
       if (data.application.label_images.length > 0) {
         const hasVerification = data.application.label_images.some(
-          (img: LabelImage) => img.verification_result
+          (img: LabelImage) =>
+            img.verification_result &&
+            typeof img.verification_result === 'object' &&
+            Object.keys(img.verification_result).length > 0
         );
         if (!hasVerification) {
           triggerVerification();
@@ -622,8 +625,18 @@ export default function ReviewPage() {
             </p>
 
             {Object.keys(verificationResult).length === 0 ? (
-              <div className="text-muted-foreground">
-                No verification results yet. Click &quot;Verify&quot; to process.
+              <div className="space-y-4">
+                <div className="text-muted-foreground">
+                  No verification results yet. Click &quot;Verify&quot; to process.
+                </div>
+                <Button
+                  onClick={triggerVerification}
+                  disabled={verifying}
+                  variant="default"
+                  className="w-full"
+                >
+                  {verifying ? 'Verifying...' : 'Verify Application'}
+                </Button>
               </div>
             ) : (
               <div className="space-y-3">

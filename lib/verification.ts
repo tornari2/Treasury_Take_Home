@@ -191,8 +191,8 @@ export function verifyApplication(
     return convertToVerificationResult(validationResult);
   } catch (error) {
     console.error('Verification error:', error);
-    // Return empty result on error
-    return {};
+    // Re-throw the error instead of silently returning empty result
+    throw error;
   }
 }
 

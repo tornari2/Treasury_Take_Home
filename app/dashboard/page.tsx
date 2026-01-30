@@ -518,12 +518,12 @@ export default function Dashboard() {
               disabled={deletingApps.size > 0 || selectedApps.size === 0}
             >
               {deletingApps.size > 0
-                ? 'Deleting...'
+                ? 'Removing...'
                 : selectedApps.size >= 2
-                  ? `Delete Batch (${selectedApps.size})`
+                  ? `Remove Batch (${selectedApps.size})`
                   : selectedApps.size === 1
-                    ? 'Delete'
-                    : 'Delete'}
+                    ? 'Remove'
+                    : 'Remove'}
             </Button>
           </div>
         </div>

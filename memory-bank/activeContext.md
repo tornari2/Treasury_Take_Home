@@ -10,7 +10,49 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Validation & Extraction Accuracy Improvements ✅ (Latest - January 29, 2025)
+### UI/UX & Validation Improvements ✅ (Latest - January 29, 2025)
+
+- **Deletion Flow Improvements:**
+  - Removed confirmation dialogs for single and batch application deletion
+  - Removed success/failure alert messages after deletion
+  - Deletions now happen immediately without user prompts
+
+- **Field Display Logic Enhancements:**
+  - Hide "Extracted" field when field is not found (shows null instead of "Field not found")
+  - Applies to all cross-checked fields when extracted value is null/empty or "Field not found"
+  - Updated text colors: Expected text is black, Extracted text is grey
+  - Field title text remains black even when fields don't match (no red text for mismatches)
+
+- **Wine Class/Type Display:**
+  - When expected is null (no varietal), shows requirement message: "A Class/Type designation is required whenever a Varietal is not listed on the application."
+  - Replaces "Expected: None" with the requirement statement
+
+- **Sulfite Declaration Display:**
+  - When expected is null, shows requirement message: "Must appear if the product has 10 ppm or more (total) sulfur dioxide."
+  - Replaces "Expected: None" with the requirement statement
+
+- **Sulfite Declaration Validation:**
+  - Added validation rule: "No sulfites added" must appear together with "contains naturally occurring sulfites" or "may contain naturally occurring sulfites"
+  - Returns HARD_MISMATCH if "No sulfites added" appears without required phrase
+  - Updated extraction prompts to extract complete text when both phrases appear
+
+- **Appellation Validation Enhancement:**
+  - Updated extraction prompts to recognize state names (e.g., "Virginia", "California") as valid appellations when listed prominently and separately
+  - Enhanced validation to match appellations with additional text (e.g., "Virginia, USA" matches "VIRGINIA")
+  - Uses word-boundary matching for single-word appellations and checks all words for multi-word appellations
+
+- **Net Contents Extraction:**
+  - Updated extraction prompts to exclude prefix words like "CONTENTS", "NET CONTENTS", or "NET"
+  - Extract only measurement value and unit (e.g., "750 mL" from "CONTENTS 750ML")
+  - Applied to all beverage types (beer, wine, spirits)
+
+- **Producer Name & Address Validation:**
+  - Enhanced to handle ZIP codes in extracted addresses (e.g., "LEESBURG, VA 20176" matches "LEESBURG, VA")
+  - Checks combined name+address string for all required parts (name, city, state)
+  - Handles cases where extraction puts everything in one field
+  - Removes ZIP codes before state matching
+
+### Validation & Extraction Accuracy Improvements ✅ (Previous - January 29, 2025)
 
 - **Confidence Score Removal:**
   - Removed confidence score calculations from extraction service (`lib/openai-service.ts`)
@@ -309,19 +351,23 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 - **Dashboard Improvements:**
   - ID column now displays TTB_ID from application_data instead of database ID
   - Falls back to "#{id}" format if TTB_ID not available
-  - Added delete button for each application with confirmation dialog
+  - Added delete button for each application (removed confirmation dialogs)
   - Delete operation cascades to associated label images
   - Added DELETE endpoint at `/api/applications/[id]`
   - Added delete methods to `applicationHelpers` and `labelImageHelpers`
+  - Removed success/failure alert messages after deletion
+
+- **Review Page Display:**
+  - Removed title "Review Application #{id}" and applicant name from top of page
+  - Hide "Extracted" field when field is not found (shows null)
+  - Expected text is black, Extracted text is grey
+  - Field titles remain black even for mismatches
+  - Wine Class/Type and Sulfite Declaration show requirement messages instead of "Expected: None"
 
 - **Verification Flow:**
   - Removed "verification completed successfully" alert
   - Verification now redirects directly to review page (`/review/{id}`)
   - Smoother user experience without interruption
-
-- **Review Page:**
-  - Removed title "Review Application #{id}" and applicant name from top of page
-  - Cleaner, more focused UI
 
 ### Enhanced Validation Rules ✅
 

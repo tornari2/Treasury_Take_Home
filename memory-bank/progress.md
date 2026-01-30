@@ -254,20 +254,26 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
   - Remainder of warning statement must NOT be bold
   - Added `remainderBold` field to formatChecks in all extraction result types
 
-### UI/UX Enhancements ✅ (Latest)
+### UI/UX Enhancements ✅ (Latest - January 29, 2025)
 
 - **Dashboard Improvements:**
   - ID column displays TTB_ID from application_data instead of database ID
-  - Added delete button for each application with confirmation dialog
+  - Added delete button for each application (removed confirmation dialogs - deletions happen immediately)
   - Delete operation cascades to associated label images
   - Added DELETE endpoint at `/api/applications/[id]`
+  - Removed success/failure alert messages after deletion
+
+- **Review Page Display Improvements:**
+  - Removed title "Review Application #{id}" and applicant name from top of page
+  - Hide "Extracted" field when field is not found (shows null instead of "Field not found")
+  - Updated text colors: Expected text is black, Extracted text is grey for better readability
+  - Field title text remains black even when fields don't match (no red text)
+  - Wine Class/Type: Shows requirement message instead of "Expected: None" when varietal not listed
+  - Sulfite Declaration: Shows requirement message instead of "Expected: None"
 
 - **Verification Flow:**
   - Removed "verification completed successfully" alert
   - Verification now redirects directly to review page
-
-- **Review Page:**
-  - Removed title "Review Application #{id}" and applicant name from top of page
 
 ## Previous Updates (January 28, 2025)
 
@@ -453,4 +459,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 29, 2025 (Validation improvements: removed confidence scores, improved extraction accuracy for varietals, importers, alcohol content, producer addresses, brand names; UI: removed decision window, added dashboard columns; Architecture: refactored prompts to use beverage-specific functions). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (UI/UX improvements: removed deletion confirmation dialogs, improved field display with null handling and better text colors, wine Class/Type and sulfite declaration requirement messages; Validation enhancements: appellation matching with additional text, net contents extraction improvements, producer address ZIP code handling, sulfite declaration "No sulfites added" validation; Extraction improvements: state names as appellations, complete sulfite text extraction). Ready for production deployment and testing._

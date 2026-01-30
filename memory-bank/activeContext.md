@@ -10,7 +10,38 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Validation Display Improvements and UX Enhancements ✅ (Latest - January 29, 2025)
+### Verification Flow Fixes and UI Enhancements ✅ (Latest - January 29, 2025)
+
+- **Verification Flow Improvements:**
+  - Fixed infinite loop bug: Added `isVerifyingRef` guard to prevent re-triggering when clearing results
+  - Clear old verification results immediately when re-verifying (prevents showing stale data)
+  - Fixed race conditions in application navigation with `currentFetchIdRef` tracking
+  - Single application verify now uses synchronous API and navigates immediately
+  - Proper verification state management prevents multiple simultaneous calls
+
+- **Navigation & Loading Enhancements:**
+  - Fixed "Application not Found" errors during transitions with race condition protection
+  - Added loading overlay during transitions (keeps previous content visible, no blank screen)
+  - Improved error handling with distinct states (not_found vs network error)
+  - Skip unnecessary fetches when application already loaded for current ID
+  - Better loading messages: "Loading application and starting verification..." when verify=true
+
+- **UI/UX Improvements:**
+  - Zoom increments increased from 10% to 25% per click (faster zooming)
+  - Reset button always visible (disabled when zoom=100% and pan=0,0)
+  - Replaced pagination with scrollable table (max-height 600px, shows ~10 rows at a time)
+  - Enhanced verifying alert with spinner animation and clearer messaging
+  - Scrollable application list provides smoother navigation experience
+
+- **Validation Display Updates:**
+  - Country of Origin: Changed display text from "Required (not cross-checked)" to "Required for imported beverages"
+
+- **Dashboard Enhancements:**
+  - Single application verify navigates immediately with loading feedback
+  - Batch verify uses asynchronous API for multiple applications
+  - Improved user feedback during verification process
+
+### Validation Display Improvements and UX Enhancements ✅ (January 29, 2025)
 
 - **Validation Error Display Fix:**
   - NOT_FOUND fields now show only "Field not found" without Expected/Extracted format

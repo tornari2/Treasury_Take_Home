@@ -518,6 +518,36 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
   - Refactored extraction prompts to use beverage-specific instruction functions
   - Better separation of concerns and maintainability
 
+### Latest Improvements (January 29, 2025 - Verification Flow & UI Enhancements)
+
+- **Verification Flow Fixes:**
+  - Fixed infinite loop in verification by adding `isVerifyingRef` guard
+  - Clear old verification results immediately when re-verifying (prevents stale data)
+  - Fixed race conditions in application navigation with `currentFetchIdRef` tracking
+  - Single application verify now uses synchronous API (immediate navigation)
+  - Verification state properly managed to prevent multiple simultaneous calls
+
+- **Navigation & Loading Improvements:**
+  - Fixed "Application not Found" errors during transitions with race condition protection
+  - Added loading overlay during transitions (keeps previous content visible)
+  - Improved error handling with distinct states (not_found vs error)
+  - Skip unnecessary fetches when application already loaded
+  - Better loading states: shows "Loading application and starting verification..." when verify=true
+
+- **UI Enhancements:**
+  - Zoom increments increased from 10% to 25% for faster zooming
+  - Reset button always visible (disabled when zoom=100% and pan=0,0)
+  - Replaced pagination with scrollable table (max-height 600px, shows ~10 rows)
+  - Enhanced verifying alert with spinner and clearer messaging
+
+- **Validation Display Updates:**
+  - Country of Origin: Changed "Required (not cross-checked)" to "Required for imported beverages"
+
+- **Dashboard Improvements:**
+  - Single application verify navigates immediately with loading feedback
+  - Batch verify uses asynchronous API for multiple applications
+  - Scrollable application list instead of pagination controls
+
 ---
 
-_Last Updated: January 29, 2025 (Critical verification fix: exported normalizeBusinessEntitySuffix function that was causing verification to silently fail; Error handling: verifyApplication re-throws errors instead of returning {}; Empty result detection in review page fixed; Manual verify button added; Batch testing scripts created. Previous: Image type enhancements, validation improvements, UI/UX improvements, navigation fixes, dashboard enhancements. Ready for production deployment and testing.)_
+_Last Updated: January 29, 2025 (Verification flow fixes: infinite loop prevention, race condition fixes, immediate result clearing. Navigation improvements: loading overlays, better error handling. UI enhancements: larger zoom increments, always-visible reset button, scrollable table. Validation text updates. Previous: Critical verification fix: exported normalizeBusinessEntitySuffix function that was causing verification to silently fail; Error handling: verifyApplication re-throws errors instead of returning {}; Empty result detection in review page fixed; Manual verify button added; Batch testing scripts created. Ready for production deployment and testing.)_

@@ -10,7 +10,37 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-### Validation Accuracy & Display Improvements ✅ (Latest - January 30, 2026)
+### Extraction Prompt Architecture Improvements ✅ (Latest - January 30, 2026)
+
+- **Prompt Structure Refactoring:**
+  - Removed ALL beverage-specific content from general prompt (`lib/openai-service.ts`)
+  - General prompt now contains only universal rules applicable to all beverage types
+  - All wine-specific rules moved to `getBeverageSpecificInstructions('wine')` in `lib/validation/prompts.ts`
+  - All beer-specific rules moved to `getBeverageSpecificInstructions('beer')`
+  - All spirits-specific rules moved to `getBeverageSpecificInstructions('spirits')`
+  - Clean separation ensures maintainability and prevents AI confusion
+
+- **Importer Extraction Critical Fixes:**
+  - Enhanced with step-by-step instructions (STEP 1-4 format) in general prompt
+  - Added explicit examples with CORRECT vs WRONG labels:
+    - "Imported by CBSE Imports, LLC, Alexandria, VA" → Extract "CBSE Imports, LLC" (CORRECT)
+    - "CORFU BREWERY S.A., Arilas, Corfu" → Do NOT extract (WRONG - foreign producer)
+  - Added warning emojis (⚠️) to field definitions and general prompt sections
+  - Updated `producer_name` and `producer_address` field definitions with exact examples
+  - Emphasized: US importer is ALWAYS listed FIRST, foreign producer comes AFTER
+
+- **Brand Name Extraction:**
+  - Removed beverage-specific examples (BREWERY, GIN, VODKA, WINERY, DISTILLERY) from general prompt
+  - Made brand name rules generic: "Brand names may span multiple lines"
+  - Beverage-specific brand name rules (e.g., beer "BREWERY" extraction) moved to beer-specific section
+
+- **Wine Varietal/Appellation Distinction:**
+  - All varietal/appellation rules moved to wine-specific section ONLY
+  - Strengthened with explicit "DO NOT SWAP" warnings and warning emoji (⚠️)
+  - Added exact examples: "CABERNET SAUVIGNON" = class_type, "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = appellation_of_origin
+  - Field definitions updated to emphasize distinction in `getClassTypeFieldDescription('wine')` and `appellation_of_origin` field
+
+### Validation Accuracy & Display Improvements ✅ (January 30, 2026)
 
 - **Net Contents Validation Enhancements:**
   - Added support for unit abbreviations (Gal., qt., pt.) in addition to full words
@@ -1325,4 +1355,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 30, 2026 (Validation accuracy improvements: Fixed net contents unit abbreviations, varietal/appellation extraction confusion, brand/fanciful name truncation for spirits, health warning whitespace handling, producer/importer address matching with city/state variations, Class/Type requirement message display. Previous: Edit functionality, deployment stability, security documentation, UI improvements, navigation UX. Ready for production deployment and testing.)_
+_Last Updated: January 30, 2026 (Extraction prompt architecture: Removed all beverage-specific content from general prompt, enhanced importer extraction with step-by-step instructions and exact examples, strengthened wine varietal/appellation distinction in wine-specific section only. Previous: Validation accuracy improvements, edit functionality, deployment stability, security documentation, UI improvements, navigation UX. Ready for production deployment and testing.)_

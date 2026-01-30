@@ -4,7 +4,34 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
-### Validation Accuracy & Display Improvements ✅ (Latest - January 30, 2026)
+### Extraction Prompt Architecture Improvements ✅ (Latest - January 30, 2026)
+
+- **Prompt Structure Refactoring:**
+  - Removed ALL beverage-specific content from general prompt
+  - General prompt now contains only universal rules (capitalization, alcohol content prefixes, imported beverages)
+  - All wine-specific rules (varietal/appellation distinction) moved to wine-specific section only
+  - All beer-specific rules moved to beer-specific section only
+  - All spirits-specific rules moved to spirits-specific section only
+  - Clean separation ensures maintainability and prevents confusion
+
+- **Importer Extraction Fixes:**
+  - Enhanced importer extraction with step-by-step instructions (STEP 1-4 format)
+  - Added explicit examples: "Imported by CBSE Imports, LLC, Alexandria, VA" → Extract "CBSE Imports, LLC" (NOT "CORFU BREWERY S.A.")
+  - Added warning emojis (⚠️) to draw attention to critical sections
+  - Updated field definitions with exact examples showing correct vs incorrect extraction
+  - Emphasized: US importer is ALWAYS listed FIRST after "Imported By" phrases
+
+- **Brand Name Extraction:**
+  - Removed beverage-specific examples (BREWERY, GIN, VODKA) from general prompt
+  - Made brand name extraction rules generic and universal
+  - Beverage-specific brand name rules (e.g., "BREWERY" for beer) moved to beverage-specific sections
+
+- **Wine Varietal/Appellation Distinction:**
+  - Strengthened wine-specific instructions with explicit "DO NOT SWAP" warnings
+  - Added exact examples: "CABERNET SAUVIGNON" = class_type, "MOON MOUNTAIN DISTRICT SONOMA COUNTY" = appellation_of_origin
+  - All varietal/appellation rules now ONLY in wine-specific section (not in general prompt)
+
+### Validation Accuracy & Display Improvements ✅ (January 30, 2026)
 
 - **Net Contents Validation:**
   - Added support for unit abbreviations (Gal., qt., pt.) in addition to full words
@@ -860,4 +887,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 30, 2026 (Validation accuracy improvements: Fixed net contents unit abbreviations, varietal/appellation extraction confusion, brand/fanciful name truncation for spirits, health warning whitespace handling, producer/importer address matching with city/state variations, Class/Type requirement message display. Previous: Edit functionality, deployment stability, security documentation, UI improvements, navigation UX. Ready for production deployment and testing.)_
+_Last Updated: January 30, 2026 (Extraction prompt architecture: Removed all beverage-specific content from general prompt, enhanced importer extraction with step-by-step instructions and exact examples, strengthened wine varietal/appellation distinction in wine-specific section only. Previous: Validation accuracy improvements, edit functionality, deployment stability, security documentation, UI improvements, navigation UX. Ready for production deployment and testing.)_

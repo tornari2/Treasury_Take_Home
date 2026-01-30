@@ -10,7 +10,30 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Verification Flow Fixes and UI Enhancements ✅ (Latest - January 29, 2025)
+### Review Notes Persistence and Verification Clearing ✅ (Latest - January 29, 2025)
+
+- **Review Notes Persistence:**
+  - Review notes now persist when switching from review page back to dashboard
+  - Review notes persist when changing status (approve after reject, or reject after approve)
+  - Review notes are loaded from database when returning to a previously reviewed application
+  - Added `useEffect` hook to load `review_notes` from application data when page loads
+  - Notes are only cleared when reverifying (clicking Verify button)
+
+- **Confirmation Dialog Removal:**
+  - Removed confirmation dialog popup that appeared when approving/rejecting applications with AI verification mismatches
+  - Removed Dialog component imports and related state variables (`showConfirmDialog`, `pendingStatus`)
+  - Removed `confirmStatusUpdate` function
+  - Approve/Reject actions now execute immediately without confirmation prompts
+  - Users can still add review notes to document their decision rationale
+
+- **Verification Clearing Fix:**
+  - Review notes are now properly cleared when reverifying (set to empty string in UI immediately and null in database)
+  - Verification results are completely wiped when reverifying (both in UI state and database)
+  - Verification results UI is hidden during verification process (shows "Verification in progress..." message instead of old results)
+  - Extracted data (`extracted_data`) is also cleared when reverifying to ensure fresh start
+  - Verify route always clears review notes regardless of current status (not just when status isn't pending)
+
+### Verification Flow Fixes and UI Enhancements ✅ (January 29, 2025)
 
 - **Verification Flow Improvements:**
   - Fixed infinite loop bug: Added `isVerifyingRef` guard to prevent re-triggering when clearing results
@@ -898,4 +921,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (Critical verification fix: exported missing normalizeBusinessEntitySuffix function that was causing verification to silently fail with empty results; Error handling: verifyApplication now re-throws errors instead of returning {}; Empty result detection: review page properly detects empty verification results and retries; Manual verify button added; Batch testing infrastructure: scripts and test images for creating 50 test applications. Previous: Fanciful name extraction, batch verification async processing, UI improvements. Ready for production deployment and testing.)_
+_Last Updated: January 29, 2025 (Review notes persistence: notes persist when switching pages and changing status, only clear on reverification. Confirmation dialog removal: removed popup for approving/rejecting with mismatches. Verification clearing fix: review notes and verification results properly wiped when reverifying. Previous: Verification flow fixes: infinite loop prevention, race condition fixes, immediate result clearing. Navigation improvements: loading overlays, better error handling. UI enhancements: larger zoom increments, always-visible reset button, scrollable table. Ready for production deployment and testing.)_

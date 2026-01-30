@@ -231,7 +231,26 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Recent Updates (January 29, 2025)
 
-### Validation Display and UX Improvements ✅ (Latest - January 29, 2025)
+### Review Notes Persistence and Verification Clearing ✅ (Latest - January 29, 2025)
+
+- **Review Notes Persistence:**
+  - Review notes now persist when switching from review page back to dashboard
+  - Review notes persist when changing status (approve after reject, or reject after approve)
+  - Review notes are loaded from database when returning to a previously reviewed application
+  - Notes are only cleared when reverifying (clicking Verify button)
+
+- **Confirmation Dialog Removal:**
+  - Removed confirmation dialog popup that appeared when approving/rejecting applications with AI verification mismatches
+  - Approve/Reject actions now execute immediately without confirmation prompts
+  - Users can still add review notes to document their decision rationale
+
+- **Verification Clearing Fix:**
+  - Review notes are now properly cleared when reverifying (set to empty string in UI and null in database)
+  - Verification results are completely wiped when reverifying (both in UI state and database)
+  - Verification results UI is hidden during verification process (shows "Verification in progress..." message)
+  - Extracted data is also cleared when reverifying to ensure fresh start
+
+### Validation Display and UX Improvements ✅ (January 29, 2025)
 
 - **Validation Error Display Fix:**
   - NOT_FOUND fields now show only "Field not found" without Expected/Extracted format
@@ -550,4 +569,4 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ---
 
-_Last Updated: January 29, 2025 (Verification flow fixes: infinite loop prevention, race condition fixes, immediate result clearing. Navigation improvements: loading overlays, better error handling. UI enhancements: larger zoom increments, always-visible reset button, scrollable table. Validation text updates. Previous: Critical verification fix: exported normalizeBusinessEntitySuffix function that was causing verification to silently fail; Error handling: verifyApplication re-throws errors instead of returning {}; Empty result detection in review page fixed; Manual verify button added; Batch testing scripts created. Ready for production deployment and testing.)_
+_Last Updated: January 29, 2025 (Review notes persistence: notes persist when switching pages and changing status, only clear on reverification. Confirmation dialog removal: removed popup for approving/rejecting with mismatches. Verification clearing fix: review notes and verification results properly wiped when reverifying. Previous: Verification flow fixes: infinite loop prevention, race condition fixes, immediate result clearing. Navigation improvements: loading overlays, better error handling. UI enhancements: larger zoom increments, always-visible reset button, scrollable table. Ready for production deployment and testing.)_

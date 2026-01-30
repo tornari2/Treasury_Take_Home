@@ -420,10 +420,13 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 - **Validation Improvements:**
   - Removed fanciful name from wine validation and extraction
+  - Added fanciful name extraction for spirits and malt beverages (beer) - fixed missing field definition
   - Removed 'needs_review' status (soft mismatches now stay as 'pending')
   - Country of origin: show 'Required (not cross-checked)' for imported beverages
   - Producer validation: enforce 'Imported By' phrase detection for imported beverages
   - Wine varietal priority: extract varietal over class/type when both present on label
+  - Health warning display: "GOVERNMENT WARNING" shown in bold for both expected and extracted text
+  - Batch verification: fixed to process applications asynchronously and wait for completion
 
 - **Extraction Prompt Enhancements:**
   - Strengthened alcohol content extraction to preserve 'ALC.' prefix
@@ -458,6 +461,8 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 - **Dashboard Enhancements:**
   - Added Product Type column (beverage type)
   - Added Product Source column (domestic/imported)
+  - Batch action buttons show "Batch (X)" when multiple applications selected
+  - Batch verification now polls status and waits for completion before redirecting
 
 - **Code Architecture:**
   - Refactored extraction prompts to use beverage-specific instruction functions

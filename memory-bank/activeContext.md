@@ -10,7 +10,39 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Image Type, Validation, and UI Improvements ✅ (Latest - January 29, 2025)
+### Fanciful Name Extraction, Batch Verification, and UI Improvements ✅ (Latest - January 29, 2025)
+
+- **Fanciful Name Extraction Fix:**
+  - Added `fanciful_name` field to extraction for spirits and malt beverages (beer)
+  - Previously missing from field definitions in `lib/openai-service.ts`, causing extraction to fail
+  - Added explicit guidance in spirits-specific instructions with examples: "REPOSADO", "SINGLE BARREL SELECT", "AÑEJO", "BLANCO"
+  - Extraction now correctly captures fanciful names like "REPOSADO" and "SINGLE BARREL SELECT" for spirits
+  - Wine does not support fanciful names (removed from wine validation previously)
+
+- **Health Warning Display Enhancement:**
+  - Added bold formatting for "GOVERNMENT WARNING" text in review page
+  - Expected text always shows "GOVERNMENT WARNING" in bold (required formatting)
+  - Extracted text shows "GOVERNMENT WARNING" in bold when present on label
+  - Uses helper function `formatHealthWarning()` to detect and format the text
+  - Preserves exact case from label while applying bold styling
+
+- **Batch Verification Fix:**
+  - Fixed batch verification to actually process applications (was not completing)
+  - Refactored `processBatch()` to return batchId immediately and process in background
+  - Split processing into `processBatchApplications()` function that runs asynchronously
+  - Frontend now polls batch status endpoint every 2 seconds and waits for completion
+  - Applications are verified before redirecting to review page
+  - Batch processing runs 10 concurrent applications at a time
+
+- **Batch Action Button Labels:**
+  - Updated dashboard buttons to show "Review Batch (X)", "Verify Batch (X)", "Delete Batch (X)" when multiple applications selected
+  - Shows count in parentheses when 2+ applications are selected
+  - Single selection shows standard labels without "Batch"
+
+- **Code Quality:**
+  - Fixed duplicate import of `producerNamesMatchIgnoringEntitySuffix` in `lib/validation/validators/common.ts`
+
+### Image Type, Validation, and UI Improvements ✅ (January 29, 2025)
 
 - **Image Type Enhancement:**
   - Added "other" as a valid image type option for label images (in addition to front, back, side, neck)
@@ -773,4 +805,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (Image type enhancements: added 'other' as valid image type option for label images, updated database migration to support 'other' image type; Validation improvements: alcohol content validation now accepts 'XX% Alc. by Vol.' format, producer name matching improved to handle entity suffix differences (e.g., 'LLC' vs no suffix), review page now shows 'Extracted:' field even when empty if expected value exists; UI improvements: removed 'Other Information' field from application form; UI/UX improvements: removed vintage field, auto-assign image types, updated beverage labels, improved review page field display; Validation enhancements: removed fanciful name from wine, removed needs_review status, enhanced country of origin and producer validation for imports, wine varietal priority; Extraction improvements: strengthened alcohol content prefix preservation, varietal priority for wines, importer extraction for imported beverages). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (Fanciful name extraction: added for spirits and malt beverages with examples in prompts; Health warning display: "GOVERNMENT WARNING" shown in bold; Batch verification: fixed async processing and status polling; UI improvements: batch buttons show "Batch (X)" when multiple selected; Code quality: fixed duplicate import. Previous: Image type enhancements, validation improvements, UI/UX improvements, navigation fixes, dashboard enhancements. Ready for production deployment and testing.)_

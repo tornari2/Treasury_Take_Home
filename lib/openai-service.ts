@@ -161,8 +161,8 @@ export async function extractLabelData(
       'Alcohol content - CRITICAL: Extract COMPLETE text including any prefix (e.g., "ALC.", "ALCOHOL", "ABV") if present. Example: "ALC. 12.5% BY VOL." not "12.5% BY VOL."',
     net_contents:
       'Net contents (volume) - Extract ONLY the measurement value and unit (e.g., "750 mL", "12 FL OZ"). Do NOT include prefix words like "CONTENTS", "NET CONTENTS", or "NET".',
-    producer_name: 'Producer name',
-    producer_address: 'Producer address',
+    producer_name: 'Producer name - CRITICAL FOR IMPORTED BEVERAGES: If the beverage is imported (look for "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", etc.), extract the US importer/distributor name that IMMEDIATELY follows these phrases. DO NOT extract the foreign producer name. For domestic beverages, extract the producer name.',
+    producer_address: 'Producer address - CRITICAL FOR IMPORTED BEVERAGES: If the beverage is imported (look for "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", etc.), extract the US importer/distributor address that IMMEDIATELY follows these phrases. DO NOT extract the foreign producer address. For domestic beverages, extract the producer address.',
     producer_name_phrase:
       'Phrase immediately preceding producer name/address (e.g., "Bottled By", "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", or null if no such phrase). For imported beverages, extract phrases like "Imported By" or "DISTRIBUTED AND IMPORTED BY" if present.',
     health_warning: 'Government health warning statement (must be exact)',
@@ -263,8 +263,12 @@ CRITICAL FOR ALCOHOL_CONTENT FIELD - EXTRACT COMPLETE TEXT INCLUDING PREFIXES:
 CRITICAL FOR IMPORTED BEVERAGES - PRODUCER NAME/ADDRESS:
 - If the label indicates the beverage is imported (look for phrases like "Imported By", "Imported by", "DISTRIBUTED AND IMPORTED BY", "Distributed and Imported By", "Imported and Distributed By", or country of origin indicating foreign production), you MUST extract the US importer/distributor name and address, NOT the foreign producer.
 - The importer/distributor name/address appears IMMEDIATELY after phrases like "Imported By" or "DISTRIBUTED AND IMPORTED BY".
-- The foreign producer information may also appear on the label, but you should IGNORE it and extract only the US importer/distributor.
-- Example: If you see "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA", extract "Geo US Trading, Inc, Lombard, IL" as producer_name/producer_address, NOT "LTD WINIVERIA..." (which is the foreign producer).
+- The foreign producer information may also appear on the label AFTER the importer information, but you MUST IGNORE it and extract ONLY the US importer/distributor.
+- CRITICAL EXAMPLES:
+  * If label shows "Imported by CBSE Imports, LLC, Alexandria, VA" followed by "CORFU BREWERY S.A., Arilas, Corfu..." → Extract "CBSE Imports, LLC" as producer_name and "Alexandria, VA" as producer_address (NOT "CORFU BREWERY S.A., Arilas, Corfu")
+  * If label shows "DISTRIBUTED AND IMPORTED BY Geo US Trading, Inc, Lombard, IL" followed by "LTD WINIVERIA., 2200. VILLAGE VARDISUBANI, TELAVI, GEORGIA" → Extract "Geo US Trading, Inc" as producer_name and "Lombard, IL" as producer_address (NOT "LTD WINIVERIA...")
+- The US importer/distributor is ALWAYS listed FIRST after "Imported By" phrases. The foreign producer comes AFTER. Extract ONLY the first one.
+- This is CRITICAL - extracting the foreign producer instead of the US importer will cause validation failures.
 
 Return JSON in this format:
 {

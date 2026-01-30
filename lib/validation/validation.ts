@@ -142,7 +142,7 @@ export function validateSpiritsLabel(
   );
   fieldResults.push(validateHealthWarning(extraction.healthWarningText, formatChecks));
   fieldResults.push(validateCountryOfOrigin(application.originType, extraction.countryOfOrigin));
-  fieldResults.push(validateAgeStatement(extraction.ageStatement)); // REQUIRED for spirits
+  fieldResults.push(validateAgeStatement(extraction.ageStatement, extraction.classType)); // Conditionally required based on classType
 
   // Surfaced fields
   const surfacedFields = extractSpiritsSurfacedFields(extraction);

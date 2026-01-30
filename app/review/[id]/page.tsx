@@ -633,6 +633,16 @@ export default function ReviewPage() {
                                   (application?.beverage_type === 'wine' ||
                                     application?.beverage_type === 'WINE');
 
+                                // Special handling for age statement when not required
+                                const isAgeStatement =
+                                  (fieldName === 'ageStatement' || fieldName === 'age_statement') &&
+                                  (application?.beverage_type === 'spirits' ||
+                                    application?.beverage_type === 'SPIRITS');
+
+                                // Special handling for alcohol content (always required)
+                                const isAlcoholContent =
+                                  fieldName === 'alcoholContent' || fieldName === 'alcohol_content';
+
                                 // For wine classType with null expected, show requirement statement after "Expected:"
                                 if (isWineClassType && !result.expected) {
                                   return (
@@ -674,8 +684,44 @@ export default function ReviewPage() {
                                   );
                                 }
 
+                                // For age statement, show the expected value (which will be "N/A - Not required for Class or Type" when not required)
+                                if (isAgeStatement && result.expected) {
+                                  // Check if it's an N/A value - if so, don't show "Expected:" label
+                                  if (result.expected.startsWith('N/A')) {
+                                    return (
+                                      <div className="text-sm mt-1 text-muted-foreground">
+                                        {result.expected}
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div className="text-sm mt-1 text-foreground">
+                                      <span className="font-medium">Expected:</span>{' '}
+                                      <span className="text-foreground">{result.expected}</span>
+                                    </div>
+                                  );
+                                }
+
+                                // For alcohol content, show "Required" if expected is missing (alcohol content is always required)
+                                if (isAlcoholContent && !result.expected) {
+                                  return (
+                                    <div className="text-sm mt-1 text-foreground">
+                                      <span className="font-medium">Expected:</span>{' '}
+                                      <span className="text-foreground">Required</span>
+                                    </div>
+                                  );
+                                }
+
                                 // Default display for other fields
                                 if (result.expected || result.extracted) {
+                                  // Check if expected is an N/A value - if so, don't show "Expected:" label
+                                  if (result.expected && result.expected.startsWith('N/A')) {
+                                    return (
+                                      <div className="text-sm mt-1 text-muted-foreground">
+                                        {result.expected}
+                                      </div>
+                                    );
+                                  }
                                   return (
                                     <div className="text-sm mt-1 text-foreground">
                                       <span className="font-medium">Expected:</span>{' '}

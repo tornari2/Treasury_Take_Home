@@ -142,7 +142,7 @@ export function validateFancifulName(
     return {
       field: 'fancifulName',
       status: MatchStatus.HARD_MISMATCH,
-      expected: null,
+      expected: 'None',
       extracted: extracted!,
       rule: 'CROSS-CHECK: Fanciful name on label must be in application',
       details: 'Label contains a fanciful name not listed in the application',

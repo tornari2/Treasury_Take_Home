@@ -90,7 +90,7 @@ export const REQUIRED_FIELDS = {
       'producerNameAddress',
       'healthWarning',
       'countryOfOrigin', // Required if imported
-      'ageStatement', // REQUIRED
+      'ageStatement', // Conditionally required: mandatory for whisky <4 years, grape lees/pomace/marc brandy <2 years, or if distillation date/miscellaneous age references present
     ],
     surfaced: ['colorIngredientDisclosure', 'commodityStatement'],
   },

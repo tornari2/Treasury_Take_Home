@@ -10,7 +10,30 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-### Codebase Cleanup & Organization ✅ (Latest - January 30, 2026)
+### Railway Deployment ✅ (Latest - January 30, 2026)
+
+- **Deployment Status:** Successfully deployed to Railway production
+- **Production URL:** `https://treasurytakehome-production.up.railway.app`
+- **Builder:** Nixpacks (Railway standard, removed Dockerfile)
+- **Configuration:**
+  - `railway.json` - Railway configuration with Nixpacks builder
+  - `.railway.toml` - Alternative config format
+  - Auto-deploy enabled (pushes to main branch trigger deployment)
+- **Database Setup:**
+  - Persistent volume at `/app/data` for SQLite database
+  - Build-time protection prevents DB initialization during build
+  - Database export script: `npm run db:export`
+- **User Management:**
+  - Public registration endpoint: `/api/auth/register`
+  - User creation scripts: `scripts/create-test-user.ts`, `scripts/create-users.ts`
+  - Documentation: `USER_ACCESS_GUIDE.md`, `RAILWAY_USER_CREATION.md`
+- **Type System:**
+  - Created `types/database.ts` with complete type definitions
+  - Fixed build errors related to missing `ImageType`, `ExtractedData`, `VerificationResult` types
+- **UI Updates:**
+  - Renamed "Delete" button to "Remove" in dashboard
+
+### Codebase Cleanup & Organization ✅ (January 30, 2026)
 
 - **File Cleanup:**
   - Removed unnecessary `.gitkeep` files, empty directories, unused middleware

@@ -4,7 +4,36 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
-### Codebase Cleanup & Organization ✅ (Latest - January 30, 2026)
+### Railway Deployment ✅ (Latest - January 30, 2026)
+
+- **Deployment Platform:** Railway (Nixpacks builder)
+- **Production URL:** `https://treasurytakehome-production.up.railway.app`
+- **Configuration:**
+  - Removed Dockerfile in favor of Nixpacks (Railway standard)
+  - Created `railway.json` and `.railway.toml` configuration files
+  - Auto-deploy enabled (pushes to main branch)
+- **Database:**
+  - Persistent volume mounted at `/app/data`
+  - Database path: `/app/data/database.db`
+  - Build-time protection prevents DB initialization during build
+- **User Management:**
+  - Created `/api/auth/register` endpoint for public user registration
+  - Added `scripts/create-users.ts` for batch user creation
+  - Added `scripts/export-database.ts` for database backup (`npm run db:export`)
+  - Database sync guide: `SYNC_DATABASE_TO_RAILWAY.md`
+- **Type System:**
+  - Created `types/database.ts` with all database type definitions
+  - Includes: `User`, `Application`, `LabelImage`, `AuditLog`, `ImageType`, `ExtractedData`, `VerificationResult`
+  - Fixed build errors related to missing type definitions
+- **UI Improvements:**
+  - Renamed "Delete" button to "Remove" in dashboard for better clarity
+- **Documentation:**
+  - `RAILWAY_DEPLOYMENT.md` - Complete deployment guide
+  - `RAILWAY_USER_CREATION.md` - User creation instructions
+  - `USER_ACCESS_GUIDE.md` - Guide for allowing others to use the app
+  - `DEPLOYMENT_CHECKLIST.md` - Deployment checklist
+
+### Codebase Cleanup & Organization ✅ (January 30, 2026)
 
 - **File Cleanup:**
   - Removed unnecessary `.gitkeep` files from directories with content (components, lib, types)

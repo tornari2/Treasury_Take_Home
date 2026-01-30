@@ -317,9 +317,14 @@ __tests__/
 
 ## Deployment Configuration
 
-### Railway Setup ✅ Configured
+### Railway Setup ✅ Deployed & Configured
 
-**Builder:** Railpack (auto-detects Next.js, no configuration file needed)
+**Builder:** Nixpacks (Railway's standard builder, auto-detects Next.js)
+
+**Configuration Files:**
+- `railway.json` - Railway configuration (Nixpacks builder)
+- `.railway.toml` - Alternative Railway config format
+- No Dockerfile - Using Nixpacks instead (Railway standard)
 
 **Environment Variables (Railway dashboard):**
 
@@ -331,17 +336,18 @@ NODE_ENV=production
 
 **Build Configuration:**
 
-- Builder: Railpack (auto-detected)
-- Build Command: `npm install && npm run build` (auto-detected)
-- Start Command: `npm start` (auto-detected)
+- Builder: Nixpacks (configured in `railway.json`)
+- Build Command: Auto-detected by Nixpacks (`npm install && npm run build`)
+- Start Command: `npm start` (configured in `railway.json`)
 - Node Version: 20 (specified via `.nvmrc` and `package.json` engines)
 
 **Key Implementation Details:**
 
 - Database lazy initialization: Prevents build-time errors, initializes at runtime
+- Build-time protection: `NEXT_PHASE=phase-production-build` prevents DB access during build
 - Health endpoint: `/api/health` for Railway health checks
 - ESLint skipped during builds: Configured in `next.config.js`
-- No nixpacks.toml: Using Railpack auto-detection instead
+- TypeScript types: Complete type definitions in `types/database.ts`
 
 **Persistent Volume:**
 
@@ -349,6 +355,15 @@ NODE_ENV=production
 - **Purpose:** SQLite database file storage
 - **Size:** 10GB (sufficient for 150K apps/year with images)
 - **Backup:** Manual download via Railway dashboard (future: automated)
+
+**Deployment URL:**
+- Production: `https://treasurytakehome-production.up.railway.app`
+- Auto-deploy: Enabled (pushes to `main` branch trigger deployment)
+
+**User Management:**
+- Registration endpoint: `/api/auth/register` (allows public signup)
+- User creation scripts: `scripts/create-test-user.ts`, `scripts/create-users.ts`
+- Database export: `npm run db:export` (creates `database-backup.db`)
 
 ## Validation Module Architecture
 
@@ -524,4 +539,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 30, 2026 (Critical fixes: Added postcss.config.js for Tailwind CSS compilation, created .env file for environment variables, added database migrations for reviewed_at/review_notes/assigned_agent_id columns, fixed PRESENCE field display to show "Field not found" for all PRESENCE fields when not found, renamed Delete button to Remove, seeded database with 50 sample applications. Previous: FormatChecks implementation, UI improvements, image processing improvements. Update when dependencies, tools, or constraints change._
+_Last Updated: January 30, 2026 (Railway deployment: Deployed to Railway using Nixpacks builder, created types/database.ts with all type definitions, added user registration endpoint, created database export/import scripts, removed Dockerfile in favor of Nixpacks. Previous: Added postcss.config.js for Tailwind CSS compilation, created .env file for environment variables, added database migrations for reviewed_at/review_notes/assigned_agent_id columns, fixed PRESENCE field display to show "Field not found" for all PRESENCE fields when not found, renamed Delete button to Remove, seeded database with 50 sample applications. Update when dependencies, tools, or constraints change._

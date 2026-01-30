@@ -9,6 +9,7 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 **Current Sprint:** Development environment stability and form validation fixes
 
 **Active Investigation:**
+
 - "The string did not match the expected pattern." error when creating new application via UI
 - Backend API confirmed working (curl POST returns 201 Created)
 - Likely client-side HTML5 input validation issue - checking form input components for `pattern` attributes
@@ -16,9 +17,21 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 30, 2026 - Latest)
 
-**Last Updated:** January 30, 2026 - Node.js Compatibility & Development Environment Fixes
+**Last Updated:** January 30, 2026 - Documentation: Approach & Trade-offs
 
-### Node.js Version Compatibility & Development Environment Fixes ✅ (Latest - January 30, 2026)
+### Documentation: Approach & Trade-offs ✅ (Latest - January 30, 2026)
+
+- **Added Comprehensive Documentation:**
+  - Created `APPROACH.md` documenting technical approach, tools used, and assumptions
+  - Created `TRADE_OFFS_AND_LIMITATIONS.md` detailing trade-offs and known limitations
+  - Documents GPT-4o model selection rationale (accuracy over speed)
+  - Outlines production recommendations for hybrid OCR/Vision system (Google Vision + GPT-4o-mini)
+  - Details validation scope and design philosophy (human-in-the-loop approach)
+  - Covers limitations: formulas, class/type rules, layout/formatting (except health warning), edge cases
+  - Documents conditional preprocessing recommendations for poor-quality images
+  - Committed and pushed to repository
+
+### Node.js Version Compatibility & Development Environment Fixes ✅ (Previous - January 30, 2026)
 
 - **Critical Node.js v22 Incompatibility Resolved:**
   - Identified Node.js v22 as incompatible with Next.js 14.2.35, causing fundamental build failures

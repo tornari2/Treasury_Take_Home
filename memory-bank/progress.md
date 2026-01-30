@@ -4,9 +4,18 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
-**Last Updated:** January 30, 2026 - Node.js Compatibility & Development Environment Fixes
+**Last Updated:** January 30, 2026 - Documentation: Approach & Trade-offs
 
-### Node.js Version Compatibility & Development Environment Fixes ✅ (Latest - January 30, 2026)
+### Documentation: Approach & Trade-offs ✅ (Latest - January 30, 2026)
+
+- **New Documentation Files:**
+  - ✅ `APPROACH.md` - Technical approach, tools, and assumptions
+  - ✅ `TRADE_OFFS_AND_LIMITATIONS.md` - Trade-offs and limitations
+  - Documents GPT-4o selection rationale and production recommendations
+  - Details validation scope and design philosophy
+  - Committed and pushed to repository
+
+### Node.js Version Compatibility & Development Environment Fixes ✅ (Previous - January 30, 2026)
 
 - **Critical Node.js v22 Incompatibility:**
   - Root cause identified: Node.js v22 incompatible with Next.js 14.2.35, causing corrupted builds

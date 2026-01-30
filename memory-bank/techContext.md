@@ -11,6 +11,7 @@ _Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and con
 **Note:** Repository was reset to commit 3d447c6, but all working files have been restored from commit dff52f4 which contained the complete, functional codebase.
 
 **Current Implementation State:**
+
 - Core Next.js application structure complete
 - Dashboard and Review pages functional
 - OpenAI integration for label verification working
@@ -21,6 +22,7 @@ _Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and con
 - All API routes present and functional
 
 **File Status:**
+
 - All critical application files restored ✅
 - Configuration files present ✅
 - UI components present ✅
@@ -161,6 +163,7 @@ module.exports = {
 ```
 
 **Key Configuration:**
+
 - `baseUrl: "."` - Sets the base directory for module resolution
 - `paths: { "@/*": ["./*"] }` - Maps the `@/` alias to the project root directory
 - `strictNullChecks: true` - Enables strict null checking (added Jan 30, 2026)
@@ -174,6 +177,7 @@ module.exports = {
 ### Node.js Version Management
 
 **Critical:** Node.js v22 is **incompatible** with Next.js 14.2.35 and will cause:
+
 - Corrupted webpack chunks
 - Missing static assets (404 errors)
 - API route failures
@@ -181,12 +185,14 @@ module.exports = {
 - Native module ABI mismatches
 
 **Required Setup:**
+
 - Node.js version: **20** (specified in `.nvmrc` and `package.json` engines)
 - Version enforcement: `scripts/check-node-version.js` runs as `predev` hook
 - NVM recommended: `nvm install 20 && nvm use 20 && nvm alias default 20`
 - After switching versions: `rm -rf node_modules .next && npm install && npm rebuild better-sqlite3`
 
 **Version Check Script:**
+
 - Location: `scripts/check-node-version.js`
 - Blocks Node v22+ with clear error message
 - Runs automatically before `npm run dev` via `predev` hook
@@ -369,6 +375,7 @@ __tests__/
 **Builder:** Nixpacks (Railway's standard builder, auto-detects Next.js)
 
 **Configuration Files:**
+
 - `railway.json` - Railway configuration (Nixpacks builder)
 - `.railway.toml` - Alternative Railway config format
 - No Dockerfile - Using Nixpacks instead (Railway standard)
@@ -425,10 +432,12 @@ NODE_ENV=production
 - **Backup:** Manual download via Railway dashboard (future: automated)
 
 **Deployment URL:**
+
 - Production: `https://treasurytakehome-production.up.railway.app`
 - Auto-deploy: Enabled (pushes to `main` branch trigger deployment)
 
 **User Management:**
+
 - Registration endpoint: `/api/auth/register` (allows public signup)
 - User creation scripts: `scripts/create-test-user.ts`, `scripts/create-users.ts`
 - Database export: `npm run db:export` (creates `database-backup.db`)
@@ -438,6 +447,7 @@ NODE_ENV=production
 ### Project Structure
 
 **Key Directories:**
+
 ```
 Treasury_Take_Home/
 ├── app/                          # Next.js App Router
@@ -476,6 +486,7 @@ Treasury_Take_Home/
 ### Component Architecture
 
 **Application Form Components:**
+
 ```
 components/
 ├── application-form.tsx          # Main form orchestrator (~100 lines)
@@ -489,6 +500,7 @@ components/
 ```
 
 **Benefits:**
+
 - Smaller, focused components (easier to maintain and test)
 - Clear separation of concerns
 - Reusable form hook for state management
@@ -621,6 +633,7 @@ interface ApplicationData {
 **File:** `lib/migrations.ts`
 
 **Automatic Migrations:**
+
 - Migrations run automatically when database helpers are imported (`ensureMigrations()`)
 - Handles missing columns for older databases:
   - `assigned_agent_id` column (if missing)
@@ -675,6 +688,32 @@ The project uses **shadcn/ui** as the primary component library, providing:
 
 All shadcn/ui components are located in `components/ui/` directory and can be customized as needed.
 
+## Project Documentation
+
+### Core Documentation Files
+
+- **README.md** - Project overview, setup instructions, API endpoints, deployment guide
+- **APPROACH.md** - Technical approach, tools used, and assumptions
+  - GPT-4o model selection rationale (accuracy over speed)
+  - Multi-image processing strategy
+  - Validation architecture
+  - Error handling and resilience
+  - Infrastructure and network assumptions
+- **TRADE_OFFS_AND_LIMITATIONS.md** - Trade-offs and known limitations
+  - Model selection trade-offs (GPT-4o vs. hybrid OCR/Vision)
+  - Production recommendations (Google Vision + GPT-4o-mini)
+  - Conditional preprocessing for poor-quality images
+  - Validation scope limitations (field-level vs. overall assessment)
+  - Edge case handling limitations
+  - Scalability and security considerations
+
+### Memory Bank Documentation
+
+Located in `memory-bank/` directory:
+- **activeContext.md** - Current work focus and recent changes
+- **progress.md** - Implementation status and what's left
+- **techContext.md** - Technologies, setup, and constraints (this file)
+
 ---
 
-_Last Updated: January 30, 2026 (Validation utilities: Added normalizeCity and citiesMatch functions for handling city name variations with directional prefixes. Updated normalizeState to handle periods in state abbreviations. Enhanced validation accuracy for net contents, varietal/appellation extraction, brand/fanciful names, health warnings, and producer/importer addresses. Previous: TypeScript configuration, review page UI updates, database query scripts, Railway deployment. Update when dependencies, tools, or constraints change._
+_Last Updated: January 30, 2026 (Documentation: Added APPROACH.md and TRADE_OFFS_AND_LIMITATIONS.md. Previous: Validation utilities: Added normalizeCity and citiesMatch functions for handling city name variations with directional prefixes. Updated normalizeState to handle periods in state abbreviations. Enhanced validation accuracy for net contents, varietal/appellation extraction, brand/fanciful names, health warnings, and producer/importer addresses. Update when dependencies, tools, or constraints change._

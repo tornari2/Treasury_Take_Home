@@ -10,7 +10,36 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ## Recent Changes (January 29, 2025 - Latest)
 
-### Age Statement, N/A Display, Fanciful Name & Alcohol Content ✅ (Latest - January 29, 2025)
+### Image Type, Validation, and UI Improvements ✅ (Latest - January 29, 2025)
+
+- **Image Type Enhancement:**
+  - Added "other" as a valid image type option for label images (in addition to front, back, side, neck)
+  - Updated database migration to support 'other' image type in CHECK constraint
+  - Updated API validation to accept 'other' as valid image type
+  - Updated application form to include "Other" option in image type selector dropdown
+
+- **Alcohol Content Validation:**
+  - Added pattern to accept "XX% Alc. by Vol." format (e.g., "40% Alc. by Vol.")
+  - Previously only accepted formats like "XX% Alc/Vol", "Alcohol XX% by Volume", "Alc. XX% by Vol", "XX% Alcohol by Volume"
+  - Now correctly validates formats where percentage comes before "Alc." followed by "by Vol."
+
+- **Producer Name Matching:**
+  - Improved matching to handle entity suffix differences (e.g., "PARK STREET IMPORTS LLC" matches "PARK STREET IMPORTS")
+  - Updated `hasName` check to consider names without entity suffixes when comparing
+  - Uses `normalizeBusinessEntitySuffix` and `producerNamesMatchIgnoringEntitySuffix` functions
+  - Allows matching when core business name matches even if entity suffix differs or is missing
+
+- **Review Page Display:**
+  - Fixed display to show "Extracted:" field even when extracted value is empty/null, as long as expected value exists
+  - Previously only showed "Extracted:" when extracted value had content
+  - Now shows "Extracted: " (blank) when field was checked but nothing extracted
+
+- **Application Form:**
+  - Removed "Other Information" field from the form UI
+  - Field remains in ApplicationData type for backward compatibility but is always set to null
+  - Users can no longer enter additional notes/information when creating applications
+
+### Age Statement, N/A Display, Fanciful Name & Alcohol Content ✅ (January 29, 2025)
 
 - **Age Statement Validation (Spirits):**
   - Age statement is **conditionally required** based on Class/Type (not always required).
@@ -744,4 +773,4 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
 
 ---
 
-_Last Updated: January 29, 2025 (UI/UX improvements: removed vintage field, auto-assign image types, updated beverage labels, improved review page field display; Validation enhancements: removed fanciful name from wine, removed needs_review status, enhanced country of origin and producer validation for imports, wine varietal priority; Extraction improvements: strengthened alcohol content prefix preservation, varietal priority for wines, importer extraction for imported beverages). Ready for production deployment and testing._
+_Last Updated: January 29, 2025 (Image type enhancements: added 'other' as valid image type option for label images, updated database migration to support 'other' image type; Validation improvements: alcohol content validation now accepts 'XX% Alc. by Vol.' format, producer name matching improved to handle entity suffix differences (e.g., 'LLC' vs no suffix), review page now shows 'Extracted:' field even when empty if expected value exists; UI improvements: removed 'Other Information' field from application form; UI/UX improvements: removed vintage field, auto-assign image types, updated beverage labels, improved review page field display; Validation enhancements: removed fanciful name from wine, removed needs_review status, enhanced country of origin and producer validation for imports, wine varietal priority; Extraction improvements: strengthened alcohol content prefix preservation, varietal priority for wines, importer extraction for imported beverages). Ready for production deployment and testing._

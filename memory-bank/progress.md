@@ -2,6 +2,28 @@
 
 _Derives from [activeContext.md](./activeContext.md). What works, what's left, and current status._
 
+## Latest Updates (January 30, 2026)
+
+### UI & UX Improvements ✅
+
+- **Dashboard Banner:** Added blue/red gradient banner (#305170 / #9A3B39) at top of Application Queue page
+- **Verification UI:** Removed duplicate "Verification in progress" messages - only top loading bar shows during verification
+- **Error Handling:** Enhanced network error messages with guidance about firewall restrictions and system administrator contact
+
+### Image Processing Improvements ✅
+
+- **Conservative Preprocessing:** Image preprocessing now only triggers in extreme cases:
+  - Severe lighting issues (<15% or >90% brightness)
+  - Severe glare (25%+ of image affected)
+  - Multiple moderate issues combined (perspective + lighting/glare)
+- **Stricter Thresholds:** Increased glare threshold (240→250), more tolerant lighting ranges (20-85% vs 30-80%)
+
+### Validation Improvements ✅
+
+- **Government Warning Bold Check:** Now explicitly extracts and validates `formatChecks.governmentWarningBold` from OpenAI response
+- **FormatChecks Extraction:** OpenAI service now extracts `formatChecks` object including bold, caps, and remainder formatting checks
+- **Network Error Messages:** All API routes now provide clear messages about connectivity issues and firewall restrictions
+
 ## What Works ✅
 
 ### Project Infrastructure

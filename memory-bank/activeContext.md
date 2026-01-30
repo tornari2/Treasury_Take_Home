@@ -534,6 +534,20 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
   - Users now only have "Pending", "Approved", and "Rejected" status options
   - Existing applications with "needs_review" status still display correctly ("Flagged for Review")
 
+### Image Processing & Quality ✅ (Latest - January 30, 2026)
+
+- **Conservative Preprocessing:**
+  - Preprocessing now only triggers in extreme cases (not for every image)
+  - Severe lighting issues: <15% or >90% brightness (was 30-80%)
+  - Severe glare: 25%+ of image affected (was 10%)
+  - Multiple issues: Requires perspective distortion + lighting/glare (not single issues)
+  - Stricter thresholds: Glare brightness 250 (was 240), lighting tolerance 20-85% (was 30-80%)
+
+- **FormatChecks Extraction:**
+  - OpenAI service now extracts `formatChecks` object from API response
+  - Includes: `governmentWarningAllCaps`, `governmentWarningBold`, `remainderBold`, `surgeonCapitalized`, `generalCapitalized`
+  - FormatChecks passed through to validation for explicit bold checking
+
 ### Error Handling & Resilience ✅
 
 - **Comprehensive OpenAI API Error Handling:**
@@ -555,7 +569,26 @@ _Synthesizes [productContext.md](./productContext.md), [systemPatterns.md](./sys
   - Ensures fresh start for re-verification regardless of previous status
   - Status then updated based on new verification results
 
-### UX Enhancements ✅ (Latest)
+### UI & UX Enhancements ✅ (Latest - January 30, 2026)
+
+- **Dashboard Banner:**
+  - Added blue/red gradient banner at top of Application Queue page
+  - Colors: Deep muted blue (#305170) - 68% height, Rich dark red (#9A3B39) - 32% height
+  - Full-width banner spans edge-to-edge above content
+
+- **Verification UI Cleanup:**
+  - Removed duplicate "Verification in progress..." message from review page
+  - Removed blue verifying bar underneath "AI Verification Recommendations" heading
+  - Only top loading bar ("Verifying application with AI...") shows during verification
+  - Section under recommendations shows nothing when verifying (cleaner UX)
+
+- **Error Handling Improvements:**
+  - Enhanced network error messages throughout application
+  - Clear guidance about firewall restrictions and contacting system administrator
+  - Better error detection and messaging in batch processing
+  - Improved error handling in verification API routes
+
+### UX Enhancements ✅ (Previous)
 
 - **Label Image Viewer Improvements:**
   - Click-and-drag panning for zoomed images

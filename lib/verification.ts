@@ -112,6 +112,8 @@ function convertToVerificationResult(validationResult: {
     status: any;
     expected: string | null;
     extracted: string | null;
+    rule: string;
+    details?: string;
   }>;
 }): VerificationResult {
   const result: VerificationResult = {};
@@ -145,6 +147,8 @@ function convertToVerificationResult(validationResult: {
       type,
       expected: fieldResult.expected || undefined,
       extracted: fieldResult.extracted || undefined,
+      rule: fieldResult.rule,
+      details: fieldResult.details || undefined,
     };
   }
 

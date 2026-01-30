@@ -2,6 +2,31 @@
 
 _Derives from [projectbrief.md](./projectbrief.md). Technologies, setup, and constraints._
 
+## Repository State
+
+**Current Commit:** `3d447c6` - "feat: Add TTB logo and banner improvements, restore verification banner on review page"  
+**Branch:** `main` (up to date with `origin/main`)  
+**Status:** Repository reset to commit 3d447c6, files restored from commit dff52f4
+
+**Note:** Repository was reset to commit 3d447c6, but all working files have been restored from commit dff52f4 which contained the complete, functional codebase.
+
+**Current Implementation State:**
+- Core Next.js application structure complete
+- Dashboard and Review pages functional
+- OpenAI integration for label verification working
+- Batch processing capability operational
+- Validation module complete with all validators
+- UI components (shadcn/ui) fully integrated
+- Database helpers and schema complete
+- All API routes present and functional
+
+**File Status:**
+- All critical application files restored ✅
+- Configuration files present ✅
+- UI components present ✅
+- Validation module complete ✅
+- Database helpers functional ✅
+
 ## Technologies Used
 
 ### Core Stack
@@ -71,12 +96,13 @@ npm install
 # 3. Set up environment
 cp .env.example.local .env.local
 # Edit .env.local and add:
-# OPENAI_API_KEY=sk-proj-...
-# DATABASE_PATH=./data/database.db
+# OPENAI_API_KEY=sk-proj-... (required for verification)
+# DATABASE_PATH=./data/database.db (default, can be overridden)
 # SESSION_SECRET=your-secret-here
 
 # 4. Initialize database (runs automatically on import)
 # Database is created at first import of lib/migrations.ts
+# Migrations automatically add missing columns (reviewed_at, review_notes, assigned_agent_id)
 
 # 5. Start development server (authentication removed - no test user needed)
 npm run dev
@@ -85,21 +111,39 @@ npm run dev
 open http://localhost:3000
 ```
 
-### Environment Variables (`.env.local`)
+### Environment Variables (`.env`)
 
 ```bash
 # Required
-OPENAI_API_KEY=sk-proj-...           # OpenAI API key
+OPENAI_API_KEY=sk-proj-...           # OpenAI API key (required for verification)
 
 # Database
-DATABASE_PATH=./data/database.db     # SQLite database path
+DATABASE_PATH=./data/database.db     # SQLite database path (default)
+# For Railway deployment: /app/data/database.db
 
-# Authentication (REMOVED - no longer required)
-# SESSION_SECRET=your-secret-here      # Not needed - authentication removed
+# Node Environment (automatically set by Next.js)
+# NODE_ENV=development                 # development | production
 
-# Node Environment
-NODE_ENV=development                 # development | production
+# Port (optional, defaults to 3000)
+# PORT=3000
 ```
+
+**Note:** `.env` file is gitignored for security. Next.js automatically loads `.env` files on server startup.
+
+### PostCSS Configuration
+
+**File:** `postcss.config.js`
+
+```javascript
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```
+
+**Required for:** Tailwind CSS compilation in Next.js. Without this file, CSS won't compile and styling will be missing.
 
 ### Development Commands
 
@@ -419,6 +463,21 @@ interface ApplicationData {
 
 ## Database Management
 
+### Migrations
+
+**File:** `lib/migrations.ts`
+
+**Automatic Migrations:**
+- Migrations run automatically when database helpers are imported (`ensureMigrations()`)
+- Handles missing columns for older databases:
+  - `assigned_agent_id` column (if missing)
+  - `reviewed_at` column (if missing)
+  - `review_notes` column (if missing)
+- Renames `expected_label_data` to `application_data` if needed
+- Updates CHECK constraints for image types to include 'other'
+
+**Manual Migration:** Run `npx tsx scripts/create-batch-applications.ts` to seed test data
+
 ### Schema
 
 - **users:** User accounts table exists but authentication removed (endpoints are public)
@@ -465,4 +524,4 @@ All shadcn/ui components are located in `components/ui/` directory and can be cu
 
 ---
 
-_Last Updated: January 30, 2026 (FormatChecks implementation: OpenAI service now extracts formatChecks from API response including governmentWarningBold, formatChecks passed through verification pipeline to validation, health warning validation explicitly checks formatChecks.governmentWarningBold === false; UI improvements: NOT_FOUND fields show only "Field not found" without Expected/Extracted labels, removed verification progress UI elements during reverification, changed "Field not found" text color to grey; Image processing: conservative preprocessing thresholds, stricter glare and lighting checks. Previous: Image type enhancements, validation improvements, UI/UX improvements, navigation improvements. Update when dependencies, tools, or constraints change._
+_Last Updated: January 30, 2026 (Critical fixes: Added postcss.config.js for Tailwind CSS compilation, created .env file for environment variables, added database migrations for reviewed_at/review_notes/assigned_agent_id columns, fixed PRESENCE field display to show "Field not found" for all PRESENCE fields when not found, renamed Delete button to Remove, seeded database with 50 sample applications. Previous: FormatChecks implementation, UI improvements, image processing improvements. Update when dependencies, tools, or constraints change._

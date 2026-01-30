@@ -643,15 +643,6 @@ export default function ReviewPage() {
       <div className="p-8">
         {/* Removed loading overlay - previous content stays visible during transitions */}
         <div className="max-w-7xl mx-auto">
-        {/* Verification Banner Bar */}
-        {verifying && (
-          <Alert className="mb-6 border-blue-500 bg-blue-50">
-            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
-            <AlertDescription className="text-blue-900">
-              <span className="font-medium">Verifying application with AI...</span>
-            </AlertDescription>
-          </Alert>
-        )}
         {/* Navigation section with banner overlay */}
         <div className="mb-6 relative">
           {/* Banner behind navigation */}
@@ -692,6 +683,15 @@ export default function ReviewPage() {
             )}
           </div>
         </div>
+        {/* Verification Banner Bar - positioned under the blue banner */}
+        {verifying && (
+          <Alert className="mb-6 border-blue-500 bg-blue-50">
+            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+            <AlertDescription className="text-blue-900">
+              <span className="font-medium">Verifying application with AI...</span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Panel: Label Images */}

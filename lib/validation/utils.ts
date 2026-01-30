@@ -236,6 +236,30 @@ export function containsValidAlcoholFormat(str: string | null | undefined): bool
 }
 
 /**
+ * Check if a string contains valid net contents format patterns (allows additional text)
+ * This checks if the patterns appear anywhere in the string, not just at the start/end
+ * Useful for strings like "710 ML / 1 PINT 8 FL OZ" where units appear after other text
+ */
+export function containsNetContentsPattern(
+  str: string | null | undefined,
+  patterns: RegExp[]
+): boolean {
+  if (!str) return false;
+  const trimmed = str.trim();
+
+  // Convert patterns that use ^ and $ anchors to patterns that match anywhere
+  // Remove ^ and $ anchors, allowing the pattern to match anywhere in the string
+  const containsPatterns = patterns.map((pattern) => {
+    const patternStr = pattern.source;
+    // Remove ^ anchor at start and $ anchor at end
+    const withoutAnchors = patternStr.replace(/^\^/, '').replace(/\$$/, '');
+    return new RegExp(withoutAnchors, pattern.flags);
+  });
+
+  return containsPatterns.some((pattern) => pattern.test(trimmed));
+}
+
+/**
  * Check if a value exists (not null, undefined, or empty string)
  */
 export function valueExists(value: string | null | undefined): boolean {

@@ -17,6 +17,7 @@ import {
   differsOnlyByCase,
   matchesAnyPattern,
   containsValidAlcoholFormat,
+  containsNetContentsPattern,
   valueExists,
   healthWarningMatchesExact,
   normalizeString,
@@ -250,8 +251,8 @@ export function validateAlcoholContent(
     if (!extracted) {
       return {
         field: 'alcoholContent',
-        status: MatchStatus.HARD_MISMATCH,
-        expected: 'Field not found',
+        status: MatchStatus.NOT_FOUND,
+        expected: null,
         extracted: null,
         rule: 'PRESENCE: Alcohol content must appear on label',
         details: 'Alcohol content is required for beer/malt beverages',
@@ -379,8 +380,8 @@ export function validateAlcoholContent(
         // If not table/light wine, numerical statement is required (could be > 14% or 7-14% without table/light designation)
         return {
           field: 'alcoholContent',
-          status: MatchStatus.HARD_MISMATCH,
-          expected: 'Field not found',
+          status: MatchStatus.NOT_FOUND,
+          expected: null,
           extracted: null,
           rule: 'WINE RULE: Wines over 14% ABV require numerical alcohol content statement',
           details:
@@ -484,8 +485,8 @@ export function validateAlcoholContent(
     if (!extracted) {
       return {
         field: 'alcoholContent',
-        status: MatchStatus.HARD_MISMATCH,
-        expected: 'Field not found',
+        status: MatchStatus.NOT_FOUND,
+        expected: null,
         extracted: null,
         rule: 'PRESENCE: Alcohol content must appear on label',
         details: 'Alcohol content is required for spirits',
@@ -557,9 +558,12 @@ export function validateNetContents(
   // Normalize the extracted value (trim whitespace)
   const normalized = extracted.trim();
 
-  // Check which unit types match
-  const matchesMetric = matchesAnyPattern(normalized, NET_CONTENTS_PATTERNS.metric);
-  const matchesUSCustomary = matchesAnyPattern(normalized, NET_CONTENTS_PATTERNS.usCustomary);
+  // Check which unit types match (using containsNetContentsPattern to handle cases like "710 ML / 1 PINT 8 FL OZ")
+  const matchesMetric = containsNetContentsPattern(normalized, NET_CONTENTS_PATTERNS.metric);
+  const matchesUSCustomary = containsNetContentsPattern(
+    normalized,
+    NET_CONTENTS_PATTERNS.usCustomary
+  );
 
   // Check if metric is present but formatted incorrectly (has number but missing unit)
   // This is especially important for wine/spirits where metric is required

@@ -33,6 +33,7 @@ interface Application {
   beverage_type: string;
   status: string;
   expected_label_data: any;
+  application_data?: any;
   label_images: LabelImage[];
 }
 
@@ -41,8 +42,6 @@ export default function ReviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [application, setApplication] = useState<Application | null>(null);
-  // Initialize loading to false - we'll set it to true only if needed (prevents flicker when navigating between screens)
-  const [loading, setLoading] = useState(false);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
@@ -59,19 +58,6 @@ export default function ReviewPage() {
 
   useEffect(() => {
     if (params.id) {
-      // Clear previous application data immediately when ID changes to prevent showing wrong data
-      const currentAppId = Number(params.id);
-      if (application && application.id !== currentAppId) {
-        setApplication(null);
-      }
-
-      // Only show loading screen if we're not navigating within a batch
-      const inBatchMode =
-        searchParams?.get('batch') === 'true' ||
-        (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
-      if (!inBatchMode) {
-        setLoading(true);
-      }
       setHasAttemptedFetch(false); // Reset when ID changes
       fetchApplication();
     }
@@ -136,13 +122,6 @@ export default function ReviewPage() {
 
   const fetchApplication = async () => {
     try {
-      // Only show loading screen if we don't have application data and we're not in batch mode
-      const inBatchMode =
-        searchParams?.get('batch') === 'true' ||
-        (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
-      if (!application && !inBatchMode) {
-        setLoading(true);
-      }
       setHasAttemptedFetch(true);
       const response = await fetch(`/api/applications/${params.id}`);
 
@@ -198,8 +177,6 @@ export default function ReviewPage() {
       }
     } catch (error) {
       console.error('Error fetching application:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -405,30 +382,8 @@ export default function ReviewPage() {
     return <>{text}</>;
   };
 
-  // Only show loading screen if we're not navigating within a batch
-  const inBatchMode =
-    searchParams?.get('batch') === 'true' ||
-    (typeof window !== 'undefined' && sessionStorage.getItem('batchApplications'));
-
-  // Check if current application matches the current ID (prevents showing wrong app during transitions)
-  const currentAppId = params.id ? Number(params.id) : null;
-  const applicationMatchesId = application && currentAppId && application.id === currentAppId;
-
-  // Show loading if:
-  // 1. We're explicitly loading, OR
-  // 2. We have an ID but the application doesn't match (transitioning between pages)
-  // Always show loading during transitions to prevent flicker
-  if (params.id && !applicationMatchesId && !inBatchMode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading application...</div>
-      </div>
-    );
-  }
-
-  // Only show "not found" if we've attempted to fetch, completed loading, have no application, and we're not in a transition
-  // (applicationMatchesId will be false if application is null, so we need to check hasAttemptedFetch and !loading)
-  if (!application && hasAttemptedFetch && !loading && params.id && !inBatchMode) {
+  // Only show "not found" if we've attempted to fetch and have no application
+  if (!application && hasAttemptedFetch && params.id) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg text-red-600">Application not found</div>
@@ -436,13 +391,9 @@ export default function ReviewPage() {
     );
   }
 
-  // Don't render the rest if we don't have a matching application
-  if (!applicationMatchesId) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading application...</div>
-      </div>
-    );
+  // Don't render the rest if we don't have application data yet
+  if (!application) {
+    return null;
   }
 
   // Use the first image's verification result (they should all be the same)
@@ -654,7 +605,12 @@ export default function ReviewPage() {
                         {getFieldStatusIcon(result)}
                         <div className="flex-1">
                           <div className="font-semibold text-foreground">
-                            {getFieldLabel(fieldName, application?.beverage_type)}
+                            {getFieldLabel(
+                              fieldName,
+                              application?.beverage_type,
+                              application?.expected_label_data?.originType ||
+                                application?.application_data?.originType
+                            )}
                           </div>
                           {result.type === 'not_applicable' ? (
                             <div className="text-sm mt-1 text-muted-foreground">
@@ -662,170 +618,180 @@ export default function ReviewPage() {
                             </div>
                           ) : (
                             <>
-                              {(() => {
-                                // Special handling for wine classType when expected is null
-                                const isWineClassType =
-                                  (fieldName === 'classType' || fieldName === 'class_type') &&
-                                  (application?.beverage_type === 'wine' ||
-                                    application?.beverage_type === 'WINE');
+                              {/* Display Expected/Extracted only for cross-checked fields (not NOT_FOUND) */}
+                              {result.type !== 'not_found' && (
+                                <>
+                                  {(() => {
+                                    // Special handling for wine classType when expected is null
+                                    const isWineClassType =
+                                      (fieldName === 'classType' || fieldName === 'class_type') &&
+                                      (application?.beverage_type === 'wine' ||
+                                        application?.beverage_type === 'WINE');
 
-                                // Special handling for non-wine classType when expected is null (beer/spirits)
-                                const isNonWineClassType =
-                                  (fieldName === 'classType' || fieldName === 'class_type') &&
-                                  application?.beverage_type !== 'wine' &&
-                                  application?.beverage_type !== 'WINE';
+                                    // Special handling for non-wine classType when expected is null (beer/spirits)
+                                    const isNonWineClassType =
+                                      (fieldName === 'classType' || fieldName === 'class_type') &&
+                                      application?.beverage_type !== 'wine' &&
+                                      application?.beverage_type !== 'WINE';
 
-                                // Special handling for sulfite declaration when expected is null
-                                const isSulfiteDeclaration =
-                                  (fieldName === 'sulfiteDeclaration' ||
-                                    fieldName === 'sulfite_declaration') &&
-                                  (application?.beverage_type === 'wine' ||
-                                    application?.beverage_type === 'WINE');
+                                    // Special handling for sulfite declaration when expected is null
+                                    const isSulfiteDeclaration =
+                                      (fieldName === 'sulfiteDeclaration' ||
+                                        fieldName === 'sulfite_declaration') &&
+                                      (application?.beverage_type === 'wine' ||
+                                        application?.beverage_type === 'WINE');
 
-                                // Special handling for age statement when not required
-                                const isAgeStatement =
-                                  (fieldName === 'ageStatement' || fieldName === 'age_statement') &&
-                                  (application?.beverage_type === 'spirits' ||
-                                    application?.beverage_type === 'SPIRITS');
+                                    // Special handling for age statement when not required
+                                    const isAgeStatement =
+                                      (fieldName === 'ageStatement' ||
+                                        fieldName === 'age_statement') &&
+                                      (application?.beverage_type === 'spirits' ||
+                                        application?.beverage_type === 'SPIRITS');
 
-                                // Special handling for alcohol content (always required)
-                                const isAlcoholContent =
-                                  fieldName === 'alcoholContent' || fieldName === 'alcohol_content';
+                                    // Special handling for alcohol content (always required)
+                                    const isAlcoholContent =
+                                      fieldName === 'alcoholContent' ||
+                                      fieldName === 'alcohol_content';
 
-                                // For wine classType with null expected, show requirement statement after "Expected:"
-                                if (isWineClassType && !result.expected) {
-                                  return (
-                                    <div className="text-sm mt-1 text-foreground">
-                                      <span className="font-medium">Expected:</span>{' '}
-                                      <span className="text-foreground">
-                                        A Class/Type designation is required whenever a Varietal is
-                                        not listed on the application.
-                                      </span>
-                                    </div>
-                                  );
-                                }
-
-                                // For non-wine classType (beer/spirits) with null expected, show requirement statement
-                                if (isNonWineClassType && !result.expected) {
-                                  const beverageType = application?.beverage_type?.toLowerCase();
-                                  const typeDescription =
-                                    beverageType === 'spirits'
-                                      ? 'A Class or Type designation describing the kind of distilled spirits'
-                                      : 'A Class or Type designation describing the kind of malt beverage';
-                                  return (
-                                    <div className="text-sm mt-1 text-foreground">
-                                      <span className="font-medium">Expected:</span>{' '}
-                                      <span className="text-foreground">{typeDescription}</span>
-                                    </div>
-                                  );
-                                }
-
-                                // For sulfite declaration with null expected, show requirement statement after "Expected:"
-                                if (isSulfiteDeclaration && !result.expected) {
-                                  return (
-                                    <div className="text-sm mt-1 text-foreground">
-                                      <span className="font-medium">Expected:</span>{' '}
-                                      <span className="text-foreground">
-                                        Must appear if the product has 10 ppm or more (total) sulfur
-                                        dioxide.
-                                      </span>
-                                    </div>
-                                  );
-                                }
-
-                                // For age statement, show the expected value (which will be "N/A - Not required for Class or Type" when not required)
-                                if (isAgeStatement && result.expected) {
-                                  // Check if it's an N/A value - if so, don't show "Expected:" label
-                                  if (result.expected.startsWith('N/A')) {
-                                    return (
-                                      <div className="text-sm mt-1 text-muted-foreground">
-                                        {result.expected}
-                                      </div>
-                                    );
-                                  }
-                                  return (
-                                    <div className="text-sm mt-1 text-foreground">
-                                      <span className="font-medium">Expected:</span>{' '}
-                                      <span className="text-foreground">{result.expected}</span>
-                                    </div>
-                                  );
-                                }
-
-                                // For alcohol content, show "Required" if expected is missing (alcohol content is always required)
-                                if (isAlcoholContent && !result.expected) {
-                                  return (
-                                    <div className="text-sm mt-1 text-foreground">
-                                      <span className="font-medium">Expected:</span>{' '}
-                                      <span className="text-foreground">Required</span>
-                                    </div>
-                                  );
-                                }
-
-                                // Special handling for health warning - show "GOVERNMENT WARNING" in bold
-                                const isHealthWarning =
-                                  fieldName === 'healthWarning' || fieldName === 'health_warning';
-
-                                // Default display for other fields
-                                if (result.expected || result.extracted) {
-                                  // Check if expected is an N/A value - if so, don't show "Expected:" label
-                                  if (result.expected && result.expected.startsWith('N/A')) {
-                                    return (
-                                      <div className="text-sm mt-1 text-muted-foreground">
-                                        {result.expected}
-                                      </div>
-                                    );
-                                  }
-                                  return (
-                                    <div className="text-sm mt-1 text-foreground">
-                                      <span className="font-medium">Expected:</span>{' '}
-                                      {isHealthWarning ? (
-                                        <span className="text-foreground">
-                                          {formatHealthWarning(result.expected || 'None', true)}
-                                        </span>
-                                      ) : (
-                                        <span className="text-foreground">
-                                          {result.expected || 'None'}
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
-                              {/* Always show Extracted: when there's an expected value, even if extracted is empty */}
-                              {(result.expected || result.extracted) &&
-                                result.type !== 'not_found' &&
-                                result.extracted !== 'Field not found' && (
-                                  <div className="text-sm text-foreground">
-                                    <span className="font-medium">Extracted:</span>{' '}
-                                    {(() => {
-                                      const isHealthWarning =
-                                        fieldName === 'healthWarning' ||
-                                        fieldName === 'health_warning';
-
-                                      // For health warning, check if formatChecks indicate bold (if available)
-                                      // Otherwise, assume bold if "GOVERNMENT WARNING" is present
-                                      const shouldBold =
-                                        isHealthWarning &&
-                                        result.extracted &&
-                                        /GOVERNMENT WARNING/i.test(result.extracted);
-
-                                      return isHealthWarning ? (
-                                        <span className="text-muted-foreground">
-                                          {formatHealthWarning(result.extracted || '', shouldBold)}
-                                        </span>
-                                      ) : (
-                                        <span className="text-muted-foreground">
-                                          {result.extracted || ''}
-                                        </span>
+                                    // For wine classType with null expected, show requirement statement after "Expected:"
+                                    if (isWineClassType && !result.expected) {
+                                      return (
+                                        <div className="text-sm mt-1 text-foreground">
+                                          <span className="font-medium">Expected:</span>{' '}
+                                          <span className="text-foreground">
+                                            A Class/Type designation is required whenever a Varietal
+                                            is not listed on the application.
+                                          </span>
+                                        </div>
                                       );
-                                    })()}
-                                  </div>
-                                )}
+                                    }
+
+                                    // For non-wine classType (beer/spirits) with null expected, show requirement statement
+                                    if (isNonWineClassType && !result.expected) {
+                                      const beverageType =
+                                        application?.beverage_type?.toLowerCase();
+                                      const typeDescription =
+                                        beverageType === 'spirits'
+                                          ? 'A Class or Type designation describing the kind of distilled spirits'
+                                          : 'A Class or Type designation describing the kind of malt beverage';
+                                      return (
+                                        <div className="text-sm mt-1 text-foreground">
+                                          <span className="font-medium">Expected:</span>{' '}
+                                          <span className="text-foreground">{typeDescription}</span>
+                                        </div>
+                                      );
+                                    }
+
+                                    // For sulfite declaration with null expected, show requirement statement after "Expected:"
+                                    if (isSulfiteDeclaration && !result.expected) {
+                                      return (
+                                        <div className="text-sm mt-1 text-foreground">
+                                          <span className="font-medium">Expected:</span>{' '}
+                                          <span className="text-foreground">
+                                            Must appear if the product has 10 ppm or more (total)
+                                            sulfur dioxide.
+                                          </span>
+                                        </div>
+                                      );
+                                    }
+
+                                    // For age statement, show the expected value (which will be "N/A - Not required for Class or Type" when not required)
+                                    if (isAgeStatement && result.expected) {
+                                      // Check if it's an N/A value - if so, don't show "Expected:" label
+                                      if (result.expected.startsWith('N/A')) {
+                                        return (
+                                          <div className="text-sm mt-1 text-muted-foreground">
+                                            {result.expected}
+                                          </div>
+                                        );
+                                      }
+                                      return (
+                                        <div className="text-sm mt-1 text-foreground">
+                                          <span className="font-medium">Expected:</span>{' '}
+                                          <span className="text-foreground">{result.expected}</span>
+                                        </div>
+                                      );
+                                    }
+
+                                    // For alcohol content, show "Required" if expected is missing (alcohol content is always required)
+                                    if (isAlcoholContent && !result.expected) {
+                                      return (
+                                        <div className="text-sm mt-1 text-foreground">
+                                          <span className="font-medium">Expected:</span>{' '}
+                                          <span className="text-foreground">Required</span>
+                                        </div>
+                                      );
+                                    }
+
+                                    // Special handling for health warning - show "GOVERNMENT WARNING" in bold
+                                    const isHealthWarning =
+                                      fieldName === 'healthWarning' ||
+                                      fieldName === 'health_warning';
+
+                                    // Default display for other fields - only show Expected/Extracted for cross-checked fields
+                                    if (result.expected || result.extracted) {
+                                      // Check if expected is an N/A value - if so, don't show "Expected:" label
+                                      if (result.expected && result.expected.startsWith('N/A')) {
+                                        return (
+                                          <div className="text-sm mt-1 text-muted-foreground">
+                                            {result.expected}
+                                          </div>
+                                        );
+                                      }
+                                      return (
+                                        <div className="text-sm mt-1 text-foreground">
+                                          <span className="font-medium">Expected:</span>{' '}
+                                          {isHealthWarning ? (
+                                            <span className="text-foreground">
+                                              {formatHealthWarning(result.expected || 'None', true)}
+                                            </span>
+                                          ) : (
+                                            <span className="text-foreground">
+                                              {result.expected || 'None'}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                  {/* Show Extracted: only for cross-checked fields */}
+                                  {(result.expected || result.extracted) &&
+                                    result.extracted !== 'Field not found' && (
+                                      <div className="text-sm text-foreground">
+                                        <span className="font-medium">Extracted:</span>{' '}
+                                        {(() => {
+                                          const isHealthWarning =
+                                            fieldName === 'healthWarning' ||
+                                            fieldName === 'health_warning';
+
+                                          // For health warning, check if formatChecks indicate bold (if available)
+                                          // Otherwise, assume bold if "GOVERNMENT WARNING" is present
+                                          const shouldBold =
+                                            isHealthWarning &&
+                                            result.extracted &&
+                                            /GOVERNMENT WARNING/i.test(result.extracted);
+
+                                          return isHealthWarning ? (
+                                            <span className="text-muted-foreground">
+                                              {formatHealthWarning(
+                                                result.extracted || '',
+                                                shouldBold
+                                              )}
+                                            </span>
+                                          ) : (
+                                            <span className="text-muted-foreground">
+                                              {result.extracted || ''}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+                                    )}
+                                </>
+                              )}
+                              {/* Show "Field not found" for NOT_FOUND fields - no Expected/Extracted format */}
                               {result.type === 'not_found' && (
-                                <div className="text-sm text-destructive mt-1">
-                                  Field not found on label
-                                </div>
+                                <div className="text-sm text-destructive mt-1">Field not found</div>
                               )}
                             </>
                           )}

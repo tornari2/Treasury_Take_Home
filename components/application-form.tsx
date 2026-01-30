@@ -122,13 +122,22 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
       newErrors.brandName = 'Brand name is required';
     }
     if (!producerName.trim()) {
-      newErrors.producerName = 'Producer name is required';
+      newErrors.producerName =
+        originType === OriginType.IMPORTED
+          ? 'Importer name is required'
+          : 'Producer name is required';
     }
     if (!producerCity.trim()) {
-      newErrors.producerCity = 'Producer city is required';
+      newErrors.producerCity =
+        originType === OriginType.IMPORTED
+          ? 'Importer city is required'
+          : 'Producer city is required';
     }
     if (!producerState.trim()) {
-      newErrors.producerState = 'Producer state is required';
+      newErrors.producerState =
+        originType === OriginType.IMPORTED
+          ? 'Importer state is required'
+          : 'Producer state is required';
     }
     if (images.length === 0) {
       newErrors.images = 'At least one image is required';
@@ -298,19 +307,24 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
         )}
       </div>
 
-      {/* Producer Information */}
+      {/* Producer/Importer Information */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Producer Information</h3>
+        <h3 className="text-lg font-semibold">
+          {originType === OriginType.IMPORTED ? 'Importer Information' : 'Producer Information'}
+        </h3>
 
         <div className="space-y-2">
           <Label htmlFor="producerName">
-            Producer Name <span className="text-red-500">*</span>
+            {originType === OriginType.IMPORTED ? 'Importer Name' : 'Producer Name'}{' '}
+            <span className="text-red-500">*</span>
           </Label>
           <Input
             id="producerName"
             value={producerName}
             onChange={(e) => setProducerName(e.target.value)}
-            placeholder="Enter producer name"
+            placeholder={
+              originType === OriginType.IMPORTED ? 'Enter importer name' : 'Enter producer name'
+            }
           />
           {errors.producerName && <p className="text-sm text-red-500">{errors.producerName}</p>}
         </div>

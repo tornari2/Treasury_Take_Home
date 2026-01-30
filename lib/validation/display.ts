@@ -2,7 +2,7 @@
 // Display Helpers and Constants
 // ============================================================
 
-import { MatchStatus, BeverageType } from './types';
+import { MatchStatus, BeverageType, OriginType } from './types';
 
 export const FIELD_LABELS: Record<string, string> = {
   brandName: 'Brand Name',
@@ -25,9 +25,13 @@ export const FIELD_LABELS: Record<string, string> = {
 };
 
 /**
- * Get field label with beverage type-specific overrides
+ * Get field label with beverage type-specific and origin type-specific overrides
  */
-export function getFieldLabel(fieldName: string, beverageType?: string | BeverageType): string {
+export function getFieldLabel(
+  fieldName: string,
+  beverageType?: string | BeverageType,
+  originType?: string | OriginType
+): string {
   // Wine-specific label override for classType
   if (fieldName === 'classType' || fieldName === 'class_type') {
     if (beverageType === BeverageType.WINE || beverageType === 'wine') {
@@ -43,6 +47,16 @@ export function getFieldLabel(fieldName: string, beverageType?: string | Beverag
   // Handle special field name mappings
   if (fieldName === 'appellation_of_origin' || camelCaseField === 'appellationOfOrigin') {
     return FIELD_LABELS['appellation'] || 'Appellation of Origin';
+  }
+
+  // For imported beverages, show "Importer Name & Address" instead of "Producer Name & Address"
+  if (
+    (fieldName === 'producerNameAddress' ||
+      fieldName === 'producer_name_address' ||
+      camelCaseField === 'producerNameAddress') &&
+    (originType === OriginType.IMPORTED || originType === 'imported')
+  ) {
+    return 'Importer Name & Address';
   }
 
   // If found in FIELD_LABELS, return it

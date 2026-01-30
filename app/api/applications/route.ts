@@ -81,15 +81,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (!applicationData.producerName?.trim()) {
-      return NextResponse.json({ error: 'Producer name is required' }, { status: 400 });
+      const fieldLabel =
+        applicationData.originType === 'imported' ? 'Importer name' : 'Producer name';
+      return NextResponse.json({ error: `${fieldLabel} is required` }, { status: 400 });
     }
 
     if (
       !applicationData.producerAddress?.city?.trim() ||
       !applicationData.producerAddress?.state?.trim()
     ) {
+      const fieldLabel =
+        applicationData.originType === 'imported' ? 'Importer address' : 'Producer address';
       return NextResponse.json(
-        { error: 'Producer address (city and state) is required' },
+        { error: `${fieldLabel} (city and state) is required` },
         { status: 400 }
       );
     }

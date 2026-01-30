@@ -115,6 +115,12 @@ _Derives from [projectbrief.md](./projectbrief.md). Captures architecture and de
 - **Context Providers:** AuthContext (user session), ApplicationContext (selected apps)
 - **Compound Components:** ImageViewer + ComparisonTable for review screen
 - **Custom Hooks:** `useAuth()`, `useApplications()`, `useBatchVerify()`
+- **Navigation State Management:**
+  - **Review Page:** Use in-memory refs (`previousApplicationRef`) to preserve previous application data during navigation
+  - **Dashboard:** Use module-level cache (`cachedApplications`, `hasLoadedBefore`) to persist across component remounts
+  - Previous content stays visible during transitions to prevent flicker
+  - Loading screens only appear on true initial page loads (first visit ever)
+  - Smooth, flicker-free navigation experience
 
 ### Backend Patterns
 

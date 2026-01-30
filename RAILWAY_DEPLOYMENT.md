@@ -208,3 +208,59 @@ Since you're using SQLite:
 
 - Railway Docs: [docs.railway.app](https://docs.railway.app)
 - Railway Discord: [discord.gg/railway](https://discord.gg/railway)
+
+---
+
+## Deployment Checklist
+
+Use this checklist to ensure a smooth deployment.
+
+### Pre-Deployment
+
+- [ ] Code is committed and pushed to GitHub
+- [ ] All tests pass locally (`npm run test:run`)
+- [ ] Build succeeds locally (`npm run build`)
+- [ ] Environment variables documented (see `.env.example`)
+
+### Railway Setup
+
+- [ ] Created Railway account
+- [ ] Connected GitHub repository to Railway
+- [ ] Created new Railway project
+- [ ] Railway auto-detected Next.js project
+
+### Configuration
+
+- [ ] Set `OPENAI_API_KEY` in Railway Variables
+- [ ] Set `DATABASE_PATH=/app/data/database.db` in Railway Variables
+- [ ] Set `NODE_ENV=production` in Railway Variables
+- [ ] Added persistent volume at `/app/data` (10GB recommended)
+- [ ] Verified build command: `npm install && npm run build`
+- [ ] Verified start command: `npm start`
+- [ ] Configured health check: `/api/health` (optional but recommended)
+
+### Post-Deployment
+
+- [ ] Verified deployment succeeded (check Railway logs)
+- [ ] Database initialized automatically (migrations run on first access)
+- [ ] Health check endpoint returns 200: `https://your-app.railway.app/api/health`
+- [ ] Created test user (see User Access Guide)
+- [ ] Tested login functionality
+- [ ] Verified application functionality
+
+### Verification Commands
+
+```bash
+# Check health
+curl https://your-app.railway.app/api/health
+
+# View logs (via Railway CLI)
+railway logs
+```
+
+### Next Steps
+
+- [ ] Set up custom domain (optional)
+- [ ] Configure monitoring/alerts
+- [ ] Set up database backups
+- [ ] Review Railway usage/billing

@@ -712,57 +712,138 @@ export function validateNetContents(
  * For Spirits and Wine: Name and address must immediately follow "Bottled By" or "Imported By" with no intervening text
  * For Imported Beer: Importer name and address must immediately follow "Imported by" or similar phrase with no intervening text
  */
-export function validateProducerNameAddress(
-  application: ApplicationData,
+// Helper functions for validateProducerNameAddress
+
+/**
+ * Check if city appears in the given address string
+ */
+function checkCityInAddress(address: string, expectedCity: string): boolean {
+  if (!address) return false;
+
+  // Check if city appears in address parts (split by comma)
+  const parts = normalizeString(address).split(',').map((p) => p.trim());
+  for (const part of parts) {
+    if (citiesMatch(part, expectedCity)) {
+      return true;
+    }
+  }
+
+  // Also check if city appears anywhere in the address string
+  const words = normalizeString(address).split(/\s+/);
+  for (let i = 0; i < words.length; i++) {
+    // Check single word
+    if (citiesMatch(words[i], expectedCity)) {
+      return true;
+    }
+    // Check two-word combinations (for cities like "New York")
+    if (i < words.length - 1) {
+      const twoWords = `${words[i]} ${words[i + 1]}`;
+      if (citiesMatch(twoWords, expectedCity)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if state appears in the given address string
+ */
+function checkStateInAddress(address: string | null, expectedState: string): boolean {
+  if (!address) return false;
+  if (!address) return false;
+
+  const normalizedAddress = normalizeString(address);
+
+  // Extract potential state from address (last part after comma, or last 2-3 words)
+  const parts = normalizedAddress.split(',').map((p) => p.trim());
+  const lastPart = parts[parts.length - 1] || '';
+
+  // Remove ZIP code from last part if present (e.g., "va 20176" -> "va")
+  const lastPartWithoutZip = lastPart.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+  const stateToCheck = lastPartWithoutZip || lastPart;
+
+  // Check if last part (without ZIP) matches the expected state (handles abbreviations)
+  if (statesMatch(stateToCheck, expectedState)) {
+    return true;
+  }
+
+  // Also check if any part of the address contains a state equivalent
+  // Handle multi-word states like "New York", "North Carolina"
+  const words = normalizedAddress.split(/\s+/);
+  const lastWords = words.slice(-2).join(' '); // Last 2 words
+  // Remove ZIP from last words if present
+  const lastWordsWithoutZip = lastWords.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
+  if (statesMatch(lastWordsWithoutZip || lastWords, expectedState)) {
+    return true;
+  }
+
+  // Try checking if state appears anywhere in the address
+  // Remove ZIP codes from all parts before checking
+  const addressWithoutZip = normalizedAddress.replace(/\s+\d{5}(-\d{4})?/g, '');
+  const allParts = addressWithoutZip.split(/[,\s]+/);
+  for (const part of allParts) {
+    if (statesMatch(part, expectedState)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if name matches (with entity suffix handling)
+ */
+function checkNameMatch(
+  expectedName: string,
+  extractedName: string | null,
+  extractedWithoutZip: string
+): boolean {
+  if (!extractedName) {
+    // If no separate name field, check if name appears in combined string
+    const extractedNameFromCombined = extractedWithoutZip.split(',')[0]?.trim() || '';
+    const expectedNameNorm = normalizeString(expectedName);
+    return (
+      extractedWithoutZip.includes(expectedNameNorm) ||
+      producerNamesMatchIgnoringEntitySuffix(expectedName, extractedNameFromCombined)
+    );
+  }
+
+  // Check if name matches using various matching strategies
+  const expectedNameNorm = normalizeString(expectedName);
+  return (
+    stringsMatch(expectedName, extractedName) ||
+    producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName) ||
+    normalizeString(extractedName).includes(expectedNameNorm)
+  );
+}
+
+/**
+ * Check if all parts (name, city, state) are present in the extracted value
+ */
+function checkAllPartsPresent(
+  expectedName: string,
+  expectedCity: string,
+  expectedState: string,
   extractedName: string | null,
   extractedAddress: string | null,
-  options?: {
-    beverageType?: BeverageType;
-    producerNamePhrase?: string | null;
-  }
-): FieldValidationResult {
-  const expectedName = application.producerName;
-  const expectedCity = application.producerAddress.city;
-  const expectedState = application.producerAddress.state;
-
-  if (!extractedName && !extractedAddress) {
-    return {
-      field: 'producerNameAddress',
-      status: MatchStatus.NOT_FOUND,
-      expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-      extracted: 'Field not found',
-      rule: 'PRESENCE: Producer name and location (city, state) must appear on label',
-    };
-  }
-
-  // Handle cases where name or address might contain the full combined string
-  // Check if either field contains the complete expected information (name, city, state)
-  const combinedExtracted =
-    extractedName && extractedAddress
-      ? `${extractedName}, ${extractedAddress}`
-      : extractedName || extractedAddress || '';
-  const expectedCombined = `${expectedName}, ${expectedCity}, ${expectedState}`;
-  const normalizedCombined = normalizeString(combinedExtracted);
-
-  // Check if the combined extracted value contains all expected parts (name, city, state)
-  // This handles cases like "FABBIOLI CELLARS, LEESBURG, VA 20176" matching "FABBIOLI CELLARS, LEESBURG, VA"
+  extractedWithoutZip: string
+): { hasName: boolean; hasCity: boolean; hasState: boolean } {
   const expectedNameNorm = normalizeString(expectedName);
-  const expectedCityNorm = normalizeString(expectedCity);
-
-  // Remove ZIP code from extracted for comparison
-  const extractedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
-
-  // Check if all three parts (name, city, state) appear in the extracted value
-  // For name, check both exact match and match ignoring entity suffix (e.g., "LLC" vs no suffix)
-  const extractedNameNorm = normalizeString(extractedName || '');
   const expectedNameWithoutSuffix = normalizeBusinessEntitySuffix(expectedNameNorm);
+  const extractedNameNorm = normalizeString(extractedName || '');
   const extractedNameWithoutSuffix = normalizeBusinessEntitySuffix(extractedNameNorm);
-  const hasName =
+
+  // Check if name appears
+  const hasName = Boolean(
     extractedWithoutZip.includes(expectedNameNorm) ||
-    extractedWithoutZip.includes(expectedNameWithoutSuffix) ||
-    extractedNameWithoutSuffix === expectedNameWithoutSuffix ||
-    (extractedName && producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName));
-  // Check if city matches - use citiesMatch to handle directional prefixes (e.g., "N. Littleton" = "Littleton")
+      extractedWithoutZip.includes(expectedNameWithoutSuffix) ||
+      extractedNameWithoutSuffix === expectedNameWithoutSuffix ||
+      (extractedName && producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName))
+  );
+
+  // Check if city appears
   const hasCity = (() => {
     // Check if city appears in combined string
     const parts = extractedWithoutZip.split(',').map((p) => p.trim());
@@ -788,6 +869,8 @@ export function validateProducerNameAddress(
     }
     return false;
   })();
+
+  // Check if state appears
   const hasState = (() => {
     // Check state with ZIP code handling - check both address and combined string
     const addressNorm = normalizeString(extractedAddress || '');
@@ -799,7 +882,7 @@ export function validateProducerNameAddress(
     }
 
     // Check if state appears in combined string (after removing ZIP)
-    const combinedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
+    const combinedWithoutZip = extractedWithoutZip;
 
     // Extract potential state from combined string (last part after comma, or last 2-3 words)
     const parts = combinedWithoutZip.split(',').map((p) => p.trim());
@@ -833,23 +916,133 @@ export function validateProducerNameAddress(
     return false;
   })();
 
+  return { hasName, hasCity, hasState };
+}
+
+/**
+ * Validate phrase requirement (Bottled By/Imported By)
+ */
+function validatePhraseRequirement(
+  beverageType: BeverageType | undefined,
+  producerNamePhrase: string | null | undefined,
+  isImported: boolean,
+  expectedName: string,
+  expectedCity: string,
+  expectedState: string,
+  extractedName: string | null,
+  extractedAddress: string | null
+): FieldValidationResult | null {
+  if (!beverageType || !extractedName || !extractedAddress) {
+    return null;
+  }
+
+  const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
+
+  // For imported beverages, enforce that extracted name/address must follow "Imported By"
+  if (isImported) {
+    const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
+
+    if (!hasImportedBy) {
+      return {
+        field: 'producerNameAddress',
+        status: MatchStatus.HARD_MISMATCH,
+        expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+        extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+        rule: 'CROSS-CHECK: For imported beverages, must extract the importer name/address that follows "Imported By"',
+        details:
+          'This appears to be an imported beverage, but the extracted name/address does not follow "Imported By". For imported beverages, extract the importer name/address (following "Imported By"), not the producer name/address.',
+      };
+    }
+  }
+
+  // Check phrase requirement for Spirits and Wine
+  if (beverageType === BeverageType.SPIRITS || beverageType === BeverageType.WINE) {
+    const hasBottledBy = /bottled\s+by/i.test(normalizedPhrase);
+    const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
+
+    // For domestic beverages, require "Bottled By" phrase
+    if (!isImported && !hasBottledBy && !hasImportedBy) {
+      return {
+        field: 'producerNameAddress',
+        status: MatchStatus.SOFT_MISMATCH,
+        expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+        extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+        rule: 'FORMAT: Producer name and address must immediately follow "Bottled By" or "Imported By" with no intervening text',
+        details:
+          'Producer name/address should immediately follow "Bottled By" or "Imported By" phrase. No such phrase detected or intervening text may be present.',
+      };
+    }
+  }
+
+  // Check phrase requirement for Imported Beer
+  if (beverageType === BeverageType.BEER && isImported) {
+    const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
+
+    if (!hasImportedBy) {
+      return {
+        field: 'producerNameAddress',
+        status: MatchStatus.SOFT_MISMATCH,
+        expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+        extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
+        rule: 'FORMAT: Importer name and address must immediately follow "Imported by" or similar phrase with no intervening text',
+        details:
+          'Importer name/address should immediately follow "Imported by" or similar phrase. No such phrase detected or intervening text may be present.',
+      };
+    }
+  }
+
+  return null;
+}
+
+export function validateProducerNameAddress(
+  application: ApplicationData,
+  extractedName: string | null,
+  extractedAddress: string | null,
+  options?: {
+    beverageType?: BeverageType;
+    producerNamePhrase?: string | null;
+  }
+): FieldValidationResult {
+  const expectedName = application.producerName;
+  const expectedCity = application.producerAddress.city;
+  const expectedState = application.producerAddress.state;
+
+  if (!extractedName && !extractedAddress) {
+    return {
+      field: 'producerNameAddress',
+      status: MatchStatus.NOT_FOUND,
+      expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
+      extracted: 'Field not found',
+      rule: 'PRESENCE: Producer name and location (city, state) must appear on label',
+    };
+  }
+
+  // Handle cases where name or address might contain the full combined string
+  // Check if either field contains the complete expected information (name, city, state)
+  const combinedExtracted =
+    extractedName && extractedAddress
+      ? `${extractedName}, ${extractedAddress}`
+      : extractedName || extractedAddress || '';
+  const expectedCombined = `${expectedName}, ${expectedCity}, ${expectedState}`;
+  const normalizedCombined = normalizeString(combinedExtracted);
+
+  // Remove ZIP code from extracted for comparison
+  const extractedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
+
+  // Check if all three parts (name, city, state) appear in the extracted value
+  const { hasName, hasCity, hasState } = checkAllPartsPresent(
+    expectedName,
+    expectedCity,
+    expectedState,
+    extractedName,
+    extractedAddress,
+    extractedWithoutZip
+  );
+
   // If all parts are present in the extracted value, treat as match
   if (hasName && hasCity && hasState) {
     // Verify name matches - check if name appears in extracted (allows for combined format)
-    let nameMatches = false;
-    if (extractedName) {
-      nameMatches =
-        stringsMatch(expectedName, extractedName) ||
-        producerNamesMatchIgnoringEntitySuffix(expectedName, extractedName) ||
-        normalizeString(extractedName).includes(expectedNameNorm);
-    } else {
-      // If no separate name field, check if name appears in combined string
-      // Also check if name matches ignoring entity suffix
-      const extractedNameFromCombined = extractedWithoutZip.split(',')[0]?.trim() || '';
-      nameMatches = 
-        extractedWithoutZip.includes(expectedNameNorm) ||
-        producerNamesMatchIgnoringEntitySuffix(expectedName, extractedNameFromCombined);
-    }
+    const nameMatches = checkNameMatch(expectedName, extractedName, extractedWithoutZip);
 
     if (nameMatches) {
       // All required parts found - treat as match
@@ -880,7 +1073,6 @@ export function validateProducerNameAddress(
 
   // Also check if the name field contains address information (combined format)
   // This handles cases where extraction puts everything in one field
-  // Use citiesMatch for city comparison to handle directional prefixes
   const nameContainsAddress =
     extractedName &&
     (citiesMatch(extractedName, expectedCity) ||
@@ -890,81 +1082,8 @@ export function validateProducerNameAddress(
   const addressToCheck = nameContainsAddress ? extractedName : extractedAddress;
 
   // Only validate city and state from the address, not the full street address
-  // Use citiesMatch to handle directional prefixes (e.g., "N. Littleton" = "Littleton")
-  const addressContainsCity = (() => {
-    if (!addressToCheck) return false;
-    
-    // Check if city appears in address parts (split by comma)
-    const parts = normalizeString(addressToCheck).split(',').map((p) => p.trim());
-    for (const part of parts) {
-      if (citiesMatch(part, expectedCity)) {
-        return true;
-      }
-    }
-    
-    // Also check if city appears anywhere in the address string
-    const words = normalizeString(addressToCheck).split(/\s+/);
-    for (let i = 0; i < words.length; i++) {
-      // Check single word
-      if (citiesMatch(words[i], expectedCity)) {
-        return true;
-      }
-      // Check two-word combinations (for cities like "New York")
-      if (i < words.length - 1) {
-        const twoWords = `${words[i]} ${words[i + 1]}`;
-        if (citiesMatch(twoWords, expectedCity)) {
-          return true;
-        }
-      }
-    }
-    
-    return false;
-  })();
-
-  // Check if state matches - state names and abbreviations are EQUIVALENT
-  // Extract state from address (typically at the end: "City, ST" or "City, State")
-  // Handles cases where ZIP code is included (e.g., "City, ST 12345")
-  // Also check name field if it contains address information
-  let addressContainsState = false;
-  if (addressToCheck) {
-    const normalizedAddress = normalizeString(addressToCheck);
-
-    // Extract potential state from address (last part after comma, or last 2-3 words)
-    const parts = normalizedAddress.split(',').map((p) => p.trim());
-    const lastPart = parts[parts.length - 1] || '';
-
-    // Remove ZIP code from last part if present (e.g., "va 20176" -> "va")
-    // ZIP codes are typically 5 digits, optionally followed by dash and 4 digits
-    const lastPartWithoutZip = lastPart.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
-    const stateToCheck = lastPartWithoutZip || lastPart;
-
-    // Check if last part (without ZIP) matches the expected state (handles abbreviations)
-    if (statesMatch(stateToCheck, expectedState)) {
-      addressContainsState = true;
-    } else {
-      // Also check if any part of the address contains a state equivalent
-      // Handle multi-word states like "New York", "North Carolina"
-      const words = normalizedAddress.split(/\s+/);
-      const lastWords = words.slice(-2).join(' '); // Last 2 words
-      // Remove ZIP from last words if present
-      const lastWordsWithoutZip = lastWords.replace(/\s+\d{5}(-\d{4})?.*$/, '').trim();
-      if (statesMatch(lastWordsWithoutZip || lastWords, expectedState)) {
-        addressContainsState = true;
-      } else {
-        // Try checking if state appears anywhere in the address
-        // This handles cases where address format might vary
-        // Remove ZIP codes from all parts before checking
-        const addressWithoutZip = normalizedAddress.replace(/\s+\d{5}(-\d{4})?/g, '');
-        const allParts = addressWithoutZip.split(/[,\s]+/);
-        for (const part of allParts) {
-          if (statesMatch(part, expectedState)) {
-            addressContainsState = true;
-            break;
-          }
-        }
-      }
-    }
-  }
+  const addressContainsCity = checkCityInAddress(addressToCheck || '', expectedCity);
+  const addressContainsState = checkStateInAddress(addressToCheck || '', expectedState);
 
   // If core name doesn't match at all, check for minor misspellings before hard mismatch
   if (!coreNameMatches && extractedName) {
@@ -1015,65 +1134,18 @@ export function validateProducerNameAddress(
   const producerNamePhrase = options?.producerNamePhrase;
   const isImported = application.originType === OriginType.IMPORTED;
 
-  if (beverageType && extractedName && extractedAddress) {
-    // For imported beverages, enforce that extracted name/address must follow "Imported By"
-    if (isImported) {
-      const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
-      const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
-
-      if (!hasImportedBy) {
-        // Imported beverage but no "Imported By" phrase detected
-        // This means we may have extracted the producer instead of the importer
-        return {
-          field: 'producerNameAddress',
-          status: MatchStatus.HARD_MISMATCH,
-          expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-          rule: 'CROSS-CHECK: For imported beverages, must extract the importer name/address that follows "Imported By"',
-          details:
-            'This appears to be an imported beverage, but the extracted name/address does not follow "Imported By". For imported beverages, extract the importer name/address (following "Imported By"), not the producer name/address.',
-        };
-      }
-      // If "Imported By" is present, continue with validation (name/address should match importer)
-    }
-
-    // Check phrase requirement for Spirits and Wine
-    if (beverageType === BeverageType.SPIRITS || beverageType === BeverageType.WINE) {
-      const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
-      const hasBottledBy = /bottled\s+by/i.test(normalizedPhrase);
-      const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
-
-      // For domestic beverages, require "Bottled By" phrase
-      if (!isImported && !hasBottledBy && !hasImportedBy) {
-        return {
-          field: 'producerNameAddress',
-          status: MatchStatus.SOFT_MISMATCH,
-          expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-          rule: 'FORMAT: Producer name and address must immediately follow "Bottled By" or "Imported By" with no intervening text',
-          details:
-            'Producer name/address should immediately follow "Bottled By" or "Imported By" phrase. No such phrase detected or intervening text may be present.',
-        };
-      }
-    }
-
-    // Check phrase requirement for Imported Beer
-    if (beverageType === BeverageType.BEER && isImported) {
-      const normalizedPhrase = producerNamePhrase ? normalizeString(producerNamePhrase) : '';
-      const hasImportedBy = /imported\s+by/i.test(normalizedPhrase);
-
-      if (!hasImportedBy) {
-        return {
-          field: 'producerNameAddress',
-          status: MatchStatus.SOFT_MISMATCH,
-          expected: `${expectedName}, ${expectedCity}, ${expectedState}`,
-          extracted: `${extractedName || ''}, ${extractedAddress || ''}`,
-          rule: 'FORMAT: Importer name and address must immediately follow "Imported by" or similar phrase with no intervening text',
-          details:
-            'Importer name/address should immediately follow "Imported by" or similar phrase. No such phrase detected or intervening text may be present.',
-        };
-      }
-    }
+  const phraseValidationResult = validatePhraseRequirement(
+    beverageType,
+    producerNamePhrase,
+    isImported,
+    expectedName,
+    expectedCity,
+    expectedState,
+    extractedName,
+    extractedAddress
+  );
+  if (phraseValidationResult) {
+    return phraseValidationResult;
   }
 
   // Check for soft mismatches (formatting differences or entity suffix differences)

@@ -4,6 +4,13 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  webpack: (config, { dev }) => {
+    if (dev) {
+      // Disable webpack persistent cache in dev to avoid missing pack/chunk files
+      config.cache = false;
+    }
+    return config;
+  },
   // Skip ESLint during builds (can be slow)
   eslint: {
     ignoreDuringBuilds: true,

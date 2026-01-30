@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { deleteSession, getCurrentUser } from '@/lib/auth';
+import { deleteSession } from '@/lib/auth';
 import { cookies } from 'next/headers';
-import { auditLogHelpers } from '@/lib/db-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,13 +10,11 @@ export async function POST(_request: NextRequest) {
     const sessionId = cookieStore.get('session')?.value;
 
     if (sessionId) {
-      const user = getCurrentUser(sessionId);
-
-      if (user) {
-        // Log logout action
-        auditLogHelpers.create(user.id, 'logout');
-      }
-
+      // Skip audit logging since authentication is disabled
+      // When auth is re-enabled, add:
+      //   const user = getCurrentUser(sessionId);
+      //   if (user) auditLogHelpers.create(user.id, 'logout');
+      
       // Delete session
       deleteSession(sessionId);
     }

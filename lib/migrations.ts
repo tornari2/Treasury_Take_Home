@@ -133,27 +133,24 @@ export function runMigrations() {
 let migrationsRun = false;
 
 export function ensureMigrations() {
+  // Skip migrations entirely during build time
+  const isBuildTime =
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NODE_ENV === 'production' ||
+    process.argv.includes('build') ||
+    (typeof process.env.npm_lifecycle_event !== 'undefined' && process.env.npm_lifecycle_event === 'build');
+
+  if (isBuildTime && !process.env.DATABASE_PATH) {
+    // Silently skip during build - database will be initialized at runtime
+    return;
+  }
+
   if (!migrationsRun) {
     try {
       runMigrations();
       migrationsRun = true;
     } catch (error) {
-      // During build, database might not be available - that's okay
-      // Check if we're in a build context
-      const isBuildTime =
-        process.env.NEXT_PHASE === 'phase-production-build' ||
-        process.env.NODE_ENV === 'production' ||
-        !process.env.DATABASE_PATH;
-
-      if (
-        isBuildTime &&
-        error instanceof Error &&
-        error.message.includes('Database not available')
-      ) {
-        // Silently skip during build - database will be initialized at runtime
-        return;
-      }
-      // In runtime, throw the error
+      // Re-throw error in runtime - migrations should work at runtime
       throw error;
     }
   }

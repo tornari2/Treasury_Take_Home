@@ -40,6 +40,8 @@ interface Application {
 
 export default function ReviewPage() {
   const params = useParams();
+  const paramId =
+    typeof params?.id === 'string' ? params.id : Array.isArray(params?.id) ? params.id[0] : null;
   const router = useRouter();
   const searchParams = useSearchParams();
   const [application, setApplication] = useState<Application | null>(null);
@@ -65,8 +67,8 @@ export default function ReviewPage() {
   const previousApplicationRef = useRef<Application | null>(null);
 
   useEffect(() => {
-    if (params.id) {
-      const newId = Number(params.id);
+    if (paramId) {
+      const newId = Number(paramId);
 
       // Skip fetch if we already have the correct application loaded
       if (application && application.id === newId) {
@@ -93,14 +95,15 @@ export default function ReviewPage() {
       }
 
       // Update the ref to track which ID we're fetching
-      currentFetchIdRef.current = params.id as string;
+      currentFetchIdRef.current = paramId;
       fetchApplication();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id]);
+  }, [paramId]);
 
   // Initialize batch navigation state
   useEffect(() => {
+    if (!paramId) return;
     const batchParam = searchParams?.get('batch');
     const storedBatchApps = sessionStorage.getItem('batchApplications');
     const storedBatchIndex = sessionStorage.getItem('batchCurrentIndex');
@@ -109,7 +112,7 @@ export default function ReviewPage() {
       try {
         const appIds = storedBatchApps ? JSON.parse(storedBatchApps) : null;
         if (appIds && Array.isArray(appIds) && appIds.length > 0) {
-          const currentAppId = Number(params.id);
+          const currentAppId = Number(paramId);
           const index = appIds.indexOf(currentAppId);
 
           if (index !== -1) {
@@ -139,7 +142,7 @@ export default function ReviewPage() {
         sessionStorage.removeItem('batchCurrentIndex');
       }
     }
-  }, [params.id, searchParams]);
+  }, [paramId, searchParams]);
 
   // Update ref whenever application changes (for smooth transitions)
   // Keep in memory only - sessionStorage would exceed quota with image data
@@ -175,7 +178,7 @@ export default function ReviewPage() {
 
   // Auto-trigger verification when application loads
   useEffect(() => {
-    if (!application || !params.id) return;
+    if (!application || !paramId) return;
 
     // Don't auto-trigger if we're already verifying (prevents infinite loop)
     if (isVerifyingRef.current) return;
@@ -198,16 +201,17 @@ export default function ReviewPage() {
     if (application.label_images.length > 0 && (shouldVerify || !hasVerification)) {
       // Remove verify param from URL to prevent re-triggering on refresh
       if (shouldVerify) {
-        router.replace(`/review/${params.id}`, { scroll: false });
+        router.replace(`/review/${paramId}`, { scroll: false });
       }
       triggerVerification();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [application, params.id, searchParams]);
+  }, [application, paramId, searchParams]);
 
   const fetchApplication = async () => {
     // Capture the ID at the start of the fetch to prevent race conditions
-    const fetchId = params.id as string;
+    const fetchId = paramId;
+    if (!fetchId) return;
 
     // Only proceed if this is still the current fetch
     if (currentFetchIdRef.current !== fetchId) {
@@ -315,6 +319,7 @@ export default function ReviewPage() {
     if (isVerifyingRef.current) {
       return;
     }
+    if (!paramId) return;
 
     isVerifyingRef.current = true;
     setVerifying(true);
@@ -343,7 +348,7 @@ export default function ReviewPage() {
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), 180000);
 
-      const response = await fetch(`/api/applications/${params.id}/verify`, {
+      const response = await fetch(`/api/applications/${paramId}/verify`, {
         method: 'POST',
         signal: controller.signal,
       });
@@ -382,7 +387,8 @@ export default function ReviewPage() {
 
   const handleStatusUpdate = async (status: string) => {
     try {
-      const response = await fetch(`/api/applications/${params.id}`, {
+      if (!paramId) return;
+      const response = await fetch(`/api/applications/${paramId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

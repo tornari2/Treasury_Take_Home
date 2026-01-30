@@ -163,10 +163,13 @@ module.exports = {
 **Key Configuration:**
 - `baseUrl: "."` - Sets the base directory for module resolution
 - `paths: { "@/*": ["./*"] }` - Maps the `@/` alias to the project root directory
+- `strictNullChecks: true` - Enables strict null checking (added Jan 30, 2026)
 
 **Required for:** Path alias support (`@/components/ui/*`, `@/lib/*`, etc.). Without this configuration, imports using `@/` prefix will fail with module resolution errors.
 
 **Usage:** Allows imports like `import { Button } from '@/components/ui/button'` instead of relative paths like `import { Button } from '../../../components/ui/button'`.
+
+**Note:** With `strictNullChecks: true`, TypeScript will catch potential null/undefined errors. All code must properly handle nullable values.
 
 ### Development Commands
 
@@ -367,10 +370,22 @@ NODE_ENV=production
 **Key Implementation Details:**
 
 - Database lazy initialization: Prevents build-time errors, initializes at runtime
-- Build-time protection: `NEXT_PHASE=phase-production-build` prevents DB access during build
+- Build-time protection: Safe no-op proxy prevents DB access during Next.js static analysis
+- Build-time detection: Multiple indicators (NEXT_PHASE, NODE_ENV, npm lifecycle) ensure migrations skip during build
 - Health endpoint: `/api/health` for Railway health checks
 - ESLint skipped during builds: Configured in `next.config.js`
 - TypeScript types: Complete type definitions in `types/database.ts`
+- TypeScript strictNullChecks: Enabled (`strictNullChecks: true` in `tsconfig.json`)
+
+- **Build Fixes (Jan 30, 2026):**
+  - Fixed build hanging by reverting lazy initialization in db-helpers.ts, kept top-level `ensureMigrations()` call which properly detects build time
+  - Fixed `Cannot find module for page: /_document` error by adding `pages/_document.tsx` (required for Next.js pages manifest)
+  - Added `pages/__app-router-placeholder.tsx` to ensure Next.js generates `pages-manifest.json` even when using App Router exclusively
+  - Fixed TypeScript strictNullChecks errors:
+    - `app/review/[id]/page.tsx`: Added null-safe handling for `params.id` from `useParams()`
+    - `app/api/debug/env/route.ts`: Added null coalescing for `process.env[key]` values
+    - `lib/validation/validators/common.ts`: Fixed boolean type coercion in `hasName` variable
+  - **Build Process:** If encountering manifest errors, clean build cache: `rm -rf .next && npm run build`
 
 **Persistent Volume:**
 
@@ -388,7 +403,68 @@ NODE_ENV=production
 - User creation scripts: `scripts/create-test-user.ts`, `scripts/create-users.ts`
 - Database export: `npm run db:export` (creates `database-backup.db`)
 
-## Validation Module Architecture
+## Code Organization (Updated January 30, 2026)
+
+### Project Structure
+
+**Key Directories:**
+```
+Treasury_Take_Home/
+├── app/                          # Next.js App Router
+│   ├── api/                      # API routes (all dynamic)
+│   │   ├── applications/         # Application CRUD and verification
+│   │   ├── auth/                # Auth endpoints (login, register, logout, me)
+│   │   ├── batch/               # Batch verification
+│   │   └── health/              # Health check endpoint
+│   ├── dashboard/               # Dashboard page
+│   └── review/                  # Review page
+├── pages/                        # Next.js Pages Router (build-time only)
+│   ├── _document.tsx             # Custom document (required for pages manifest)
+│   └── __app-router-placeholder.tsx  # Placeholder page (ensures manifest generation)
+├── components/
+│   ├── application-form.tsx      # Main form orchestrator (~100 lines)
+│   ├── application-form/         # Form section components (NEW)
+│   │   ├── BasicInfoSection.tsx
+│   │   ├── BrandInfoSection.tsx
+│   │   ├── ProducerInfoSection.tsx
+│   │   ├── WineInfoSection.tsx
+│   │   ├── ImageUploadSection.tsx
+│   │   └── useApplicationForm.ts
+│   └── ui/                      # shadcn/ui components
+├── lib/
+│   ├── db.ts                    # Database connection (build-time safe)
+│   ├── db-helpers.ts            # Database query helpers
+│   ├── migrations.ts            # Database migrations (build-time safe)
+│   ├── validation/              # Validation module
+│   │   └── validators/
+│   │       └── common.ts         # validateProducerNameAddress() decomposed
+│   └── ...
+├── public/test_labels/          # Test label images (consolidated)
+└── scripts/                     # Utility scripts
+```
+
+### Component Architecture
+
+**Application Form Components:**
+```
+components/
+├── application-form.tsx          # Main form orchestrator (~100 lines)
+└── application-form/
+    ├── BasicInfoSection.tsx       # TTB ID, Beverage Type, Origin Type
+    ├── BrandInfoSection.tsx       # Brand Name, Fanciful Name
+    ├── ProducerInfoSection.tsx    # Producer/Importer Name, City, State
+    ├── WineInfoSection.tsx       # Appellation, Varietal (conditional)
+    ├── ImageUploadSection.tsx    # Image upload and management
+    └── useApplicationForm.ts     # Custom hook for form state/logic
+```
+
+**Benefits:**
+- Smaller, focused components (easier to maintain and test)
+- Clear separation of concerns
+- Reusable form hook for state management
+- Improved code readability
+
+### Validation Module Architecture
 
 ### Modular Structure (`lib/validation/`)
 
@@ -397,11 +473,20 @@ The validation rules are organized into a modular folder structure for better ma
 ```
 lib/validation/
 ├── types.ts              # Enums (BeverageType, OriginType, MatchStatus) and interfaces (ApplicationData, AIExtractionResult, etc.)
+├── validators/
+│   ├── common.ts         # Common validators (validateProducerNameAddress decomposed into helpers)
+│   │                     # Helper functions: checkCityInAddress, checkStateInAddress, checkNameMatch, etc.
+│   ├── wine.ts           # Wine-specific validators
+│   ├── spirits.ts        # Spirits-specific validators
+│   └── beer.ts           # Beer-specific validators (to be created)
 ├── constants.ts          # Validation constants (REQUIRED_HEALTH_WARNING, ALCOHOL_CONTENT_PATTERNS, NET_CONTENTS_PATTERNS)
 ├── prompts.ts            # AI extraction prompts (BEER_EXTRACTION_PROMPT, SPIRITS_EXTRACTION_PROMPT, WINE_EXTRACTION_PROMPT)
 ├── utils.ts              # Utility functions (normalizeString, stringsMatch, isSoftMismatch, matchesAnyPattern, normalizeState, statesMatch, normalizeCity, citiesMatch, normalizeBusinessEntitySuffix, producerNamesMatchIgnoringEntitySuffix, healthWarningMatchesExact, etc.)
 ├── validators/
-│   ├── common.ts         # Common validators used across all beverage types (brand, fanciful, class, alcohol, net contents, producer, health warning, country)
+│   ├── common.ts         # Common validators used across all beverage types
+│   │                     # validateProducerNameAddress() decomposed into helpers:
+│   │                     # - checkCityInAddress(), checkStateInAddress(), checkNameMatch()
+│   │                     # - checkAllPartsPresent(), validatePhraseRequirement()
 │   ├── beer.ts           # Beer-specific validators (placeholder for future)
 │   ├── spirits.ts        # Spirits-specific validators (age statement)
 │   └── wine.ts           # Wine-specific validators (appellation, varietal, vintage, sulfite, foreign wine percentage)
@@ -521,7 +606,7 @@ interface ApplicationData {
 - **users:** User accounts table exists but authentication removed (endpoints are public)
 - **applications:** Application records with `application_data` (JSON, ApplicationData format)
 - **label_images:** Label images with extracted/verification data
-- **audit_logs:** Action tracking for all user activities
+- **audit_logs:** Table exists but audit logging is disabled until authentication is re-enabled (helpers available in `db-helpers.ts` for future use)
 
 ### Indexes
 

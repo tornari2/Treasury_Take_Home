@@ -59,17 +59,52 @@ function getDb(): Database.Database {
 
 // Create a proxy that lazily initializes the database
 // During build, return a no-op proxy that won't cause errors
-const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build';
+function isBuildTime(): boolean {
+  // Check multiple indicators that we're in a build context
+  if (process.env.NEXT_PHASE === 'phase-production-build') return true;
+  if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_PATH) return true;
+  if (process.argv.some(arg => arg.includes('next') && arg.includes('build'))) return true;
+  if (typeof process.env.npm_lifecycle_event !== 'undefined' && process.env.npm_lifecycle_event === 'build') return true;
+  
+  // Check if we're being imported during webpack compilation
+  try {
+    // @ts-ignore - webpack may be available during build
+    if (typeof __webpack_require__ !== 'undefined') {
+      // Only consider it build time if DATABASE_PATH is not set
+      return !process.env.DATABASE_PATH;
+    }
+  } catch {
+    // Ignore
+  }
+  
+  return false;
+}
 
-export const db = isBuildTime
-  ? (new Proxy({} as Database.Database, {
-      get() {
-        // During build, return a function that does nothing
-        return () => {
-          throw new Error('Database not available during build');
-        };
-      },
-    }) as Database.Database)
+// Create a safe no-op proxy for build time
+const buildTimeProxy = new Proxy({} as Database.Database, {
+  get(_target, prop) {
+    // Return no-op functions for common database methods
+    // This prevents Next.js from hanging during static analysis
+    const noOpFn = () => {};
+    const noOpAsyncFn = async () => {};
+    
+    if (prop === 'exec') return noOpFn;
+    if (prop === 'prepare') return () => ({
+      run: noOpFn,
+      get: () => undefined,
+      all: () => [],
+      bind: noOpFn,
+    });
+    if (prop === 'transaction') return () => noOpFn;
+    if (prop === 'pragma') return noOpFn;
+    
+    // For any other property, return undefined or a no-op
+    return undefined;
+  },
+}) as Database.Database;
+
+export const db = isBuildTime()
+  ? buildTimeProxy
   : (new Proxy({} as Database.Database, {
       get(_target, prop) {
         const db = getDb();

@@ -4,7 +4,68 @@ _Derives from [activeContext.md](./activeContext.md). What works, what's left, a
 
 ## Latest Updates (January 30, 2026)
 
-### Extraction Prompt Architecture Improvements ✅ (Latest - January 30, 2026)
+**Last Updated:** January 30, 2026 - Build System Stability Fixes
+
+### Build System Stability Fixes ✅ (Latest - January 30, 2026)
+
+- **Critical Build Fixes:**
+  - Fixed `Cannot find module for page: /_document` error - added `pages/_document.tsx`
+  - Added `pages/__app-router-placeholder.tsx` to ensure Next.js generates required `pages-manifest.json`
+  - Fixed TypeScript strictNullChecks errors:
+    - `app/review/[id]/page.tsx`: Added null-safe handling for `params.id` from `useParams()`
+    - `app/api/debug/env/route.ts`: Added null coalescing for `process.env[key]` values
+    - `lib/validation/validators/common.ts`: Fixed boolean type coercion in `hasName` variable
+  - Build now completes successfully: `npm run build` passes all checks
+
+- **Build Process Improvements:**
+  - Documented solution for stale build cache: `rm -rf .next && npm run build`
+  - Pages directory structure now properly configured for Next.js build requirements
+  - All TypeScript strict mode errors resolved
+
+### Code Quality & Organization Improvements ✅ (January 30, 2026)
+
+- **Codebase Cleanup:**
+  - Removed 13 empty `.new` placeholder files (components, configs, lib files)
+  - Consolidated duplicate `test_labels/` directory - moved unique images to `public/test_labels/` and removed root directory
+  - Deleted `tsconfig.tsbuildinfo` build artifact and added to `.gitignore`
+  - Removed unused `/api/audit-logs` endpoint (audit logging disabled until auth is re-enabled)
+  - Cleaned up audit logging from logout route (removed unused imports)
+
+- **Documentation Consolidation:**
+  - Merged `DEPLOYMENT_CHECKLIST.md` into `RAILWAY_DEPLOYMENT.md` as a checklist section
+  - Merged `QUICK_USER_SETUP.md` into `USER_ACCESS_GUIDE.md` as quick start section
+  - Merged `RAILWAY_USER_CREATION.md` into `USER_ACCESS_GUIDE.md` (Railway troubleshooting)
+  - Reduced documentation from 8 files to 5, with clearer organization
+  - Updated `README.md` to reflect consolidated documentation structure
+
+- **Component Refactoring:**
+  - Split `application-form.tsx` (482 lines) into smaller, focused components:
+    - `BasicInfoSection.tsx` - TTB ID, Beverage Type, Origin Type
+    - `BrandInfoSection.tsx` - Brand Name, Fanciful Name
+    - `ProducerInfoSection.tsx` - Producer/Importer Name, City, State
+    - `WineInfoSection.tsx` - Appellation, Varietal (conditional)
+    - `ImageUploadSection.tsx` - Image upload and management
+  - Created `useApplicationForm.ts` custom hook for form state and logic
+  - Main form component now ~100 lines, orchestrating sections
+
+- **Validation Function Decomposition:**
+  - Decomposed `validateProducerNameAddress()` (390 lines) into helper functions:
+    - `checkCityInAddress()` - Validates city in address string
+    - `checkStateInAddress()` - Validates state in address string
+    - `checkNameMatch()` - Validates name matching with entity suffix handling
+    - `checkAllPartsPresent()` - Checks if name, city, state all appear
+    - `validatePhraseRequirement()` - Validates "Bottled By"/"Imported By" requirements
+  - Main function now ~150 lines, using helper functions
+  - Improved maintainability, testability, and code reuse
+
+- **Build System Fixes:**
+  - Fixed build hanging issue caused by database initialization during Next.js static analysis
+  - Improved build-time detection in `lib/db.ts` and `lib/migrations.ts`
+  - Added safe no-op proxy for database during build to prevent Next.js from hanging
+  - Reverted problematic lazy initialization in `db-helpers.ts` (kept top-level `ensureMigrations()` call)
+  - Build now completes successfully without hanging
+
+### Extraction Prompt Architecture Improvements ✅ (January 30, 2026)
 
 - **Prompt Structure Refactoring:**
   - Removed ALL beverage-specific content from general prompt

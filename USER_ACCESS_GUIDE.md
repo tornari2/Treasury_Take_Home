@@ -1,10 +1,41 @@
 # User Access Guide
 
-This guide explains how others can access and use your deployed application.
+This guide explains how to create users and access the deployed application.
+
+## Quick Start
+
+### Create a Test User (Fastest Method)
+
+```bash
+# Via Railway Shell (recommended)
+railway login
+railway link
+railway shell
+npx tsx scripts/create-test-user-quick.ts
+```
+
+This creates:
+- **Email:** `test@example.com`
+- **Password:** `test123`
+- **Role:** `agent`
+
+### Alternative: Use the Registration API
+
+```bash
+curl -X POST https://your-app.railway.app/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "password123",
+    "name": "User Name"
+  }'
+```
+
+---
 
 ## Current Situation
 
-Your app currently has **authentication enabled** (login/logout endpoints exist), but **no public registration**. Users must be created manually.
+Your app has **authentication endpoints** (login/logout/register), but users must typically be created manually for controlled access.
 
 ## Option 1: Manual User Creation (Recommended for Small Teams)
 
@@ -206,3 +237,40 @@ curl -X POST https://your-app.railway.app/api/auth/register \
 ```
 
 This will create a new user and automatically log them in (returns session cookie).
+
+---
+
+## Railway User Creation Troubleshooting
+
+### The Problem
+
+When running `railway run` locally, it uses Railway's environment variables (including `DATABASE_PATH=/app/data/database.db`), but `/app` doesn't exist on your local machine.
+
+### Solution 1: Override DATABASE_PATH
+
+When running scripts locally via `railway run`, override the DATABASE_PATH:
+
+```bash
+DATABASE_PATH=./data/database.db railway run npx tsx scripts/create-test-user-quick.ts
+```
+
+### Solution 2: Use Railway Shell (Recommended)
+
+Run directly in the Railway environment:
+
+1. Go to your Railway project dashboard
+2. Click on your service
+3. Go to **Deployments** → Click the three dots on latest deployment → **Shell**
+4. Run:
+   ```bash
+   npx tsx scripts/create-test-user-quick.ts
+   ```
+
+### Solution 3: Use Railway CLI Shell
+
+```bash
+railway shell
+npx tsx scripts/create-test-user-quick.ts
+```
+
+This runs directly in the Railway environment where `/app/data` exists.

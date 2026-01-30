@@ -366,6 +366,42 @@ export default function ReviewPage() {
     }
   };
 
+  /**
+   * Format health warning text with "GOVERNMENT WARNING" in bold
+   * @param text - The health warning text
+   * @param shouldBold - Whether to apply bold formatting (true for expected, check formatChecks for extracted)
+   * @returns JSX element with formatted text
+   */
+  const formatHealthWarning = (text: string | null | undefined, shouldBold: boolean = true) => {
+    if (!text) return null;
+
+    // Find "GOVERNMENT WARNING" (case-insensitive) - handle with or without colon
+    const searchPattern = /GOVERNMENT\s+WARNING:?/i;
+    const match = text.match(searchPattern);
+
+    if (match) {
+      const matchedText = match[0];
+      const index = text.toLowerCase().indexOf(matchedText.toLowerCase());
+
+      if (index !== -1) {
+        const before = text.substring(0, index);
+        const govWarning = text.substring(index, index + matchedText.length);
+        const after = text.substring(index + matchedText.length);
+
+        return (
+          <>
+            {before}
+            {shouldBold ? <span className="font-bold">{govWarning}</span> : govWarning}
+            {after}
+          </>
+        );
+      }
+    }
+
+    // If pattern not found, return text as-is
+    return <>{text}</>;
+  };
+
   // Only show loading screen if we're not navigating within a batch
   const inBatchMode =
     searchParams?.get('batch') === 'true' ||
@@ -712,6 +748,10 @@ export default function ReviewPage() {
                                   );
                                 }
 
+                                // Special handling for health warning - show "GOVERNMENT WARNING" in bold
+                                const isHealthWarning =
+                                  fieldName === 'healthWarning' || fieldName === 'health_warning';
+
                                 // Default display for other fields
                                 if (result.expected || result.extracted) {
                                   // Check if expected is an N/A value - if so, don't show "Expected:" label
@@ -725,9 +765,15 @@ export default function ReviewPage() {
                                   return (
                                     <div className="text-sm mt-1 text-foreground">
                                       <span className="font-medium">Expected:</span>{' '}
-                                      <span className="text-foreground">
-                                        {result.expected || 'None'}
-                                      </span>
+                                      {isHealthWarning ? (
+                                        <span className="text-foreground">
+                                          {formatHealthWarning(result.expected || 'None', true)}
+                                        </span>
+                                      ) : (
+                                        <span className="text-foreground">
+                                          {result.expected || 'None'}
+                                        </span>
+                                      )}
                                     </div>
                                   );
                                 }
@@ -739,9 +785,28 @@ export default function ReviewPage() {
                                 result.extracted !== 'Field not found' && (
                                   <div className="text-sm text-foreground">
                                     <span className="font-medium">Extracted:</span>{' '}
-                                    <span className="text-muted-foreground">
-                                      {result.extracted || ''}
-                                    </span>
+                                    {(() => {
+                                      const isHealthWarning =
+                                        fieldName === 'healthWarning' ||
+                                        fieldName === 'health_warning';
+
+                                      // For health warning, check if formatChecks indicate bold (if available)
+                                      // Otherwise, assume bold if "GOVERNMENT WARNING" is present
+                                      const shouldBold =
+                                        isHealthWarning &&
+                                        result.extracted &&
+                                        /GOVERNMENT WARNING/i.test(result.extracted);
+
+                                      return isHealthWarning ? (
+                                        <span className="text-muted-foreground">
+                                          {formatHealthWarning(result.extracted || '', shouldBold)}
+                                        </span>
+                                      ) : (
+                                        <span className="text-muted-foreground">
+                                          {result.extracted || ''}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                 )}
                               {result.type === 'not_found' && (

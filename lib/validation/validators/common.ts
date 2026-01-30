@@ -31,7 +31,6 @@ import {
   normalizeBusinessEntitySuffix,
   producerNamesMatchIgnoringEntitySuffix,
   validateWineNetContentsFormat,
-  producerNamesMatchIgnoringEntitySuffix,
 } from '../utils';
 
 /**

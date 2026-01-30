@@ -111,13 +111,74 @@ export default function Dashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        // Store batch application IDs in sessionStorage for sequential navigation
-        sessionStorage.setItem('batchApplications', JSON.stringify(applicationIds));
-        sessionStorage.setItem('batchCurrentIndex', '0');
-        // Redirect to first application's review page
-        const firstAppId = applicationIds[0];
-        setSelectedApps(new Set());
-        router.push(`/review/${firstAppId}?batch=true`);
+        const batchId = data.batch_id;
+
+        // Poll for batch completion
+        const pollInterval = 2000; // 2 seconds
+        const maxWaitTime = 300000; // 5 minutes max
+        const startTime = Date.now();
+
+        const pollStatus = async (): Promise<boolean> => {
+          try {
+            const statusResponse = await fetch(`/api/batch/status/${batchId}`);
+            if (!statusResponse.ok) {
+              console.error('Failed to fetch batch status');
+              return false;
+            }
+
+            const status = await statusResponse.json();
+
+            if (status.status === 'completed') {
+              // Batch completed successfully
+              return true;
+            } else if (status.status === 'failed') {
+              // Batch failed
+              alert(
+                `Batch verification failed: ${status.results?.find((r: any) => r.status === 'failed')?.error || 'Unknown error'}`
+              );
+              return false;
+            } else if (Date.now() - startTime > maxWaitTime) {
+              // Timeout
+              alert(
+                'Batch verification is taking longer than expected. Results will be available shortly.'
+              );
+              return false;
+            }
+
+            // Still processing, poll again
+            return new Promise((resolve) => {
+              setTimeout(async () => {
+                const completed = await pollStatus();
+                resolve(completed);
+              }, pollInterval);
+            });
+          } catch (error) {
+            console.error('Error polling batch status:', error);
+            return false;
+          }
+        };
+
+        // Wait for batch to complete
+        const completed = await pollStatus();
+
+        if (completed) {
+          // Store batch application IDs in sessionStorage for sequential navigation
+          sessionStorage.setItem('batchApplications', JSON.stringify(applicationIds));
+          sessionStorage.setItem('batchCurrentIndex', '0');
+          // Refresh applications to show updated statuses
+          await fetchApplications();
+          // Redirect to first application's review page
+          const firstAppId = applicationIds[0];
+          setSelectedApps(new Set());
+          router.push(`/review/${firstAppId}?batch=true`);
+        } else {
+          // If batch didn't complete, still redirect but show a message
+          sessionStorage.setItem('batchApplications', JSON.stringify(applicationIds));
+          sessionStorage.setItem('batchCurrentIndex', '0');
+          const firstAppId = applicationIds[0];
+          setSelectedApps(new Set());
+          router.push(`/review/${firstAppId}?batch=true`);
+        }
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage =
@@ -429,7 +490,11 @@ export default function Dashboard() {
             variant="default"
             disabled={selectedApps.size === 0}
           >
-            Review{selectedApps.size >= 2 ? ` (${selectedApps.size})` : ''}
+            {selectedApps.size >= 2
+              ? `Review Batch (${selectedApps.size})`
+              : selectedApps.size === 1
+                ? 'Review'
+                : 'Review'}
           </Button>
           <Button
             onClick={handleBatchVerify}
@@ -438,7 +503,11 @@ export default function Dashboard() {
           >
             {batchProcessing
               ? 'Processing...'
-              : `Verify${selectedApps.size >= 2 ? ` (${selectedApps.size})` : ''}`}
+              : selectedApps.size >= 2
+                ? `Verify Batch (${selectedApps.size})`
+                : selectedApps.size === 1
+                  ? 'Verify'
+                  : 'Verify'}
           </Button>
           <Button
             onClick={handleDeleteSelected}
@@ -447,7 +516,11 @@ export default function Dashboard() {
           >
             {deletingApps.size > 0
               ? 'Deleting...'
-              : `Delete${selectedApps.size >= 2 ? ` (${selectedApps.size})` : ''}`}
+              : selectedApps.size >= 2
+                ? `Delete Batch (${selectedApps.size})`
+                : selectedApps.size === 1
+                  ? 'Delete'
+                  : 'Delete'}
           </Button>
         </div>
       </div>

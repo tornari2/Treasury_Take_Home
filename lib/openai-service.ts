@@ -168,6 +168,12 @@ export async function extractLabelData(
     health_warning: 'Government health warning statement (must be exact)',
   };
 
+  // Add fanciful_name for spirits and beer (not for wine)
+  if (beverageType === 'spirits' || beverageType === 'beer') {
+    fieldDefinitions.fanciful_name =
+      'Fanciful name - Optional secondary/stylized name, often near brand name. Extract exactly as shown on label, preserving capitalization. Examples: "REPOSADO", "SINGLE BARREL SELECT". Use null if not present.';
+  }
+
   if (beverageType === 'spirits') {
     fieldDefinitions.age_statement = 'Age statement (if applicable)';
     fieldDefinitions.country_of_origin = 'Country of origin (if imported)';

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Maximum 500 applications per batch' }, { status: 400 });
     }
 
-    // Start batch processing (async)
+    // Start batch processing (async - returns batchId immediately, processes in background)
     const batchId = await processBatch(application_ids);
 
     // Skip audit logging since authentication is removed

@@ -383,6 +383,12 @@ CRITICAL BEER-SPECIFIC RULES:
       return `
 
 CRITICAL SPIRITS-SPECIFIC RULES:
+- FANCIFUL NAME: Optional secondary/stylized name, often near brand name
+  * Look for text that appears prominently near the brand name but is distinct from it
+  * Common examples: "REPOSADO", "SINGLE BARREL SELECT", "AÑEJO", "BLANCO", "SILVER", "GOLD"
+  * Extract exactly as shown on label, preserving ALL CAPS if shown in caps
+  * Use null if not present - not all spirits have a fanciful name
+
 - ALCOHOL CONTENT: Spirits are typically 35-50% ABV (70-100 proof)
   * May show % only, proof only, or both
   * Read numbers carefully: distinguish 40 vs 45, 80 vs 86, 90 vs 96

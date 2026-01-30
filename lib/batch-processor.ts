@@ -75,6 +75,36 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
 
   batchStatuses.set(batchId, batchStatus);
 
+  // Start processing in background (don't await)
+  // Use Promise.resolve().then() to ensure the batchId is returned before processing starts
+  Promise.resolve()
+    .then(async () => {
+      try {
+        await processBatchApplications(batchId, applicationIds, batchStatus);
+      } catch (error) {
+        console.error(`Error in background batch processing for ${batchId}:`, error);
+        batchStatus.status = 'failed';
+        batchStatuses.set(batchId, { ...batchStatus });
+      }
+    })
+    .catch((error) => {
+      console.error(`Unhandled error in background batch processing for ${batchId}:`, error);
+      batchStatus.status = 'failed';
+      batchStatuses.set(batchId, { ...batchStatus });
+    });
+
+  // Return batchId immediately
+  return batchId;
+}
+
+/**
+ * Internal function to process batch applications
+ */
+async function processBatchApplications(
+  batchId: string,
+  applicationIds: number[],
+  batchStatus: BatchStatus
+): Promise<void> {
   // Process applications in batches of MAX_CONCURRENT
   const processBatchChunk = async (chunk: number[]) => {
     const promises = chunk.map(async (appId) => {
@@ -195,8 +225,6 @@ export async function processBatch(applicationIds: number[]): Promise<string> {
 
   batchStatus.status = 'completed';
   batchStatuses.set(batchId, batchStatus);
-
-  return batchId;
 }
 
 /**

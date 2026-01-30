@@ -742,13 +742,11 @@ export function validateProducerNameAddress(
       : extractedName || extractedAddress || '';
   const expectedCombined = `${expectedName}, ${expectedCity}, ${expectedState}`;
   const normalizedCombined = normalizeString(combinedExtracted);
-  const normalizedExpected = normalizeString(expectedCombined);
 
   // Check if the combined extracted value contains all expected parts (name, city, state)
   // This handles cases like "FABBIOLI CELLARS, LEESBURG, VA 20176" matching "FABBIOLI CELLARS, LEESBURG, VA"
   const expectedNameNorm = normalizeString(expectedName);
   const expectedCityNorm = normalizeString(expectedCity);
-  const expectedStateNorm = normalizeString(expectedState);
 
   // Remove ZIP code from extracted for comparison
   const extractedWithoutZip = normalizedCombined.replace(/\s+\d{5}(-\d{4})?/g, '');
@@ -844,7 +842,6 @@ export function validateProducerNameAddress(
 
   // If names match when normalized (case-insensitive), treat as MATCH regardless of case differences
   // Case-only differences (e.g., "BREWERY" vs "Brewery") should be MATCH, not SOFT_MISMATCH
-  const nameMatches = exactNameMatches;
   const hasEntitySuffixDifference = coreNameMatches && !exactNameMatches;
   // Only treat as soft mismatch if there are formatting differences (punctuation/whitespace)
   // AND names don't match exactly when normalized (case differences alone don't count)
@@ -857,8 +854,6 @@ export function validateProducerNameAddress(
     extractedName &&
     (normalizeString(extractedName).includes(normalizeString(expectedCity)) ||
       normalizeString(extractedName).includes(normalizeString(expectedState)));
-  const addressContainsName =
-    extractedAddress && normalizeString(extractedAddress).includes(normalizeString(expectedName));
 
   // If name contains address info, use name for city/state checking too
   const addressToCheck = nameContainsAddress ? extractedName : extractedAddress;

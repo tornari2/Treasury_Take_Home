@@ -24,19 +24,23 @@ interface ImageUpload {
 interface ApplicationFormProps {
   onSuccess: () => void;
   onClose: () => void;
+  applicationId?: number;
+  initialData?: ApplicationData;
 }
 
-export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
-  const [ttbId, setTtbId] = useState('');
-  const [beverageType, setBeverageType] = useState<BeverageType | ''>('');
-  const [originType, setOriginType] = useState<OriginType | ''>('');
-  const [brandName, setBrandName] = useState('');
-  const [fancifulName, setFancifulName] = useState('');
-  const [producerName, setProducerName] = useState('');
-  const [producerCity, setProducerCity] = useState('');
-  const [producerState, setProducerState] = useState('');
-  const [appellation, setAppellation] = useState('');
-  const [varietal, setVarietal] = useState('');
+export function ApplicationForm({ onSuccess, onClose, applicationId, initialData }: ApplicationFormProps) {
+  const isEditMode = !!applicationId && !!initialData;
+  
+  const [ttbId, setTtbId] = useState(initialData?.ttbId || '');
+  const [beverageType, setBeverageType] = useState<BeverageType | ''>(initialData?.beverageType || '');
+  const [originType, setOriginType] = useState<OriginType | ''>(initialData?.originType || '');
+  const [brandName, setBrandName] = useState(initialData?.brandName || '');
+  const [fancifulName, setFancifulName] = useState(initialData?.fancifulName || '');
+  const [producerName, setProducerName] = useState(initialData?.producerName || '');
+  const [producerCity, setProducerCity] = useState(initialData?.producerAddress?.city || '');
+  const [producerState, setProducerState] = useState(initialData?.producerAddress?.state || '');
+  const [appellation, setAppellation] = useState(initialData?.appellation || '');
+  const [varietal, setVarietal] = useState(initialData?.varietal || '');
   const [images, setImages] = useState<ImageUpload[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,7 +143,8 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
           ? 'Importer state is required'
           : 'Producer state is required';
     }
-    if (images.length === 0) {
+    // Images are only required when creating, not when editing
+    if (!isEditMode && images.length === 0) {
       newErrors.images = 'At least one image is required';
     }
 
@@ -187,14 +192,17 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
       });
 
       // Submit to API
-      const response = await fetch('/api/applications', {
-        method: 'POST',
+      const url = isEditMode ? `/api/applications/${applicationId}` : '/api/applications';
+      const method = isEditMode ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         body: formData,
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create application');
+        throw new Error(errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} application`);
       }
 
       // Clean up preview URLs
@@ -459,7 +467,13 @@ export function ApplicationForm({ onSuccess, onClose }: ApplicationFormProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating...' : 'Create Application'}
+          {isSubmitting
+            ? isEditMode
+              ? 'Updating...'
+              : 'Creating...'
+            : isEditMode
+              ? 'Update Application'
+              : 'Create Application'}
         </Button>
       </div>
     </form>

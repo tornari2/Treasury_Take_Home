@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ApplicationForm } from '@/components/application-form';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Pencil } from 'lucide-react';
 
 interface Application {
   id: number;
@@ -48,6 +48,8 @@ export default function Dashboard() {
   const [selectedApps, setSelectedApps] = useState<Set<number>>(new Set());
   const [batchProcessing, setBatchProcessing] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingApplication, setEditingApplication] = useState<Application | null>(null);
   const [verifyingApp, setVerifyingApp] = useState<number | null>(null);
   const [deletingApp, setDeletingApp] = useState<number | null>(null);
   const [deletingApps, setDeletingApps] = useState<Set<number>>(new Set());
@@ -234,6 +236,21 @@ export default function Dashboard() {
     const firstAppId = applicationIds[0];
     setSelectedApps(new Set());
     router.push(`/review/${firstAppId}?batch=true`);
+  };
+
+  const handleEdit = async (appId: number) => {
+    try {
+      const response = await fetch(`/api/applications/${appId}`);
+      if (!response.ok) {
+        console.error('Failed to fetch application for editing');
+        return;
+      }
+      const data = await response.json();
+      setEditingApplication(data.application);
+      setIsEditDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching application for editing:', error);
+    }
   };
 
   const handleDeleteSelected = async () => {
@@ -440,12 +457,13 @@ export default function Dashboard() {
                     <TableHead>Status</TableHead>
                     <TableHead>Review Notes</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {displayApplications.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
                         No applications found
                       </TableCell>
                     </TableRow>
@@ -493,6 +511,20 @@ export default function Dashboard() {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(app.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(app.id);
+                            }}
+                            title="Edit application"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))
@@ -557,6 +589,27 @@ export default function Dashboard() {
             }}
             onClose={() => setIsDialogOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Application</DialogTitle>
+          </DialogHeader>
+          {editingApplication && editingApplication.application_data && (
+            <ApplicationForm
+              applicationId={editingApplication.id}
+              initialData={editingApplication.application_data}
+              onSuccess={() => {
+                fetchApplications();
+              }}
+              onClose={() => {
+                setIsEditDialogOpen(false);
+                setEditingApplication(null);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

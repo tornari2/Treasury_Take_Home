@@ -1,22 +1,16 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
-import { ensureMigrations } from '@/lib/migrations';
 
 export const dynamic = 'force-dynamic';
 
-// Ensure migrations are run before health check
-ensureMigrations();
-
 export async function GET() {
   try {
-    // Simple database health check
-    db.prepare('SELECT 1').get();
-
+    // Lightweight health check - don't initialize database on every check
+    // This prevents slow health checks that cause Railway to kill the container
     return NextResponse.json(
       {
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        database: 'connected',
+        service: 'treasury-take-home',
       },
       { status: 200 }
     );
@@ -25,7 +19,6 @@ export async function GET() {
       {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        database: 'disconnected',
         error: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 503 }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Info, Loader2 } from 'lucide-react';
 import { getFieldLabel } from '@/lib/validation/display';
 
 interface ImageQualityIssues {
@@ -634,6 +634,15 @@ export default function ReviewPage() {
     <div className="min-h-screen bg-gray-50 p-8 relative">
       {/* Removed loading overlay - previous content stays visible during transitions */}
       <div className="max-w-7xl mx-auto">
+        {/* Verification Banner Bar */}
+        {verifying && (
+          <Alert className="mb-6 border-blue-500 bg-blue-50">
+            <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+            <AlertDescription className="text-blue-900">
+              <span className="font-medium">Verifying application with AI...</span>
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <Button
@@ -797,18 +806,20 @@ export default function ReviewPage() {
             {Object.keys(verificationResult).length === 0 || verifying ? (
               <div className="space-y-4">
                 {!verifying && (
-                  <div className="text-muted-foreground">
-                    No verification results yet. Click &quot;Verify&quot; to process.
-                  </div>
+                  <>
+                    <div className="text-muted-foreground">
+                      No verification results yet. Click &quot;Verify&quot; to process.
+                    </div>
+                    <Button
+                      onClick={triggerVerification}
+                      disabled={verifying}
+                      variant="default"
+                      className="w-full"
+                    >
+                      Verify Application
+                    </Button>
+                  </>
                 )}
-                <Button
-                  onClick={triggerVerification}
-                  disabled={verifying}
-                  variant="default"
-                  className="w-full"
-                >
-                  {verifying ? 'Verifying...' : 'Verify Application'}
-                </Button>
               </div>
             ) : (
               <div className="space-y-3">
@@ -839,8 +850,8 @@ export default function ReviewPage() {
                             </div>
                           ) : (
                             <>
-                              {/* Display Expected/Extracted only for cross-checked fields (not NOT_FOUND) */}
-                              {result.type !== 'not_found' && (
+                              {/* Display Expected/Extracted for cross-checked fields (including NOT_FOUND if expected exists) */}
+                              {(result.type !== 'not_found' || result.expected) && (
                                 <>
                                   {(() => {
                                     // Special handling for wine classType when expected is null
@@ -975,38 +986,41 @@ export default function ReviewPage() {
                                     }
                                     return null;
                                   })()}
-                                  {/* Show Extracted: only for cross-checked fields */}
-                                  {(result.expected || result.extracted) &&
-                                    result.extracted !== 'Field not found' && (
-                                      <div className="text-sm text-foreground">
-                                        <span className="font-medium">Extracted:</span>{' '}
-                                        {(() => {
-                                          const isHealthWarning =
-                                            fieldName === 'healthWarning' ||
-                                            fieldName === 'health_warning';
+                                  {/* Show Extracted: for cross-checked fields (show "None" if field not found) */}
+                                  {(result.expected || result.extracted) && (
+                                    <div className="text-sm text-foreground">
+                                      <span className="font-medium">Extracted:</span>{' '}
+                                      {(() => {
+                                        // Show "None" if field not found, otherwise show extracted value
+                                        const extractedValue =
+                                          result.extracted === 'Field not found' ||
+                                          !result.extracted
+                                            ? 'None'
+                                            : result.extracted;
 
-                                          // For health warning, check if formatChecks indicate bold (if available)
-                                          // Otherwise, assume bold if "GOVERNMENT WARNING" is present
-                                          const shouldBold =
-                                            isHealthWarning &&
-                                            result.extracted &&
-                                            /GOVERNMENT WARNING/i.test(result.extracted);
+                                        const isHealthWarning =
+                                          fieldName === 'healthWarning' ||
+                                          fieldName === 'health_warning';
 
-                                          return isHealthWarning ? (
-                                            <span className="text-muted-foreground">
-                                              {formatHealthWarning(
-                                                result.extracted || '',
-                                                shouldBold
-                                              )}
-                                            </span>
-                                          ) : (
-                                            <span className="text-muted-foreground">
-                                              {result.extracted || ''}
-                                            </span>
-                                          );
-                                        })()}
-                                      </div>
-                                    )}
+                                        // For health warning, check if formatChecks indicate bold (if available)
+                                        // Otherwise, assume bold if "GOVERNMENT WARNING" is present
+                                        const shouldBold =
+                                          isHealthWarning &&
+                                          extractedValue !== 'None' &&
+                                          /GOVERNMENT WARNING/i.test(extractedValue);
+
+                                        return isHealthWarning && extractedValue !== 'None' ? (
+                                          <span className="text-muted-foreground">
+                                            {formatHealthWarning(extractedValue, shouldBold)}
+                                          </span>
+                                        ) : (
+                                          <span className="text-muted-foreground">
+                                            {extractedValue}
+                                          </span>
+                                        );
+                                      })()}
+                                    </div>
+                                  )}
                                 </>
                               )}
                             </>
@@ -1039,7 +1053,7 @@ export default function ReviewPage() {
               <div className="flex gap-3">
                 <Button
                   onClick={() => handleStatusUpdate('approved')}
-                  className="flex-1"
+                  className="flex-1 green-button"
                   variant="default"
                 >
                   Approve

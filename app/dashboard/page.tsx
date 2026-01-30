@@ -125,9 +125,10 @@ export default function Dashboard() {
       return;
     }
 
-    setBatchProcessing(true);
+    const applicationIds = Array.from(selectedApps);
+
+    // Start batch processing in background (don't wait for it)
     try {
-      const applicationIds = Array.from(selectedApps);
       const response = await fetch('/api/batch/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,108 +137,7 @@ export default function Dashboard() {
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const batchId = data.batch_id;
-
-        // Poll for batch completion
-        const pollInterval = 2000; // 2 seconds
-        const maxWaitTime = 300000; // 5 minutes max
-        const startTime = Date.now();
-
-        // Small delay before first poll to ensure batch is initialized
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        const pollStatus = async (): Promise<{ completed: boolean; error?: string }> => {
-          try {
-            const statusResponse = await fetch(`/api/batch/status/${batchId}`);
-            if (!statusResponse.ok) {
-              if (statusResponse.status === 404) {
-                return {
-                  completed: false,
-                  error: 'Batch not found. The batch may not have started processing.',
-                };
-              }
-              console.error('Failed to fetch batch status');
-              return {
-                completed: false,
-                error: 'Failed to fetch batch status. Please try again.',
-              };
-            }
-
-            const status = await statusResponse.json();
-
-            if (status.status === 'completed') {
-              // Batch completed successfully
-              return { completed: true };
-            } else if (status.status === 'failed') {
-              // Batch failed
-              const errorMessage =
-                status.results?.find((r: any) => r.status === 'failed')?.error || 'Unknown error';
-              const isNetworkError =
-                errorMessage.toLowerCase().includes('network') ||
-                errorMessage.toLowerCase().includes('connect') ||
-                errorMessage.toLowerCase().includes('firewall');
-
-              if (isNetworkError) {
-                return {
-                  completed: false,
-                  error: `Batch verification failed: ${errorMessage}\n\nIf this issue persists, it may be due to network restrictions blocking access to the verification service. Please contact your system administrator.`,
-                };
-              } else {
-                return {
-                  completed: false,
-                  error: `Batch verification failed: ${errorMessage}`,
-                };
-              }
-            } else if (Date.now() - startTime > maxWaitTime) {
-              // Timeout
-              return {
-                completed: false,
-                error:
-                  'Batch verification is taking longer than expected. Results will be available shortly.',
-              };
-            }
-
-            // Still processing, poll again
-            return new Promise((resolve) => {
-              setTimeout(async () => {
-                const result = await pollStatus();
-                resolve(result);
-              }, pollInterval);
-            });
-          } catch (error) {
-            console.error('Error polling batch status:', error);
-            return {
-              completed: false,
-              error: 'An error occurred while checking batch status. Please try again.',
-            };
-          }
-        };
-
-        // Wait for batch to complete
-        const result = await pollStatus();
-
-        if (result.completed) {
-          // Store batch application IDs in sessionStorage for sequential navigation
-          sessionStorage.setItem('batchApplications', JSON.stringify(applicationIds));
-          sessionStorage.setItem('batchCurrentIndex', '0');
-          // Refresh applications to show updated statuses
-          await fetchApplications();
-          // Redirect to first application's review page
-          const firstAppId = applicationIds[0];
-          setSelectedApps(new Set());
-          router.push(`/review/${firstAppId}?batch=true`);
-        } else {
-          // If batch didn't complete, show error and stay on dashboard
-          if (result.error) {
-            alert(result.error);
-          } else {
-            alert('Batch verification did not complete. Please try again.');
-          }
-          // Don't redirect - let user stay on dashboard to retry
-        }
-      } else {
+      if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage =
           errorData.message ||
@@ -256,6 +156,7 @@ export default function Dashboard() {
         } else {
           alert(`Batch Processing Error: ${errorMessage}`);
         }
+        return;
       }
     } catch (error) {
       console.error('Batch verify error:', error);
@@ -266,9 +167,16 @@ export default function Dashboard() {
       } else {
         alert('An unexpected error occurred while starting batch processing. Please try again.');
       }
-    } finally {
-      setBatchProcessing(false);
+      return;
     }
+
+    // Immediately navigate to first application's review page (like single verify)
+    // Batch processing will continue in the background
+    sessionStorage.setItem('batchApplications', JSON.stringify(applicationIds));
+    sessionStorage.setItem('batchCurrentIndex', '0');
+    const firstAppId = applicationIds[0];
+    setSelectedApps(new Set());
+    router.push(`/review/${firstAppId}?verify=true&batch=true`);
   };
 
   const handleVerifySingle = async (appId: number) => {
@@ -453,7 +361,19 @@ export default function Dashboard() {
       {/* Banner with color scheme */}
       <div className="relative w-full h-32 overflow-hidden">
         {/* Top section - Deep muted blue (65-70% of height) */}
-        <div className="absolute top-0 left-0 w-full h-[68%] bg-[#305170]"></div>
+        <div className="absolute top-0 left-0 w-full h-[68%] bg-[#305170] flex items-center justify-between gap-4 px-8">
+          {/* Left side: Logo and title */}
+          <div className="flex items-center gap-4">
+            <img
+              src="/test_labels/TTB_Logo/TTB_logo_web.svg"
+              alt="TTB Logo"
+              className="h-16 w-auto"
+            />
+            <h1 className="text-white text-2xl font-bold">Alcohol Label Verifier</h1>
+          </div>
+          {/* Right side: Prototype disclaimer */}
+          <p className="text-white text-xs font-medium">PROTOTYPE — NOT AN OFFICIAL TTB SYSTEM</p>
+        </div>
         {/* Bottom section - Rich dark red (30-35% of height) */}
         <div className="absolute bottom-0 left-0 w-full h-[32%] bg-[#9A3B39]"></div>
       </div>
@@ -531,7 +451,10 @@ export default function Dashboard() {
                         <TableCell>{getProductType(app)}</TableCell>
                         <TableCell>{getProductSource(app)}</TableCell>
                         <TableCell>
-                          <Badge variant={getStatusVariant(app.status)}>
+                          <Badge
+                            variant={getStatusVariant(app.status)}
+                            className={app.status === 'approved' ? 'green-badge' : ''}
+                          >
                             {getStatusDisplayText(app.status)}
                           </Badge>
                         </TableCell>
@@ -579,6 +502,7 @@ export default function Dashboard() {
               onClick={handleBatchVerify}
               variant="default"
               disabled={batchProcessing || selectedApps.size === 0}
+              className="sparkly-purple text-white"
             >
               {batchProcessing
                 ? 'Processing...'

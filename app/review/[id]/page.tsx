@@ -8,14 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react';
 import { getFieldLabel } from '@/lib/validation/display';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 
 interface LabelImage {
   id: number;
@@ -35,6 +27,7 @@ interface Application {
   expected_label_data: any;
   application_data?: any;
   label_images: LabelImage[];
+  review_notes?: string | null;
 }
 
 export default function ReviewPage() {
@@ -51,8 +44,6 @@ export default function ReviewPage() {
   const [imagePans, setImagePans] = useState<Record<number, { x: number; y: number }>>({});
   const [isDragging, setIsDragging] = useState<Record<number, boolean>>({});
   const [dragStart, setDragStart] = useState<Record<number, { x: number; y: number }>>({});
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   // Batch navigation state
   const [batchApplications, setBatchApplications] = useState<number[] | null>(null);
   const [currentBatchIndex, setCurrentBatchIndex] = useState<number | null>(null);
@@ -149,21 +140,22 @@ export default function ReviewPage() {
     }
   }, [application]);
 
-  // Set verifying state immediately if verify=true param is present (before app loads)
+  // Load review notes from application when it changes
   useEffect(() => {
-    const shouldVerify = searchParams?.get('verify') === 'true';
-    if (shouldVerify && !verifying) {
-      setVerifying(true);
+    if (application?.review_notes) {
+      setReviewNotes(application.review_notes);
+    } else {
+      // Clear notes if application has no review notes (e.g., after reverification)
+      setReviewNotes('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [application?.id, application?.review_notes]);
 
   // Auto-trigger verification when application loads
   useEffect(() => {
     if (!application || !params.id) return;
 
     // Don't auto-trigger if we're already verifying (prevents infinite loop)
-    if (isVerifyingRef.current || verifying) return;
+    if (isVerifyingRef.current) return;
 
     // Check if verify=true param is present (user clicked Verify from dashboard)
     const shouldVerify = searchParams?.get('verify') === 'true';
@@ -172,6 +164,7 @@ export default function ReviewPage() {
     const hasVerification = application.label_images.some(
       (img: LabelImage) =>
         img.verification_result &&
+        img.verification_result !== null &&
         typeof img.verification_result === 'object' &&
         Object.keys(img.verification_result).length > 0
     );
@@ -301,24 +294,38 @@ export default function ReviewPage() {
     isVerifyingRef.current = true;
     setVerifying(true);
 
+    // Clear review notes immediately when reverifying
+    setReviewNotes('');
+
     // Clear old verification results immediately so user doesn't see stale data
-    if (application?.label_images) {
-      const clearedApplication = {
-        ...application,
-        label_images: application.label_images.map((img) => ({
+    // Use functional update to ensure we're working with the latest state
+    setApplication((prevApplication) => {
+      if (!prevApplication?.label_images) {
+        return prevApplication;
+      }
+      return {
+        ...prevApplication,
+        label_images: prevApplication.label_images.map((img) => ({
           ...img,
-          verification_result: null, // Clear verification results
+          verification_result: null, // Clear verification results - use null to ensure proper clearing
+          extracted_data: null, // Also clear extracted data
         })),
       };
-      setApplication(clearedApplication);
-    }
+    });
 
     try {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 180000);
+
       const response = await fetch(`/api/applications/${params.id}/verify`, {
         method: 'POST',
+        signal: controller.signal,
       });
+      window.clearTimeout(timeoutId);
 
       if (response.ok) {
+        // Clear review notes again after successful verification (in case they were set during fetch)
+        setReviewNotes('');
         await fetchApplication();
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -332,7 +339,9 @@ export default function ReviewPage() {
       }
     } catch (error) {
       console.error('Verification error:', error);
-      if (error instanceof TypeError && error.message.includes('fetch')) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        alert('Verification timed out. The service may be busy. Please try again in a moment.');
+      } else if (error instanceof TypeError && error.message.includes('fetch')) {
         alert(
           'Network error: Unable to connect to the server. Please check your connection and try again.'
         );
@@ -345,19 +354,7 @@ export default function ReviewPage() {
     }
   };
 
-  const handleStatusUpdate = async (status: string, confirmed: boolean = false) => {
-    // Check if approving with hard mismatches - require confirmation
-    if (status === 'approved' && !confirmed) {
-      const hasHardMismatch = Object.values(verificationResult).some(
-        (result: any) => result?.type === 'hard_mismatch' || result?.type === 'not_found'
-      );
-      if (hasHardMismatch) {
-        setPendingStatus(status);
-        setShowConfirmDialog(true);
-        return;
-      }
-    }
-
+  const handleStatusUpdate = async (status: string) => {
     try {
       const response = await fetch(`/api/applications/${params.id}`, {
         method: 'PATCH',
@@ -408,14 +405,6 @@ export default function ReviewPage() {
     } catch (error) {
       console.error('Update error:', error);
       alert('Error updating status');
-    }
-  };
-
-  const confirmStatusUpdate = () => {
-    if (pendingStatus) {
-      handleStatusUpdate(pendingStatus, true);
-      setShowConfirmDialog(false);
-      setPendingStatus(null);
     }
   };
 
@@ -594,7 +583,14 @@ export default function ReviewPage() {
   }
 
   // Use the first image's verification result (they should all be the same)
-  const verificationResult = application.label_images[0]?.verification_result || {};
+  // Only use verification_result if it exists and is not null
+  const firstImageVerificationResult = application.label_images[0]?.verification_result;
+  const verificationResult =
+    firstImageVerificationResult &&
+    typeof firstImageVerificationResult === 'object' &&
+    Object.keys(firstImageVerificationResult).length > 0
+      ? firstImageVerificationResult
+      : {};
 
   // Handle mouse down for panning a specific image
   const handleMouseDown = (imageId: number) => (e: React.MouseEvent<HTMLDivElement>) => {
@@ -781,10 +777,12 @@ export default function ReviewPage() {
               professional judgment to make the final decision.
             </p>
 
-            {Object.keys(verificationResult).length === 0 ? (
+            {Object.keys(verificationResult).length === 0 || verifying ? (
               <div className="space-y-4">
                 <div className="text-muted-foreground">
-                  No verification results yet. Click &quot;Verify&quot; to process.
+                  {verifying
+                    ? 'Verification in progress...'
+                    : 'No verification results yet. Click "Verify" to process.'}
                 </div>
                 <Button
                   onClick={triggerVerification}
@@ -1046,33 +1044,6 @@ export default function ReviewPage() {
           </div>
         </div>
       </div>
-
-      {/* Confirmation Dialog for Overriding Hard Mismatches */}
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Override Hard Mismatches?</DialogTitle>
-            <DialogDescription>
-              This application has hard mismatches or missing fields flagged by the verification
-              system. Are you sure you want to approve it anyway?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              If you proceed, please ensure your review notes explain why you&apos;re overriding the
-              verification results. Your professional judgment is the final authority.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmStatusUpdate} variant="default">
-              Yes, Approve Anyway
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

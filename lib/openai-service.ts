@@ -38,7 +38,7 @@ export class OpenAIAPIError extends Error {
 }
 
 // Configuration
-const TIMEOUT_MS = 30000; // 30 seconds per image
+const TIMEOUT_MS = 60000; // 60 seconds per image (increased to prevent hanging)
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 1000; // 1 second delay between retries
 
@@ -193,8 +193,8 @@ export async function extractLabelData(
   // Get beverage-specific instructions
   const beverageSpecificInstructions = getBeverageSpecificInstructions(beverageType);
 
-  // Calculate timeout based on number of images (30 seconds per image, max 2 minutes)
-  const timeoutMs = Math.min(TIMEOUT_MS * images.length, 120000);
+  // Calculate timeout based on number of images (60 seconds per image, max 5 minutes)
+  const timeoutMs = Math.min(TIMEOUT_MS * images.length, 300000);
 
   return retryWithBackoff(async () => {
     try {

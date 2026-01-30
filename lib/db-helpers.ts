@@ -112,6 +112,16 @@ export const labelImageHelpers = {
     return stmt.run(extractedData, verificationResult, confidenceScore, processingTimeMs, id);
   },
 
+  clearVerificationResults: (applicationId: number) => {
+    const stmt = db.prepare(`
+      UPDATE label_images 
+      SET verification_result = NULL, extracted_data = NULL, confidence_score = NULL,
+          processed_at = NULL, processing_time_ms = NULL
+      WHERE application_id = ?
+    `);
+    return stmt.run(applicationId);
+  },
+
   delete: (id: number) => {
     const stmt = db.prepare('DELETE FROM label_images WHERE id = ?');
     return stmt.run(id);

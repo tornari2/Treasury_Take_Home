@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ApplicationForm } from '@/components/application-form';
+import { MessageSquare } from 'lucide-react';
 
 interface Application {
   id: number;
@@ -31,6 +32,7 @@ interface Application {
   created_at: string;
   expected_label_data: any;
   application_data?: any;
+  review_notes?: string | null;
 }
 
 export default function Dashboard() {
@@ -420,13 +422,14 @@ export default function Dashboard() {
                   <TableHead>Product Type</TableHead>
                   <TableHead>Product Source</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Review Notes</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {applications.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       No applications found
                     </TableCell>
                   </TableRow>
@@ -452,6 +455,22 @@ export default function Dashboard() {
                         <Badge variant={getStatusVariant(app.status)}>
                           {getStatusDisplayText(app.status)}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {app.review_notes &&
+                        (app.status === 'approved' || app.status === 'rejected') ? (
+                          <div className="relative group inline-flex items-center justify-center">
+                            <MessageSquare className="h-4 w-4 text-muted-foreground cursor-help hover:text-foreground transition-colors" />
+                            <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 w-80 max-w-[calc(100vw-2rem)] p-3 bg-gray-900 text-white text-xs rounded-md shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                              <div className="whitespace-pre-wrap break-words max-h-48 overflow-y-auto">
+                                {app.review_notes}
+                              </div>
+                              <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(app.created_at).toLocaleDateString()}

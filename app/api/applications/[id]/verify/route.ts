@@ -53,11 +53,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       );
     }
 
-    // Reset status to "pending" when re-verifying
+    // Reset status to "pending" and clear review notes when re-verifying
     // This ensures that re-verification starts fresh regardless of previous status
-    if (application.status !== 'pending') {
-      applicationHelpers.updateStatus(applicationId, 'pending', null);
-    }
+    applicationHelpers.updateStatus(applicationId, 'pending', null);
+
+    // CRITICAL: Clear old verification results BEFORE processing new verification
+    // This prevents showing stale verification results when re-verifying
+    labelImageHelpers.clearVerificationResults(applicationId);
 
     // Convert database Application to ApplicationData format
     const applicationData = convertApplicationToApplicationData(
@@ -68,53 +70,67 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const verificationResults: Record<string, any[]> = {};
     const startTime = Date.now();
 
-    // Process all label images together
+    // Process all label images together with a hard timeout safeguard
     try {
-      // Prepare all images for extraction
-      const images = labelImages.map((img) => ({
-        imageBuffer: img.image_data,
-        mimeType: img.mime_type,
-      }));
+      const verificationTimeoutMs = 180000; // 3 minutes max for the whole verification
+      await Promise.race([
+        (async () => {
+          // Prepare all images for extraction
+          const images = labelImages.map((img) => ({
+            imageBuffer: img.image_data,
+            mimeType: img.mime_type,
+          }));
 
-      // Extract data from all images using OpenAI (single API call)
-      const { extractedData, processingTimeMs } = await extractLabelData(
-        images,
-        application.beverage_type
-      );
+          // Extract data from all images using OpenAI (single API call)
+          const { extractedData, processingTimeMs } = await extractLabelData(
+            images,
+            application.beverage_type
+          );
 
-      // Verify extracted data against application data
-      const verificationResult = verifyApplication(applicationData, extractedData);
+          // Verify extracted data against application data
+          const verificationResult = verifyApplication(applicationData, extractedData);
 
-      // Determine if status should change
-      const newStatus = determineApplicationStatus(verificationResult);
+          // Determine if status should change
+          const newStatus = determineApplicationStatus(verificationResult);
 
-      // Store results in database for each image (same extracted data for all)
-      for (const labelImage of labelImages) {
-        labelImageHelpers.updateExtraction(
-          labelImage.id,
-          JSON.stringify(extractedData),
-          JSON.stringify(verificationResult),
-          null, // confidence_score no longer used
-          processingTimeMs
-        );
+          // Store results in database for each image (same extracted data for all)
+          for (const labelImage of labelImages) {
+            labelImageHelpers.updateExtraction(
+              labelImage.id,
+              JSON.stringify(extractedData),
+              JSON.stringify(verificationResult),
+              null, // confidence_score no longer used
+              processingTimeMs
+            );
 
-        // Store results as array to handle duplicate image types
-        if (!verificationResults[labelImage.image_type]) {
-          verificationResults[labelImage.image_type] = [];
-        }
-        verificationResults[labelImage.image_type].push({
-          image_id: labelImage.id,
-          verification_result: verificationResult,
-          processing_time_ms: processingTimeMs,
-        });
-      }
+            // Store results as array to handle duplicate image types
+            if (!verificationResults[labelImage.image_type]) {
+              verificationResults[labelImage.image_type] = [];
+            }
+            verificationResults[labelImage.image_type].push({
+              image_id: labelImage.id,
+              verification_result: verificationResult,
+              processing_time_ms: processingTimeMs,
+            });
+          }
 
-      // Update application status based on verification results
-      // Note: needs_review status is no longer used - soft mismatches stay as pending
-      if (newStatus === 'needs_review') {
-        // Convert needs_review to pending
-        applicationHelpers.updateStatus(applicationId, 'pending', null);
-      }
+          // Update application status based on verification results
+          // Note: needs_review status is no longer used - soft mismatches stay as pending
+          if (newStatus === 'needs_review') {
+            // Convert needs_review to pending
+            applicationHelpers.updateStatus(applicationId, 'pending', null);
+          }
+        })(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new OpenAITimeoutError(`Verification timed out after ${verificationTimeoutMs}ms`)
+              ),
+            verificationTimeoutMs
+          )
+        ),
+      ]);
     } catch (error) {
       console.error(`Error processing label images for application ${applicationId}:`, error);
 
